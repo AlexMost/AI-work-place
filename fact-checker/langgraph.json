@@ -1,0 +1,6 @@
+{
+  "node_version": "20",
+  "graphs": {
+    "fact_checker": "./src/graph.ts:graph"
+  }
+}
