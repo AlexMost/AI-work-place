@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { locateExtractedClaims } from '../src/claimLocation';
-import { LocatedClaimSchema } from '../src/textSchemas';
+import { locateExtractedClaims } from '../src/core/claimLocation';
+import { LocatedClaimSchema } from '../src/core/textSchemas';
 
 describe('locateExtractedClaims', () => {
   it('maps exact sourceText to start and end offsets', () => {

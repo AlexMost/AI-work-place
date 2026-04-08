@@ -5,10 +5,10 @@ const { graphInvoke, structuredInvoke } = vi.hoisted(() => ({
   structuredInvoke: vi.fn(),
 }));
 
-vi.mock('../src/graph', () => ({
-  graph: {
+vi.mock('../src/core/graph', () => ({
+  createGraph: () => ({
     invoke: graphInvoke,
-  },
+  }),
 }));
 
 vi.mock('@langchain/openai', () => ({
@@ -21,7 +21,9 @@ vi.mock('@langchain/openai', () => ({
   },
 }));
 
-import { checkFact } from '../src/factCheck';
+import { checkFact } from '../src/core/factCheck';
+
+const TEST_API_KEY = 'test-key';
 
 describe('checkFact', () => {
   beforeEach(() => {
@@ -39,7 +41,7 @@ describe('checkFact', () => {
     });
     structuredInvoke.mockResolvedValueOnce(verdict);
 
-    await expect(checkFact('Kyiv is the capital of Ukraine.')).resolves.toEqual(verdict);
+    await expect(checkFact('Kyiv is the capital of Ukraine.', TEST_API_KEY)).resolves.toEqual(verdict);
     expect(structuredInvoke).toHaveBeenCalledWith(
       'Extract the fact-check verdict from this text:\n\nVerdict: SUPPORTED\nExplanation: Confirmed.'
     );
@@ -63,7 +65,7 @@ describe('checkFact', () => {
     });
     structuredInvoke.mockResolvedValueOnce(verdict);
 
-    await expect(checkFact('Berlin is the capital of France.')).resolves.toEqual(verdict);
+    await expect(checkFact('Berlin is the capital of France.', TEST_API_KEY)).resolves.toEqual(verdict);
     expect(structuredInvoke).toHaveBeenCalledWith(
       'Extract the fact-check verdict from this text:\n\nVerdict: REFUTED\nExplanation: The evidence contradicts the claim.'
     );
