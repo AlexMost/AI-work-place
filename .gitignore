@@ -5,3 +5,9 @@ node_modules
 dist
 **/dist
 .env
+
+# LangGraph API
+.langgraph_api
+
+# Local git worktrees
+.worktrees
