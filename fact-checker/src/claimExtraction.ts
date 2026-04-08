@@ -1,9 +1,13 @@
 import { ChatOpenAI } from '@langchain/openai';
-import { ExtractedClaimsSchema, type ExtractedClaim } from './textSchemas';
+import {
+  ExtractClaimsResponseSchema,
+  type ExtractedClaim,
+} from './textSchemas';
 
 const STRICT_SOURCE_TEXT_PROMPT = [
   'Extract the check-worthy claims from the input text.',
-  'Return only an array of objects with `claim` and `sourceText`.',
+  'Return only an object with a `claims` array.',
+  'Each item in `claims` must be an object with `claim` and `sourceText`.',
   'The `sourceText` value must be an exact unchanged substring copied from the input text.',
   'Do not normalize quotes, punctuation, spacing, casing, or word order.',
   'If you cannot copy an exact substring for a claim, omit that claim entirely.',
@@ -19,8 +23,8 @@ export async function extractClaimsFromText(text: string): Promise<ExtractedClai
     temperature: 0,
   });
 
-  const extractor = model.withStructuredOutput(ExtractedClaimsSchema);
-  const extractedClaims = ExtractedClaimsSchema.parse(
+  const extractor = model.withStructuredOutput(ExtractClaimsResponseSchema);
+  const response = ExtractClaimsResponseSchema.parse(
     await extractor.invoke([
       {
         role: 'system',
@@ -33,5 +37,5 @@ export async function extractClaimsFromText(text: string): Promise<ExtractedClai
     ])
   );
 
-  return extractedClaims.filter(({ sourceText }) => isExactSourceTextMatch(text, sourceText));
+  return response.claims.filter(({ sourceText }) => isExactSourceTextMatch(text, sourceText));
 }
