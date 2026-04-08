@@ -19,20 +19,22 @@ export const ExtractedClaimSchema = z.object({
 
 export const ExtractedClaimsSchema = z.array(ExtractedClaimSchema);
 
-const NullLocatedClaimSchema = ExtractedClaimSchema.extend({
-  start: z.null(),
-  end: z.null(),
-});
-
-const RangedLocatedClaimSchema = ExtractedClaimSchema.extend({
-  start: z.number().int().nonnegative(),
-  end: z.number().int().nonnegative(),
-}).refine((value) => value.end >= value.start, {
-  message: 'end must be greater than or equal to start',
-  path: ['end'],
-});
-
-export const LocatedClaimSchema = z.union([NullLocatedClaimSchema, RangedLocatedClaimSchema]);
+export const LocatedClaimSchema = ExtractedClaimSchema.extend({
+  start: z.number().int().nonnegative().nullable(),
+  end: z.number().int().nonnegative().nullable(),
+})
+  .refine((value) => (value.start === null) === (value.end === null), {
+    message: 'start and end must both be null or both be numbers',
+    path: ['end'],
+  })
+  .refine(
+    (value) =>
+      value.start === null || value.end === null || value.end >= value.start,
+    {
+      message: 'end must be greater than or equal to start',
+      path: ['end'],
+    }
+  );
 
 export type ExtractedClaim = z.infer<typeof ExtractedClaimSchema>;
 export type LocatedClaim = z.infer<typeof LocatedClaimSchema>;
