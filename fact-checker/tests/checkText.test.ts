@@ -21,8 +21,15 @@ vi.mock('../src/factCheck', async () => {
 import { checkText } from '../src/checkText';
 
 describe('checkText', () => {
+  const originalDebug = process.env.FACT_CHECKER_DEBUG;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    if (originalDebug === undefined) {
+      delete process.env.FACT_CHECKER_DEBUG;
+    } else {
+      process.env.FACT_CHECKER_DEBUG = originalDebug;
+    }
   });
 
   it('groups supported and refuted claims with offsets', async () => {
@@ -155,5 +162,137 @@ describe('checkText', () => {
         },
       ],
     });
+  });
+
+  it('checks matched claims in parallel', async () => {
+    const resolvers: Array<(value: { verdict: 'SUPPORTED'; explanation: string }) => void> = [];
+
+    extractClaimsFromText.mockResolvedValueOnce([
+      {
+        claim: 'Paris is the capital of France.',
+        sourceText: 'Paris is the capital of France',
+      },
+      {
+        claim: 'Kyiv is the capital of Ukraine.',
+        sourceText: 'Kyiv is the capital of Ukraine',
+      },
+    ]);
+    checkFact.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvers.push(resolve);
+        })
+    );
+
+    const pendingResult = checkText(
+      'Paris is the capital of France. Kyiv is the capital of Ukraine.'
+    );
+
+    await Promise.resolve();
+
+    expect(checkFact).toHaveBeenCalledTimes(2);
+
+    resolvers[1]!({
+      verdict: 'SUPPORTED',
+      explanation: 'Confirmed for Kyiv.',
+    });
+    resolvers[0]!({
+      verdict: 'SUPPORTED',
+      explanation: 'Confirmed for Paris.',
+    });
+
+    await expect(pendingResult).resolves.toEqual({
+      supported: [
+        {
+          claim: 'Paris is the capital of France.',
+          sourceText: 'Paris is the capital of France',
+          start: 0,
+          end: 30,
+          explanation: 'Confirmed for Paris.',
+        },
+        {
+          claim: 'Kyiv is the capital of Ukraine.',
+          sourceText: 'Kyiv is the capital of Ukraine',
+          start: 32,
+          end: 62,
+          explanation: 'Confirmed for Kyiv.',
+        },
+      ],
+      refuted: [],
+      notEnoughInfo: [],
+    });
+  });
+
+  it('emits stage logs in debug mode', async () => {
+    process.env.FACT_CHECKER_DEBUG = '1';
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+    extractClaimsFromText.mockResolvedValueOnce([
+      {
+        claim: 'Paris is the capital of France.',
+        sourceText: 'Paris is the capital of France',
+      },
+    ]);
+    checkFact.mockResolvedValueOnce({
+      verdict: 'SUPPORTED',
+      explanation: 'Confirmed by Wikipedia.',
+    });
+
+    await checkText('Paris is the capital of France.');
+
+    expect(debugSpy.mock.calls.every((args) => args.length === 1)).toBe(true);
+    expect(
+      debugSpy.mock.calls.some(
+        ([message]) => typeof message === 'string' && message.includes('extract:start')
+      )
+    ).toBe(true);
+    expect(
+      debugSpy.mock.calls.some(
+        ([message]) => typeof message === 'string' && message.includes('extract:done')
+      )
+    ).toBe(true);
+    expect(
+      debugSpy.mock.calls.some(
+        ([message]) => typeof message === 'string' && message.includes('locate:done')
+      )
+    ).toBe(true);
+    expect(
+      debugSpy.mock.calls.some(
+        ([message]) => typeof message === 'string' && message.includes('claim:check:start')
+      )
+    ).toBe(true);
+    expect(
+      debugSpy.mock.calls.some(
+        ([message]) => typeof message === 'string' && message.includes('claim:check:done')
+      )
+    ).toBe(true);
+    expect(
+      debugSpy.mock.calls.some(
+        ([message]) => typeof message === 'string' && message.includes('result:summary')
+      )
+    ).toBe(true);
+
+    debugSpy.mockRestore();
+  });
+
+  it('does not emit stage logs when debug mode is disabled', async () => {
+    delete process.env.FACT_CHECKER_DEBUG;
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+    extractClaimsFromText.mockResolvedValueOnce([
+      {
+        claim: 'Paris is the capital of France.',
+        sourceText: 'Paris is the capital of France',
+      },
+    ]);
+    checkFact.mockResolvedValueOnce({
+      verdict: 'SUPPORTED',
+      explanation: 'Confirmed by Wikipedia.',
+    });
+
+    await checkText('Paris is the capital of France.');
+
+    expect(debugSpy).not.toHaveBeenCalled();
+    debugSpy.mockRestore();
   });
 });

@@ -19,6 +19,10 @@ export const ExtractedClaimSchema = z.object({
 
 export const ExtractedClaimsSchema = z.array(ExtractedClaimSchema);
 
+export const ExtractClaimsResponseSchema = z.object({
+  claims: ExtractedClaimsSchema,
+});
+
 export const LocatedClaimSchema = ExtractedClaimSchema.extend({
   start: z.number().int().nonnegative().nullable(),
   end: z.number().int().nonnegative().nullable(),

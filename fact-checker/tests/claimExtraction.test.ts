@@ -24,12 +24,14 @@ describe('extractClaimsFromText', () => {
   });
 
   it('returns parsed extracted claims from structured output', async () => {
-    structuredInvoke.mockResolvedValueOnce([
-      {
-        claim: 'Paris is the capital of France.',
-        sourceText: 'Paris is the capital of France',
-      },
-    ]);
+    structuredInvoke.mockResolvedValueOnce({
+      claims: [
+        {
+          claim: 'Paris is the capital of France.',
+          sourceText: 'Paris is the capital of France',
+        },
+      ],
+    });
 
     await expect(
       extractClaimsFromText('Paris is the capital of France.')
@@ -43,12 +45,14 @@ describe('extractClaimsFromText', () => {
 
   it('sends isolated system and user messages to the model', async () => {
     const text = 'She wrote: "Paris is the Capital of France."\nThen left.';
-    structuredInvoke.mockResolvedValueOnce([
-      {
-        claim: 'She wrote that Paris is the capital of France.',
-        sourceText: '"Paris is the Capital of France."\n',
-      },
-    ]);
+    structuredInvoke.mockResolvedValueOnce({
+      claims: [
+        {
+          claim: 'She wrote that Paris is the capital of France.',
+          sourceText: '"Paris is the Capital of France."\n',
+        },
+      ],
+    });
 
     await expect(extractClaimsFromText(text)).resolves.toEqual([
       {
@@ -68,15 +72,21 @@ describe('extractClaimsFromText', () => {
         content: text,
       }),
     ]);
+
+    const schema = withStructuredOutput.mock.calls[0]?.[0];
+    expect(schema?.safeParse({ claims: [] }).success).toBe(true);
+    expect(schema?.safeParse([]).success).toBe(false);
   });
 
   it('rejects malformed structured output', async () => {
-    structuredInvoke.mockResolvedValueOnce([
-      {
-        claim: 'Paris is the capital of France.',
-        sourceText: '',
-      },
-    ]);
+    structuredInvoke.mockResolvedValueOnce({
+      claims: [
+        {
+          claim: 'Paris is the capital of France.',
+          sourceText: '',
+        },
+      ],
+    });
 
     await expect(
       extractClaimsFromText('Paris is the capital of France.')
@@ -84,16 +94,18 @@ describe('extractClaimsFromText', () => {
   });
 
   it('rejects malformed claim values', async () => {
-    structuredInvoke.mockResolvedValueOnce([
-      {
-        claim: '   ',
-        sourceText: 'Paris',
-      },
-      {
-        claim: '!!!',
-        sourceText: 'Paris',
-      },
-    ]);
+    structuredInvoke.mockResolvedValueOnce({
+      claims: [
+        {
+          claim: '   ',
+          sourceText: 'Paris',
+        },
+        {
+          claim: '!!!',
+          sourceText: 'Paris',
+        },
+      ],
+    });
 
     await expect(
       extractClaimsFromText('Paris is the capital of France.')
@@ -101,16 +113,18 @@ describe('extractClaimsFromText', () => {
   });
 
   it('omits claims whose sourceText is not an exact substring', async () => {
-    structuredInvoke.mockResolvedValueOnce([
-      {
-        claim: 'Paris is the capital of France.',
-        sourceText: 'Paris is the capital of France',
-      },
-      {
-        claim: 'France is in Europe.',
-        sourceText: 'France is in Europe',
-      },
-    ]);
+    structuredInvoke.mockResolvedValueOnce({
+      claims: [
+        {
+          claim: 'Paris is the capital of France.',
+          sourceText: 'Paris is the capital of France',
+        },
+        {
+          claim: 'France is in Europe.',
+          sourceText: 'France is in Europe',
+        },
+      ],
+    });
 
     await expect(
       extractClaimsFromText('Paris is the capital of France.')
@@ -123,16 +137,18 @@ describe('extractClaimsFromText', () => {
   });
 
   it('rejects degenerate exact substrings', async () => {
-    structuredInvoke.mockResolvedValueOnce([
-      {
-        claim: 'Whitespace only.',
-        sourceText: '   ',
-      },
-      {
-        claim: 'Punctuation only.',
-        sourceText: '!!!',
-      },
-    ]);
+    structuredInvoke.mockResolvedValueOnce({
+      claims: [
+        {
+          claim: 'Whitespace only.',
+          sourceText: '   ',
+        },
+        {
+          claim: 'Punctuation only.',
+          sourceText: '!!!',
+        },
+      ],
+    });
 
     await expect(
       extractClaimsFromText('Paris is the capital of France.')
