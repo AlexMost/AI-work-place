@@ -1,8 +1,20 @@
 import { z } from 'zod';
 
+const MEANINGFUL_SOURCE_TEXT_RE = /[\p{L}\p{N}]/u;
+
 export const ExtractedClaimSchema = z.object({
-  claim: z.string().min(1),
-  sourceText: z.string().min(1),
+  claim: z
+    .string()
+    .min(1)
+    .refine((value) => MEANINGFUL_SOURCE_TEXT_RE.test(value), {
+      message: 'claim must contain at least one letter or number',
+    }),
+  sourceText: z
+    .string()
+    .min(1)
+    .refine((value) => MEANINGFUL_SOURCE_TEXT_RE.test(value), {
+      message: 'sourceText must contain at least one letter or number',
+    }),
 });
 
 export const ExtractedClaimsSchema = z.array(ExtractedClaimSchema);
