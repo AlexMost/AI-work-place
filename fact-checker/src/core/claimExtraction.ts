@@ -17,10 +17,11 @@ function isExactSourceTextMatch(text: string, sourceText: string): boolean {
   return text.includes(sourceText);
 }
 
-export async function extractClaimsFromText(text: string): Promise<ExtractedClaim[]> {
+export async function extractClaimsFromText(text: string, apiKey: string): Promise<ExtractedClaim[]> {
   const model = new ChatOpenAI({
     model: 'gpt-5.4',
     temperature: 0,
+    apiKey,
   });
 
   const extractor = model.withStructuredOutput(ExtractClaimsResponseSchema);

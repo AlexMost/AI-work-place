@@ -22,9 +22,9 @@ function buildCheckedTextItem(item: LocatedClaim, result: FactCheckResult): Chec
   };
 }
 
-export async function checkText(text: string): Promise<CheckTextResult> {
+export async function checkText(text: string, apiKey: string): Promise<CheckTextResult> {
   debugLog('extract:start', `textLength=${text.length}`);
-  const extractedClaims = await extractClaimsFromText(text);
+  const extractedClaims = await extractClaimsFromText(text, apiKey);
   debugLog('extract:done', `claimsCount=${extractedClaims.length}`);
   const locatedClaims = locateExtractedClaims(text, extractedClaims);
   debugLog('locate:done', `claimsCount=${locatedClaims.length}`);
@@ -56,7 +56,7 @@ export async function checkText(text: string): Promise<CheckTextResult> {
           'claim:check:start',
           `claim="${item.claim}" sourceText="${item.sourceText}" span=${item.start}-${item.end}`
         );
-        const result = await checkFact(item.claim);
+        const result = await checkFact(item.claim, apiKey);
         debugLog('claim:check:done', `claim="${item.claim}" verdict=${result.verdict}`);
 
         return {
