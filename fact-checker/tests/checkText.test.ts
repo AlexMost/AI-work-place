@@ -5,12 +5,12 @@ const { extractClaimsFromText, checkFact } = vi.hoisted(() => ({
   checkFact: vi.fn(),
 }));
 
-vi.mock('../src/claimExtraction', () => ({
+vi.mock('../src/core/claimExtraction', () => ({
   extractClaimsFromText,
 }));
 
-vi.mock('../src/factCheck', async () => {
-  const actual = await vi.importActual<typeof import('../src/factCheck')>('../src/factCheck');
+vi.mock('../src/core/factCheck', async () => {
+  const actual = await vi.importActual<typeof import('../src/core/factCheck')>('../src/core/factCheck');
 
   return {
     ...actual,
@@ -18,7 +18,9 @@ vi.mock('../src/factCheck', async () => {
   };
 });
 
-import { checkText } from '../src/checkText';
+import { checkText } from '../src/core/checkText';
+
+const TEST_API_KEY = 'test-key';
 
 describe('checkText', () => {
   const originalDebug = process.env.FACT_CHECKER_DEBUG;
@@ -54,7 +56,7 @@ describe('checkText', () => {
 
     const text = 'Paris is the capital of France. Berlin is the capital of France.';
 
-    const result = await checkText(text);
+    const result = await checkText(text, TEST_API_KEY);
 
     expect(result).toEqual({
       supported: [
@@ -82,8 +84,8 @@ describe('checkText', () => {
       refuted: expect.any(Array),
       notEnoughInfo: expect.any(Array),
     });
-    expect(checkFact).toHaveBeenNthCalledWith(1, 'Paris is the capital of France.');
-    expect(checkFact).toHaveBeenNthCalledWith(2, 'Berlin is the capital of France.');
+    expect(checkFact).toHaveBeenNthCalledWith(1, 'Paris is the capital of France.', TEST_API_KEY);
+    expect(checkFact).toHaveBeenNthCalledWith(2, 'Berlin is the capital of France.', TEST_API_KEY);
   });
 
   it('keeps unmatched sourceText claims in notEnoughInfo', async () => {
@@ -94,7 +96,7 @@ describe('checkText', () => {
       },
     ]);
 
-    const result = await checkText('Paris is the capital of France.');
+    const result = await checkText('Paris is the capital of France.', TEST_API_KEY);
 
     expect(result.supported).toEqual([]);
     expect(result.refuted).toEqual([]);
@@ -122,7 +124,7 @@ describe('checkText', () => {
       explanation: 'The available evidence is inconclusive.',
     });
 
-    const result = await checkText('The population of Atlantis is 1 million.');
+    const result = await checkText('The population of Atlantis is 1 million.', TEST_API_KEY);
 
     expect(result).toEqual({
       supported: [],
@@ -149,7 +151,7 @@ describe('checkText', () => {
     ]);
     checkFact.mockRejectedValueOnce(new Error('Verification failed'));
 
-    await expect(checkText('Kyiv is the capital of Ukraine.')).resolves.toEqual({
+    await expect(checkText('Kyiv is the capital of Ukraine.', TEST_API_KEY)).resolves.toEqual({
       supported: [],
       refuted: [],
       notEnoughInfo: [
@@ -185,7 +187,8 @@ describe('checkText', () => {
     );
 
     const pendingResult = checkText(
-      'Paris is the capital of France. Kyiv is the capital of Ukraine.'
+      'Paris is the capital of France. Kyiv is the capital of Ukraine.',
+      TEST_API_KEY
     );
 
     await Promise.resolve();
@@ -238,7 +241,7 @@ describe('checkText', () => {
       explanation: 'Confirmed by Wikipedia.',
     });
 
-    await checkText('Paris is the capital of France.');
+    await checkText('Paris is the capital of France.', TEST_API_KEY);
 
     expect(debugSpy.mock.calls.every((args) => args.length === 1)).toBe(true);
     expect(
@@ -290,7 +293,7 @@ describe('checkText', () => {
       explanation: 'Confirmed by Wikipedia.',
     });
 
-    await checkText('Paris is the capital of France.');
+    await checkText('Paris is the capital of France.', TEST_API_KEY);
 
     expect(debugSpy).not.toHaveBeenCalled();
     debugSpy.mockRestore();

@@ -16,7 +16,7 @@ vi.mock('@langchain/openai', () => ({
   ChatOpenAI: chatOpenAiCtor,
 }));
 
-import { extractClaimsFromText } from '../src/claimExtraction';
+import { extractClaimsFromText } from '../src/core/claimExtraction';
 
 describe('extractClaimsFromText', () => {
   beforeEach(() => {

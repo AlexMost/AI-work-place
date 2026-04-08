@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { graph } from './graph';
+import { createGraph } from './graph';
 import { ChatOpenAI } from '@langchain/openai';
 
 export const VerdictSchema = z.object({
@@ -9,8 +9,6 @@ export const VerdictSchema = z.object({
 
 export type FactCheckVerdict = z.infer<typeof VerdictSchema>['verdict'];
 export type FactCheckResult = z.infer<typeof VerdictSchema>;
-
-const structuredLlm = new ChatOpenAI({ model: 'gpt-5.4-mini' }).withStructuredOutput(VerdictSchema);
 
 function extractTextFromContent(content: unknown): string {
   if (typeof content === 'string') {
@@ -43,7 +41,9 @@ function extractTextFromContent(content: unknown): string {
   return '';
 }
 
-export async function checkFact(claim: string): Promise<FactCheckResult> {
+export async function checkFact(claim: string, apiKey: string): Promise<FactCheckResult> {
+  const graph = createGraph(apiKey);
+
   const result = await graph.invoke({
     messages: [{ role: 'user', content: claim }],
   });
@@ -54,5 +54,6 @@ export async function checkFact(claim: string): Promise<FactCheckResult> {
   }
   const finalMessage = extractTextFromContent(lastMessage.content);
 
+  const structuredLlm = new ChatOpenAI({ model: 'gpt-5.4-mini', apiKey }).withStructuredOutput(VerdictSchema);
   return structuredLlm.invoke(`Extract the fact-check verdict from this text:\n\n${finalMessage}`);
 }

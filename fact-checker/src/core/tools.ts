@@ -9,7 +9,7 @@ const WIKI_HEADERS = {
 // 1. Пошук статей
 export const searchWikipedia = tool(
   async ({ query }) => {
-    const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&utf8=1`;
+    const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&utf8=1&origin=*`;
     const res = await fetch(url, { headers: WIKI_HEADERS });
     const data = await res.json();
     const titles = data.query.search.slice(0, 3).map((r: any) => r.title);
@@ -45,7 +45,7 @@ export const getPageSummary = tool(
 // 2. Отримати повну сторінку
 export const getPageFullContent = tool(
   async ({ title }) => {
-    const url = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(title)}&format=json`;
+    const url = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(title)}&format=json&origin=*`;
     const res = await fetch(url, { headers: WIKI_HEADERS });
     const data = await res.json();
     const pages = data.query.pages;
@@ -65,7 +65,7 @@ export const getPageFullContent = tool(
 // 3. Пошук в українській Вікіпедії
 export const searchWikipediaUk = tool(
   async ({ query }) => {
-    const url = `https://uk.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&utf8=1`;
+    const url = `https://uk.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&utf8=1&origin=*`;
     const res = await fetch(url, { headers: WIKI_HEADERS });
     const data = await res.json();
     const titles = data.query.search.slice(0, 3).map((r: any) => r.title);
@@ -100,7 +100,7 @@ export const getPageSummaryUk = tool(
 
 export const getPageFullContentUk = tool(
   async ({ title }) => {
-    const url = `https://uk.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(title)}&format=json`;
+    const url = `https://uk.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(title)}&format=json&origin=*`;
     const res = await fetch(url, { headers: WIKI_HEADERS });
     const data = await res.json();
     const pages = data.query.pages;

@@ -1,0 +1,169 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #222;
+  background: #fafafa;
+}
+
+.app {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  font-size: 24px;
+}
+
+.key-btn {
+  font-size: 13px;
+  padding: 4px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
+
+.input-section {
+  margin-bottom: 24px;
+}
+
+.text-input {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  resize: vertical;
+  font-family: inherit;
+  margin-bottom: 12px;
+}
+
+.check-btn {
+  padding: 10px 24px;
+  font-size: 15px;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+.check-btn:disabled {
+  background: #93b4f5;
+  cursor: not-allowed;
+}
+
+.error {
+  padding: 12px;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.result-section h2 {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.annotated-text {
+  font-size: 15px;
+  line-height: 1.7;
+  padding: 16px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  white-space: pre-wrap;
+}
+
+.claim-refuted {
+  background: #fecaca;
+  cursor: pointer;
+  border-bottom: 2px dashed #dc2626;
+  border-radius: 2px;
+  padding: 1px 2px;
+}
+
+.claim-not-enough-info {
+  background: #e5e7eb;
+  cursor: pointer;
+  border-bottom: 2px dashed #6b7280;
+  border-radius: 2px;
+  padding: 1px 2px;
+}
+
+.claim-detail {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: white;
+}
+
+.claim-detail .verdict {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.claim-detail .verdict.refuted {
+  color: #dc2626;
+}
+
+.claim-detail .verdict.not-enough-info {
+  color: #6b7280;
+}
+
+.claim-detail .claim-text {
+  font-style: italic;
+  margin-bottom: 8px;
+  color: #555;
+}
+
+.claim-detail .explanation {
+  line-height: 1.5;
+}
+
+.api-key-dialog {
+  max-width: 400px;
+  margin: 120px auto;
+  padding: 32px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.api-key-dialog h2 {
+  margin-bottom: 16px;
+}
+
+.api-key-dialog input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.api-key-dialog button {
+  padding: 10px 24px;
+  font-size: 15px;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}

@@ -5,11 +5,11 @@ const { checkText, checkFact } = vi.hoisted(() => ({
   checkFact: vi.fn(),
 }));
 
-vi.mock('../src/checkText', () => ({
+vi.mock('../src/core/checkText', () => ({
   checkText,
 }));
 
-vi.mock('../src/factCheck', () => ({
+vi.mock('../src/core/factCheck', () => ({
   checkFact,
 }));
 
@@ -20,7 +20,7 @@ describe('package entrypoint', () => {
   });
 
   it('is safe to import and re-exports the feature API', async () => {
-    const entrypoint = await import('../src/index');
+    const entrypoint = await import('../src/core/index');
 
     expect(entrypoint.checkText).toBe(checkText);
     expect(entrypoint.checkFact).toBe(checkFact);
