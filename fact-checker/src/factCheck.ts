@@ -2,12 +2,13 @@ import { z } from 'zod';
 import { graph } from './graph';
 import { ChatOpenAI } from '@langchain/openai';
 
-const VerdictSchema = z.object({
+export const VerdictSchema = z.object({
   verdict: z.enum(['SUPPORTED', 'REFUTED', 'NOT_ENOUGH_INFO']),
   explanation: z.string(),
 });
 
-type FactCheckResult = z.infer<typeof VerdictSchema>;
+export type FactCheckVerdict = z.infer<typeof VerdictSchema>['verdict'];
+export type FactCheckResult = z.infer<typeof VerdictSchema>;
 
 const structuredLlm = new ChatOpenAI({ model: 'gpt-5.4-mini' }).withStructuredOutput(VerdictSchema);
 
