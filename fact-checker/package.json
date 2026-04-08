@@ -10,15 +10,18 @@
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/index.ts",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"vitest.config.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"vitest.config.ts\"",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@types/node": "^25.5.2",
     "prettier": "^3.8.1",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8"
   },
   "dependencies": {
     "@langchain/core": "^1.1.39",
