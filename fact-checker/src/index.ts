@@ -1,12 +1,21 @@
 import 'dotenv/config';
 import { checkText } from './checkText';
+import { checkFact } from './factCheck';
 
-const main = async (text: string) => {
+const DEFAULT_DEMO_TEXT = 'Курган Агрегат написали пісню Деган? Київ є столицею України.';
+
+export { checkText, checkFact };
+export type { CheckTextResult, CheckedTextItem } from './checkText';
+export type { FactCheckResult, FactCheckVerdict } from './factCheck';
+
+export const runDemo = async (text: string = DEFAULT_DEMO_TEXT) => {
   const result = await checkText(text);
   console.dir(result, { depth: null });
 };
 
-main('Курган Агрегат написали пісню Деган? Київ є столицею України.').catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  runDemo().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
