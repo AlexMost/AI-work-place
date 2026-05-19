@@ -11,3 +11,7 @@ dist
 
 # Local git worktrees
 .worktrees
+
+# Per-user local Claude Code settings
+.claude/settings.local.json
+**/.claude/settings.local.json

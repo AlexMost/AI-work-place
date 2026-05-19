@@ -1,6 +1,6 @@
 {
   "node_version": "20",
   "graphs": {
-    "fact_checker": "./src/graph.ts:graph"
+    "fact_checker": "./src/core/debugGraph.ts:debugGraph"
   }
 }
