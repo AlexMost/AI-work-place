@@ -4,6 +4,8 @@ node_modules
 **/.idea
 dist
 **/dist
+dist-ui
+**/dist-ui
 .env
 
 # LangGraph API
