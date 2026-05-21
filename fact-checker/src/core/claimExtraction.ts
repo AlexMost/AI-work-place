@@ -23,7 +23,7 @@ export async function extractClaimsFromText(
   apiKey: string
 ): Promise<ExtractedClaim[]> {
   const model = new ChatOpenAI({
-    model: 'gpt-5.4',
+    model: 'gpt-5.4-nano',
     temperature: 0,
     apiKey,
   });
