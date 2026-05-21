@@ -6,12 +6,13 @@ interface Props {
 }
 
 export function ClaimDetail({ claim, verdict }: Props) {
+  const isRefuted = verdict === 'refuted';
   return (
-    <div className="claim-detail">
-      <div className={`verdict ${verdict === 'refuted' ? 'refuted' : 'not-enough-info'}`}>
-        {verdict === 'refuted' ? 'Спростовано' : 'Недостатньо інформації'}
+    <div className={`claim-detail ${isRefuted ? '--refuted' : '--nei'}`}>
+      <div className={`verdict ${isRefuted ? 'refuted' : 'not-enough-info'}`}>
+        {isRefuted ? 'Спростовано' : 'Недостатньо доказів'}
       </div>
-      <div className="claim-text">"{claim.claim}"</div>
+      <div className="claim-text">«{claim.claim}»</div>
       <div className="explanation">{claim.explanation}</div>
     </div>
   );

@@ -1,24 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { graphInvoke, structuredInvoke } = vi.hoisted(() => ({
+const { graphInvoke } = vi.hoisted(() => ({
   graphInvoke: vi.fn(),
-  structuredInvoke: vi.fn(),
 }));
 
 vi.mock('../src/core/graph', () => ({
   createGraph: () => ({
     invoke: graphInvoke,
   }),
-}));
-
-vi.mock('@langchain/openai', () => ({
-  ChatOpenAI: class {
-    withStructuredOutput() {
-      return {
-        invoke: structuredInvoke,
-      };
-    }
-  },
 }));
 
 import { checkFact } from '../src/core/factCheck';
@@ -30,44 +19,47 @@ describe('checkFact', () => {
     vi.clearAllMocks();
   });
 
-  it('extracts a verdict from plain string output', async () => {
+  it('returns the verdict produced by the graph', async () => {
     const verdict = {
-      verdict: 'SUPPORTED',
+      verdict: 'SUPPORTED' as const,
       explanation: 'Confirmed.',
-    } as const;
-
+    };
     graphInvoke.mockResolvedValueOnce({
-      messages: [{ content: 'Verdict: SUPPORTED\nExplanation: Confirmed.' }],
+      messages: [{ content: 'Kyiv is the capital of Ukraine.' }],
+      verdict,
     });
-    structuredInvoke.mockResolvedValueOnce(verdict);
 
-    await expect(checkFact('Kyiv is the capital of Ukraine.', TEST_API_KEY)).resolves.toEqual(verdict);
-    expect(structuredInvoke).toHaveBeenCalledWith(
-      'Extract the fact-check verdict from this text:\n\nVerdict: SUPPORTED\nExplanation: Confirmed.'
+    await expect(checkFact('Kyiv is the capital of Ukraine.', TEST_API_KEY)).resolves.toEqual(
+      verdict
+    );
+    expect(graphInvoke).toHaveBeenCalledWith({
+      messages: [{ role: 'user', content: 'Kyiv is the capital of Ukraine.' }],
+    });
+  });
+
+  it('propagates a refuted verdict verbatim', async () => {
+    const verdict = {
+      verdict: 'REFUTED' as const,
+      explanation: 'Wikipedia says Paris is the capital of France.',
+    };
+    graphInvoke.mockResolvedValueOnce({
+      messages: [{ content: 'Berlin is the capital of France.' }],
+      verdict,
+    });
+
+    await expect(checkFact('Berlin is the capital of France.', TEST_API_KEY)).resolves.toEqual(
+      verdict
     );
   });
 
-  it('extracts text from structured content blocks', async () => {
-    const verdict = {
-      verdict: 'REFUTED',
-      explanation: 'The evidence contradicts the claim.',
-    } as const;
-
+  it('throws when the graph produced no verdict', async () => {
     graphInvoke.mockResolvedValueOnce({
-      messages: [
-        {
-          content: [
-            { type: 'text', text: 'Verdict: REFUTED' },
-            { type: 'text', text: 'Explanation: The evidence contradicts the claim.' },
-          ],
-        },
-      ],
+      messages: [{ content: 'something' }],
+      verdict: null,
     });
-    structuredInvoke.mockResolvedValueOnce(verdict);
 
-    await expect(checkFact('Berlin is the capital of France.', TEST_API_KEY)).resolves.toEqual(verdict);
-    expect(structuredInvoke).toHaveBeenCalledWith(
-      'Extract the fact-check verdict from this text:\n\nVerdict: REFUTED\nExplanation: The evidence contradicts the claim.'
+    await expect(checkFact('Unknown claim.', TEST_API_KEY)).rejects.toThrow(
+      'Graph did not produce a verdict'
     );
   });
 });

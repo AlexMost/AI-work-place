@@ -1,14 +1,9 @@
-import { z } from 'zod';
 import { createGraph } from './graph';
-import { ChatOpenAI } from '@langchain/openai';
+import { debugLog } from './debug';
+import { VerdictSchema, type FactCheckResult, type FactCheckVerdict } from './schemas';
 
-export const VerdictSchema = z.object({
-  verdict: z.enum(['SUPPORTED', 'REFUTED', 'NOT_ENOUGH_INFO']),
-  explanation: z.string(),
-});
-
-export type FactCheckVerdict = z.infer<typeof VerdictSchema>['verdict'];
-export type FactCheckResult = z.infer<typeof VerdictSchema>;
+export { VerdictSchema };
+export type { FactCheckResult, FactCheckVerdict };
 
 function extractTextFromContent(content: unknown): string {
   if (typeof content === 'string') {
@@ -44,16 +39,35 @@ function extractTextFromContent(content: unknown): string {
 export async function checkFact(claim: string, apiKey: string): Promise<FactCheckResult> {
   const graph = createGraph(apiKey);
 
+  debugLog('factCheck:start', { claim });
+
   const result = await graph.invoke({
     messages: [{ role: 'user', content: claim }],
   });
 
-  const lastMessage = result.messages.at(-1);
-  if (!lastMessage) {
-    throw new Error('No result');
-  }
-  const finalMessage = extractTextFromContent(lastMessage.content);
+  debugLog('factCheck:graph_done', { claim, messages: result.messages.length });
 
-  const structuredLlm = new ChatOpenAI({ model: 'gpt-5.4-mini', apiKey }).withStructuredOutput(VerdictSchema);
-  return structuredLlm.invoke(`Extract the fact-check verdict from this text:\n\n${finalMessage}`);
+  result.messages.forEach((msg, i) => {
+    const text = extractTextFromContent(msg.content);
+    const toolCalls = (msg as { tool_calls?: unknown[] }).tool_calls;
+    const toolCallSummary = Array.isArray(toolCalls)
+      ? toolCalls.map((tc) => {
+          const t = tc as { name?: string; args?: unknown };
+          return { name: t.name, args: t.args };
+        })
+      : undefined;
+    debugLog(`factCheck:msg[${i}]`, {
+      role: msg.constructor.name,
+      toolCalls: toolCallSummary,
+      text: text || undefined,
+    });
+  });
+
+  if (!result.verdict) {
+    throw new Error('Graph did not produce a verdict');
+  }
+
+  debugLog('factCheck:verdict', { claim, verdict: result.verdict });
+
+  return result.verdict;
 }
