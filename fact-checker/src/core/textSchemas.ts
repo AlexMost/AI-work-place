@@ -31,14 +31,10 @@ export const LocatedClaimSchema = ExtractedClaimSchema.extend({
     message: 'start and end must both be null or both be numbers',
     path: ['end'],
   })
-  .refine(
-    (value) =>
-      value.start === null || value.end === null || value.end >= value.start,
-    {
-      message: 'end must be greater than or equal to start',
-      path: ['end'],
-    }
-  );
+  .refine((value) => value.start === null || value.end === null || value.end >= value.start, {
+    message: 'end must be greater than or equal to start',
+    path: ['end'],
+  });
 
 export type ExtractedClaim = z.infer<typeof ExtractedClaimSchema>;
 export type LocatedClaim = z.infer<typeof LocatedClaimSchema>;

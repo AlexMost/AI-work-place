@@ -371,6 +371,71 @@ body {
   font-weight: 600;
 }
 
+.input-head-right {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.input-head-hint {
+  color: var(--ink-mute);
+}
+
+@media (max-width: 520px) {
+  .input-head-hint {
+    display: none;
+  }
+}
+
+.collapse-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 4px 9px 3px;
+  border: 1px solid var(--ink-soft);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: 0;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.collapse-btn:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.input-body {
+  max-height: 800px;
+  opacity: 1;
+  overflow: hidden;
+  transition:
+    max-height 0.46s cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 0.3s ease,
+    margin-top 0.32s ease;
+}
+
+.paper-card[data-collapsed] .input-body {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+  margin-top: -6px;
+}
+
+.paper-card[data-collapsed] .input-pane {
+  padding-bottom: 18px;
+}
+
+.paper-card[data-collapsed] .input-head {
+  margin-bottom: 0;
+}
+
 .text-input {
   width: 100%;
   background: transparent;
@@ -471,12 +536,21 @@ body {
 
 .check-btn[data-loading='true']::after {
   content: '';
+  display: inline-block;
   width: 12px;
   height: 12px;
   border: 1.5px solid var(--paper);
   border-right-color: transparent;
   border-radius: 50%;
   animation: spin 0.9s linear infinite;
+  transform: none;
+}
+
+.check-btn:disabled[data-loading='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+  box-shadow: 3px 3px 0 0 var(--accent-ochre);
 }
 
 @keyframes spin {
@@ -666,6 +740,110 @@ body {
 .claim-not-enough-info:hover {
   background: var(--accent-ochre);
   color: var(--paper);
+}
+
+/* ============ LIVE ANNOTATED TEXT (in-progress) ============ */
+
+.annotated-text--live {
+  margin-top: 28px;
+}
+
+.annotated-text--live::before {
+  content: 'ПОТОЧНА ПЕРЕВІРКА';
+}
+
+.claim-live {
+  position: relative;
+  padding: 0 3px;
+  transition:
+    background 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.claim-live--pending {
+  background: rgba(168, 119, 38, 0.08);
+  border-bottom: 1px dotted var(--ink-mute);
+  color: var(--ink-soft);
+}
+
+.claim-live--checking {
+  background: linear-gradient(
+    90deg,
+    rgba(168, 119, 38, 0.18) 0%,
+    rgba(168, 119, 38, 0.42) 50%,
+    rgba(168, 119, 38, 0.18) 100%
+  );
+  background-size: 200% 100%;
+  border-bottom: 2px solid var(--accent-ochre);
+  color: var(--ink);
+  animation:
+    claim-shimmer 1.6s linear infinite,
+    claim-pulse 1.6s ease-in-out infinite;
+}
+
+.claim-live--checking::after {
+  content: attr(data-status-label);
+  position: absolute;
+  top: -1.4em;
+  left: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-ochre-deep);
+  background: var(--paper);
+  padding: 1px 6px;
+  border: 1px solid var(--accent-ochre);
+  white-space: nowrap;
+  animation: claim-tag-blink 1.2s ease-in-out infinite;
+}
+
+.claim-live--supported {
+  background: transparent;
+  border-bottom: 2px solid var(--accent-green);
+  color: var(--ink);
+}
+
+.claim-live--refuted {
+  background: var(--accent-red-soft);
+  border-bottom: 2px solid var(--accent-red);
+  color: var(--accent-red-deep);
+}
+
+.claim-live--nei {
+  background: var(--accent-ochre-soft);
+  border-bottom: 2px dashed var(--accent-ochre);
+  color: var(--accent-ochre-deep);
+}
+
+@keyframes claim-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes claim-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(168, 119, 38, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(168, 119, 38, 0);
+  }
+}
+
+@keyframes claim-tag-blink {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* ============ CLAIM DETAIL ============ */

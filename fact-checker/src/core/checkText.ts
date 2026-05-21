@@ -15,6 +15,20 @@ export type CheckTextResult = {
   notEnoughInfo: CheckedTextItem[];
 };
 
+export type LocatedMatchedClaim = LocatedClaim & { start: number; end: number };
+
+export type CheckProgressEvent =
+  | { type: 'claims_located'; claims: LocatedMatchedClaim[] }
+  | { type: 'claim_check_start'; index: number; claim: LocatedMatchedClaim }
+  | {
+      type: 'claim_check_done';
+      index: number;
+      claim: LocatedMatchedClaim;
+      verdict: FactCheckResult['verdict'] | 'ERROR';
+    };
+
+export type CheckProgressCallback = (event: CheckProgressEvent) => void;
+
 function buildCheckedTextItem(item: LocatedClaim, result: FactCheckResult): CheckedTextItem {
   return {
     ...item,
@@ -22,7 +36,11 @@ function buildCheckedTextItem(item: LocatedClaim, result: FactCheckResult): Chec
   };
 }
 
-export async function checkText(text: string, apiKey: string): Promise<CheckTextResult> {
+export async function checkText(
+  text: string,
+  apiKey: string,
+  onProgress?: CheckProgressCallback
+): Promise<CheckTextResult> {
   debugLog('extract:start', `textLength=${text.length}`);
   const extractedClaims = await extractClaimsFromText(text, apiKey);
   debugLog('extract:done', `claimsCount=${extractedClaims.length}`);
@@ -32,9 +50,8 @@ export async function checkText(text: string, apiKey: string): Promise<CheckText
   const supported: CheckedTextItem[] = [];
   const refuted: CheckedTextItem[] = [];
   const notEnoughInfo: CheckedTextItem[] = [];
-  const matchedClaims = locatedClaims.filter(
-    (item): item is LocatedClaim & { start: number; end: number } =>
-      item.start !== null && item.end !== null
+  const matchedClaims: LocatedMatchedClaim[] = locatedClaims.filter(
+    (item): item is LocatedMatchedClaim => item.start !== null && item.end !== null
   );
 
   for (const item of locatedClaims) {
@@ -46,18 +63,21 @@ export async function checkText(text: string, apiKey: string): Promise<CheckText
       });
       continue;
     }
-
   }
 
+  onProgress?.({ type: 'claims_located', claims: matchedClaims });
+
   const checkedMatchedClaims = await Promise.all(
-    matchedClaims.map(async (item) => {
+    matchedClaims.map(async (item, index) => {
       try {
         debugLog(
           'claim:check:start',
           `claim="${item.claim}" sourceText="${item.sourceText}" span=${item.start}-${item.end}`
         );
+        onProgress?.({ type: 'claim_check_start', index, claim: item });
         const result = await checkFact(item.claim, apiKey);
         debugLog('claim:check:done', `claim="${item.claim}" verdict=${result.verdict}`);
+        onProgress?.({ type: 'claim_check_done', index, claim: item, verdict: result.verdict });
 
         return {
           kind: 'success' as const,
@@ -67,6 +87,7 @@ export async function checkText(text: string, apiKey: string): Promise<CheckText
       } catch (error) {
         const explanation = error instanceof Error ? error.message : 'Verification failed';
         debugLog('claim:check:error', `claim="${item.claim}" error="${explanation}"`);
+        onProgress?.({ type: 'claim_check_done', index, claim: item, verdict: 'ERROR' });
 
         return {
           kind: 'error' as const,

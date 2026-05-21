@@ -1,9 +1,16 @@
 import { useState, useCallback, useMemo } from 'react';
 import { checkText } from '../core/checkText';
-import type { CheckTextResult, CheckedTextItem } from '../core/checkText';
+import type {
+  CheckTextResult,
+  CheckedTextItem,
+  CheckProgressEvent,
+  LocatedMatchedClaim,
+} from '../core/checkText';
 import { ApiKeyDialog } from './components/ApiKeyDialog';
 import { AnnotatedText } from './components/AnnotatedText';
 import { ClaimDetail } from './components/ClaimDetail';
+import { LiveAnnotatedText } from './components/LiveAnnotatedText';
+import type { ClaimStatus } from './components/LiveAnnotatedText';
 import './App.css';
 
 type SelectedClaim = CheckedTextItem & { verdict: 'refuted' | 'notEnoughInfo' };
@@ -25,6 +32,9 @@ export function App() {
   const [showKeyDialog, setShowKeyDialog] = useState(!apiKey);
   const [dossierNo, setDossierNo] = useState<string | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
+  const [liveClaims, setLiveClaims] = useState<LocatedMatchedClaim[]>([]);
+  const [liveStatuses, setLiveStatuses] = useState<ClaimStatus[]>([]);
+  const [inputCollapsed, setInputCollapsed] = useState(false);
 
   const today = useMemo(() => formatDate(new Date()), []);
 
@@ -42,10 +52,43 @@ export function App() {
     setResult(null);
     setSelectedClaim(null);
     setCheckedText(inputText);
+    setLiveClaims([]);
+    setLiveStatuses([]);
+    setInputCollapsed(true);
     const started = performance.now();
 
+    const handleProgress = (event: CheckProgressEvent) => {
+      if (event.type === 'claims_located') {
+        setLiveClaims(event.claims);
+        setLiveStatuses(event.claims.map(() => 'pending'));
+        return;
+      }
+      if (event.type === 'claim_check_start') {
+        setLiveStatuses((prev) => {
+          const next = [...prev];
+          next[event.index] = 'checking';
+          return next;
+        });
+        return;
+      }
+      if (event.type === 'claim_check_done') {
+        setLiveStatuses((prev) => {
+          const next = [...prev];
+          next[event.index] =
+            event.verdict === 'SUPPORTED'
+              ? 'supported'
+              : event.verdict === 'REFUTED'
+                ? 'refuted'
+                : event.verdict === 'NOT_ENOUGH_INFO'
+                  ? 'nei'
+                  : 'error';
+          return next;
+        });
+      }
+    };
+
     try {
-      const r = await checkText(inputText, apiKey);
+      const r = await checkText(inputText, apiKey, handleProgress);
       setResult(r);
       setDossierNo(
         String(Math.floor(Math.random() * 900) + 100).padStart(3, '0') +
@@ -140,32 +183,45 @@ export function App() {
       </div>
 
       <div className="input-section">
-        <div className="paper-card">
+        <div className="paper-card" data-collapsed={inputCollapsed || undefined}>
           <div className="input-pane">
             <div className="input-head">
               <span className="filenum">
                 ЧЕРНЕТКА · {String(inputText.length).padStart(4, '0')} ЗН.
               </span>
-              <span>Українською або англійською</span>
+              <span className="input-head-right">
+                <span className="input-head-hint">Українською або англійською</span>
+                <button
+                  type="button"
+                  className="collapse-btn"
+                  onClick={() => setInputCollapsed((v) => !v)}
+                  aria-expanded={!inputCollapsed}
+                  aria-label={inputCollapsed ? 'Розгорнути ввід' : 'Згорнути ввід'}
+                >
+                  {inputCollapsed ? 'Розгорнути ▾' : 'Згорнути ▴'}
+                </button>
+              </span>
             </div>
-            <textarea
-              className="text-input"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Вставте абзац, цитату чи новину — алгоритм розкладе її на твердження…"
-              rows={6}
-              disabled={loading}
-            />
-            <div className="input-actions">
-              <span className="input-hint">⌘/Ctrl + Enter — швидке подання</span>
-              <button
-                className="check-btn"
-                onClick={handleCheck}
-                disabled={loading || !inputText.trim()}
-                data-loading={loading || undefined}
-              >
-                {loading ? 'Досліджуємо' : 'Передати на перевірку'}
-              </button>
+            <div className="input-body">
+              <textarea
+                className="text-input"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="Вставте абзац, цитату чи новину — алгоритм розкладе її на твердження…"
+                rows={6}
+                disabled={loading}
+              />
+              <div className="input-actions">
+                <span className="input-hint">⌘/Ctrl + Enter — швидке подання</span>
+                <button
+                  className="check-btn"
+                  onClick={handleCheck}
+                  disabled={loading || !inputText.trim()}
+                  data-loading={loading || undefined}
+                >
+                  {loading ? 'Досліджуємо' : 'Передати на перевірку'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -175,6 +231,9 @@ export function App() {
             <span>locate · прив'язуємо до фрагментів</span>
             <span>verify · звіряємо з Wikipedia</span>
           </div>
+        )}
+        {loading && liveClaims.length > 0 && (
+          <LiveAnnotatedText text={checkedText} claims={liveClaims} statuses={liveStatuses} />
         )}
       </div>
 

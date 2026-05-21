@@ -1,8 +1,5 @@
 import { ChatOpenAI } from '@langchain/openai';
-import {
-  ExtractClaimsResponseSchema,
-  type ExtractedClaim,
-} from './textSchemas';
+import { ExtractClaimsResponseSchema, type ExtractedClaim } from './textSchemas';
 
 const STRICT_SOURCE_TEXT_PROMPT = [
   'Extract the check-worthy claims from the input text.',
@@ -21,7 +18,10 @@ function isExactSourceTextMatch(text: string, sourceText: string): boolean {
   return text.includes(sourceText);
 }
 
-export async function extractClaimsFromText(text: string, apiKey: string): Promise<ExtractedClaim[]> {
+export async function extractClaimsFromText(
+  text: string,
+  apiKey: string
+): Promise<ExtractedClaim[]> {
   const model = new ChatOpenAI({
     model: 'gpt-5.4',
     temperature: 0,

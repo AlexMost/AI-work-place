@@ -10,7 +10,8 @@ vi.mock('../src/core/claimExtraction', () => ({
 }));
 
 vi.mock('../src/core/factCheck', async () => {
-  const actual = await vi.importActual<typeof import('../src/core/factCheck')>('../src/core/factCheck');
+  const actual =
+    await vi.importActual<typeof import('../src/core/factCheck')>('../src/core/factCheck');
 
   return {
     ...actual,

@@ -33,9 +33,7 @@ describe('extractClaimsFromText', () => {
       ],
     });
 
-    await expect(
-      extractClaimsFromText('Paris is the capital of France.')
-    ).resolves.toEqual([
+    await expect(extractClaimsFromText('Paris is the capital of France.')).resolves.toEqual([
       {
         claim: 'Paris is the capital of France.',
         sourceText: 'Paris is the capital of France',
@@ -88,9 +86,7 @@ describe('extractClaimsFromText', () => {
       ],
     });
 
-    await expect(
-      extractClaimsFromText('Paris is the capital of France.')
-    ).rejects.toThrow();
+    await expect(extractClaimsFromText('Paris is the capital of France.')).rejects.toThrow();
   });
 
   it('rejects malformed claim values', async () => {
@@ -107,9 +103,7 @@ describe('extractClaimsFromText', () => {
       ],
     });
 
-    await expect(
-      extractClaimsFromText('Paris is the capital of France.')
-    ).rejects.toThrow();
+    await expect(extractClaimsFromText('Paris is the capital of France.')).rejects.toThrow();
   });
 
   it('omits claims whose sourceText is not an exact substring', async () => {
@@ -126,9 +120,7 @@ describe('extractClaimsFromText', () => {
       ],
     });
 
-    await expect(
-      extractClaimsFromText('Paris is the capital of France.')
-    ).resolves.toEqual([
+    await expect(extractClaimsFromText('Paris is the capital of France.')).resolves.toEqual([
       {
         claim: 'Paris is the capital of France.',
         sourceText: 'Paris is the capital of France',
@@ -150,8 +142,6 @@ describe('extractClaimsFromText', () => {
       ],
     });
 
-    await expect(
-      extractClaimsFromText('Paris is the capital of France.')
-    ).rejects.toThrow();
+    await expect(extractClaimsFromText('Paris is the capital of France.')).rejects.toThrow();
   });
 });
