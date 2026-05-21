@@ -1,0 +1,17 @@
+node_modules
+**/node_modules
+.idea
+**/.idea
+dist
+**/dist
+.env
+
+# LangGraph API
+.langgraph_api
+
+# Local git worktrees
+.worktrees
+
+# Per-user local Claude Code settings
+.claude/settings.local.json
+**/.claude/settings.local.json
