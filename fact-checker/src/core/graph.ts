@@ -59,7 +59,7 @@ function shouldContinue(state: typeof StateAnnotation.State): 'tools' | 'judge' 
 }
 
 export function createGraph(apiKey: string) {
-  const agentLlm = new ChatOpenAI({ model: 'gpt-5.4-nano', apiKey }).bindTools(tools);
+  const agentLlm = new ChatOpenAI({ model: 'gpt-5.4-mini', apiKey }).bindTools(tools);
   const judgeLlm = new ChatOpenAI({ model: 'gpt-5.4-mini', apiKey }).withStructuredOutput(
     VerdictSchema
   );
