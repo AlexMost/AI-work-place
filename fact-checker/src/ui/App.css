@@ -954,14 +954,13 @@ body {
 .api-key-overlay {
   position: fixed;
   inset: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background:
-    radial-gradient(900px 600px at 50% 30%, rgba(168, 119, 38, 0.12), transparent 70%), var(--paper);
-  background-image: var(--noise);
-  background-color: var(--paper);
+  background: rgba(28, 22, 16, 0.45);
+  backdrop-filter: blur(2px);
 }
 
 .api-key-dialog {
@@ -983,6 +982,33 @@ body {
   inset: 9px;
   border: 1px solid var(--rule-soft);
   pointer-events: none;
+}
+
+.api-key-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ink-mute);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 1;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.api-key-close:hover {
+  color: var(--ink);
+  border-color: var(--rule-soft);
 }
 
 .api-key-dialog .kicker {

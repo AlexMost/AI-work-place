@@ -29,7 +29,8 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedClaim, setSelectedClaim] = useState<SelectedClaim | null>(null);
-  const [showKeyDialog, setShowKeyDialog] = useState(!apiKey);
+  const [showKeyDialog, setShowKeyDialog] = useState(false);
+  const [pendingCheck, setPendingCheck] = useState(false);
   const [dossierNo, setDossierNo] = useState<string | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
   const [liveClaims, setLiveClaims] = useState<LocatedMatchedClaim[]>([]);
@@ -38,70 +39,93 @@ export function App() {
 
   const today = useMemo(() => formatDate(new Date()), []);
 
-  const handleSaveKey = useCallback((key: string) => {
-    localStorage.setItem('openai-api-key', key);
-    setApiKey(key);
-    setShowKeyDialog(false);
-  }, []);
+  const runCheck = useCallback(
+    async (key: string) => {
+      setLoading(true);
+      setError(null);
+      setResult(null);
+      setSelectedClaim(null);
+      setCheckedText(inputText);
+      setLiveClaims([]);
+      setLiveStatuses([]);
+      setInputCollapsed(true);
+      const started = performance.now();
 
-  const handleCheck = useCallback(async () => {
-    if (!inputText.trim() || !apiKey) return;
+      const handleProgress = (event: CheckProgressEvent) => {
+        if (event.type === 'claims_located') {
+          setLiveClaims(event.claims);
+          setLiveStatuses(event.claims.map(() => 'pending'));
+          return;
+        }
+        if (event.type === 'claim_check_start') {
+          setLiveStatuses((prev) => {
+            const next = [...prev];
+            next[event.index] = 'checking';
+            return next;
+          });
+          return;
+        }
+        if (event.type === 'claim_check_done') {
+          setLiveStatuses((prev) => {
+            const next = [...prev];
+            next[event.index] =
+              event.verdict === 'SUPPORTED'
+                ? 'supported'
+                : event.verdict === 'REFUTED'
+                  ? 'refuted'
+                  : event.verdict === 'NOT_ENOUGH_INFO'
+                    ? 'nei'
+                    : 'error';
+            return next;
+          });
+        }
+      };
 
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    setSelectedClaim(null);
-    setCheckedText(inputText);
-    setLiveClaims([]);
-    setLiveStatuses([]);
-    setInputCollapsed(true);
-    const started = performance.now();
-
-    const handleProgress = (event: CheckProgressEvent) => {
-      if (event.type === 'claims_located') {
-        setLiveClaims(event.claims);
-        setLiveStatuses(event.claims.map(() => 'pending'));
-        return;
+      try {
+        const r = await checkText(inputText, key, handleProgress);
+        setResult(r);
+        setDossierNo(
+          String(Math.floor(Math.random() * 900) + 100).padStart(3, '0') +
+            '·' +
+            String(Date.now()).slice(-4)
+        );
+        setDuration((performance.now() - started) / 1000);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Невідома помилка');
+      } finally {
+        setLoading(false);
       }
-      if (event.type === 'claim_check_start') {
-        setLiveStatuses((prev) => {
-          const next = [...prev];
-          next[event.index] = 'checking';
-          return next;
-        });
-        return;
-      }
-      if (event.type === 'claim_check_done') {
-        setLiveStatuses((prev) => {
-          const next = [...prev];
-          next[event.index] =
-            event.verdict === 'SUPPORTED'
-              ? 'supported'
-              : event.verdict === 'REFUTED'
-                ? 'refuted'
-                : event.verdict === 'NOT_ENOUGH_INFO'
-                  ? 'nei'
-                  : 'error';
-          return next;
-        });
-      }
-    };
+    },
+    [inputText]
+  );
 
-    try {
-      const r = await checkText(inputText, apiKey, handleProgress);
-      setResult(r);
-      setDossierNo(
-        String(Math.floor(Math.random() * 900) + 100).padStart(3, '0') +
-          '·' +
-          String(Date.now()).slice(-4)
-      );
-      setDuration((performance.now() - started) / 1000);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Невідома помилка');
-    } finally {
-      setLoading(false);
+  const handleCheck = useCallback(() => {
+    if (!inputText.trim()) return;
+    if (!apiKey) {
+      setPendingCheck(true);
+      setShowKeyDialog(true);
+      return;
     }
-  }, [inputText, apiKey]);
+    void runCheck(apiKey);
+  }, [inputText, apiKey, runCheck]);
+
+  const handleSaveKey = useCallback(
+    (key: string) => {
+      localStorage.setItem('openai-api-key', key);
+      setApiKey(key);
+      setShowKeyDialog(false);
+      if (pendingCheck) {
+        setPendingCheck(false);
+        void runCheck(key);
+      }
+    },
+    [pendingCheck, runCheck]
+  );
+
+  const handleCloseKeyDialog = useCallback(() => {
+    setShowKeyDialog(false);
+    setPendingCheck(false);
+  }, []);
 
   const handleClaimClick = useCallback(
     (claim: CheckedTextItem, verdict: 'refuted' | 'notEnoughInfo') => {
@@ -109,10 +133,6 @@ export function App() {
     },
     []
   );
-
-  if (showKeyDialog) {
-    return <ApiKeyDialog onSave={handleSaveKey} />;
-  }
 
   const totals = result
     ? {
@@ -289,6 +309,8 @@ export function App() {
         <span>Версія I · 2026</span>
         <span>Опус роботи редактора з фактами</span>
       </footer>
+
+      {showKeyDialog && <ApiKeyDialog onSave={handleSaveKey} onClose={handleCloseKeyDialog} />}
     </div>
   );
 }

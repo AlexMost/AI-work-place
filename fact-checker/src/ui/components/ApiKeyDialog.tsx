@@ -2,14 +2,20 @@ import { useState } from 'react';
 
 interface Props {
   onSave: (key: string) => void;
+  onClose?: () => void;
 }
 
-export function ApiKeyDialog({ onSave }: Props) {
+export function ApiKeyDialog({ onSave, onClose }: Props) {
   const [key, setKey] = useState('');
 
   return (
-    <div className="api-key-overlay">
-      <div className="api-key-dialog">
+    <div className="api-key-overlay" onClick={onClose}>
+      <div className="api-key-dialog" onClick={(e) => e.stopPropagation()}>
+        {onClose && (
+          <button type="button" className="api-key-close" onClick={onClose} aria-label="Закрити">
+            ✕
+          </button>
+        )}
         <div className="kicker">Прохід до редакції</div>
         <h2>
           OpenAI <em>ключ.</em>
