@@ -24,7 +24,7 @@ UI (`src/ui/`) — React 19 + Vite, незалежний `tsconfig.ui.json`. П�
 - `npm run build` — `tsc` для ядра.
 - `npm test` / `npm run test:watch` — vitest.
 - `npm run format` / `npm run format:check` — prettier по `src/**` і `tests/**`.
-- `npx @langchain/langgraph-cli dev` — LangGraph Studio проти `langgraph.json` (граф `fact_checker` = `debugGraph`).
+- `npm run dev:graph` — LangGraph Studio проти `langgraph.json` (граф `fact_checker` = `debugGraph`).
 
 ## Конвенції
 
