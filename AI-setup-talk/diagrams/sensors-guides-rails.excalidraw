@@ -1,0 +1,168 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "type": "line", "id": "rail_top", "x": 250, "y": 200, "width": 730, "height": 0,
+      "strokeColor": "#1971c2", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 3.4, "strokeStyle": "solid", "roughness": 1.2, "opacity": 100, "angle": 0,
+      "seed": 300001, "version": 1, "versionNonce": 300002, "isDeleted": false,
+      "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0, 0], [365, -4], [730, 0]]
+    },
+    {
+      "type": "line", "id": "rail_bot", "x": 250, "y": 445, "width": 730, "height": 0,
+      "strokeColor": "#e03131", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 3.4, "strokeStyle": "solid", "roughness": 1.2, "opacity": 100, "angle": 0,
+      "seed": 300003, "version": 1, "versionNonce": 300004, "isDeleted": false,
+      "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0, 0], [365, 4], [730, 0]]
+    },
+
+    {
+      "type": "text", "id": "guides_l", "x": 250, "y": 150, "width": 470, "height": 26,
+      "text": "guides — спрямовують наперед", "originalText": "guides — спрямовують наперед",
+      "fontSize": 24, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#1971c2", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "angle": 0,
+      "seed": 300010, "version": 1, "versionNonce": 300011, "isDeleted": false,
+      "groupIds": [], "boundElements": null, "link": null, "locked": false, "containerId": null, "lineHeight": 1.2
+    },
+    {
+      "type": "text", "id": "guides_s", "x": 250, "y": 176, "width": 420, "height": 20,
+      "text": "AGENTS.md · skills · rules", "originalText": "AGENTS.md · skills · rules",
+      "fontSize": 17, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#495057", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "angle": 0,
+      "seed": 300012, "version": 1, "versionNonce": 300013, "isDeleted": false,
+      "groupIds": [], "boundElements": null, "link": null, "locked": false, "containerId": null, "lineHeight": 1.2
+    },
+
+    {
+      "type": "text", "id": "sensors_l", "x": 250, "y": 458, "width": 470, "height": 26,
+      "text": "sensors — ловлять помилку", "originalText": "sensors — ловлять помилку",
+      "fontSize": 24, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#e03131", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "angle": 0,
+      "seed": 300014, "version": 1, "versionNonce": 300015, "isDeleted": false,
+      "groupIds": [], "boundElements": null, "link": null, "locked": false, "containerId": null, "lineHeight": 1.2
+    },
+    {
+      "type": "text", "id": "sensors_s", "x": 250, "y": 484, "width": 420, "height": 20,
+      "text": "lint · types · tests · CI · hooks", "originalText": "lint · types · tests · CI · hooks",
+      "fontSize": 17, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#495057", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "angle": 0,
+      "seed": 300016, "version": 1, "versionNonce": 300017, "isDeleted": false,
+      "groupIds": [], "boundElements": null, "link": null, "locked": false, "containerId": null, "lineHeight": 1.2
+    },
+
+    {
+      "type": "ellipse", "id": "llm", "x": 55, "y": 270, "width": 175, "height": 104,
+      "strokeColor": "#f08c00", "backgroundColor": "#ffec99", "fillStyle": "solid",
+      "strokeWidth": 2.4, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "angle": 0,
+      "seed": 300020, "version": 1, "versionNonce": 300021, "isDeleted": false,
+      "groupIds": [], "boundElements": [{"id": "llm_l", "type": "text"}], "link": null, "locked": false, "roundness": null
+    },
+    {
+      "type": "text", "id": "llm_l", "x": 95, "y": 308, "width": 95, "height": 28,
+      "text": "LLM", "originalText": "LLM",
+      "fontSize": 28, "fontFamily": 1, "textAlign": "center", "verticalAlign": "middle",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "angle": 0,
+      "seed": 300022, "version": 1, "versionNonce": 300023, "isDeleted": false,
+      "groupIds": [], "boundElements": null, "link": null, "locked": false, "containerId": "llm", "lineHeight": 1.2
+    },
+    {
+      "type": "text", "id": "llm_sub", "x": 40, "y": 384, "width": 205, "height": 20,
+      "text": "сама часто збивається", "originalText": "сама часто збивається",
+      "fontSize": 17, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#e03131", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "angle": 0,
+      "seed": 300024, "version": 1, "versionNonce": 300025, "isDeleted": false,
+      "groupIds": [], "boundElements": null, "link": null, "locked": false, "containerId": null, "lineHeight": 1.2
+    },
+
+    {
+      "type": "rectangle", "id": "goal", "x": 1000, "y": 274, "width": 150, "height": 96,
+      "strokeColor": "#2f9e44", "backgroundColor": "#b2f2bb", "fillStyle": "solid",
+      "strokeWidth": 2.4, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "angle": 0,
+      "seed": 300030, "version": 1, "versionNonce": 300031, "isDeleted": false,
+      "groupIds": [], "boundElements": [{"id": "goal_l", "type": "text"}], "link": null, "locked": false, "roundness": {"type": 3}
+    },
+    {
+      "type": "text", "id": "goal_l", "x": 1018, "y": 298, "width": 114, "height": 48,
+      "text": "ціль\nрезультат", "originalText": "ціль\nрезультат",
+      "fontSize": 20, "fontFamily": 1, "textAlign": "center", "verticalAlign": "middle",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "angle": 0,
+      "seed": 300032, "version": 1, "versionNonce": 300033, "isDeleted": false,
+      "groupIds": [], "boundElements": null, "link": null, "locked": false, "containerId": "goal", "lineHeight": 1.2
+    },
+
+    {
+      "type": "arrow", "id": "path", "x": 232, "y": 322, "width": 763, "height": 170,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2.6, "strokeStyle": "solid", "roughness": 1.4, "opacity": 100, "angle": 0,
+      "seed": 300040, "version": 1, "versionNonce": 300041, "isDeleted": false,
+      "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0, 0], [130, -88], [270, 82], [410, -80], [548, 80], [690, -18], [763, -2]],
+      "startBinding": null, "endBinding": null,
+      "startArrowhead": null, "endArrowhead": "arrow", "roundness": {"type": 2}
+    },
+
+    {
+      "type": "arrow", "id": "push_t1", "x": 362, "y": 206, "width": 0, "height": 42,
+      "strokeColor": "#1971c2", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "angle": 0,
+      "seed": 300050, "version": 1, "versionNonce": 300051, "isDeleted": false,
+      "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0, 0], [4, 42]], "startBinding": null, "endBinding": null,
+      "startArrowhead": null, "endArrowhead": "arrow", "roundness": {"type": 2}
+    },
+    {
+      "type": "arrow", "id": "push_t2", "x": 642, "y": 206, "width": 0, "height": 42,
+      "strokeColor": "#1971c2", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "angle": 0,
+      "seed": 300052, "version": 1, "versionNonce": 300053, "isDeleted": false,
+      "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0, 0], [-4, 42]], "startBinding": null, "endBinding": null,
+      "startArrowhead": null, "endArrowhead": "arrow", "roundness": {"type": 2}
+    },
+    {
+      "type": "arrow", "id": "push_b1", "x": 502, "y": 439, "width": 0, "height": 42,
+      "strokeColor": "#e03131", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "angle": 0,
+      "seed": 300054, "version": 1, "versionNonce": 300055, "isDeleted": false,
+      "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0, 0], [4, -42]], "startBinding": null, "endBinding": null,
+      "startArrowhead": null, "endArrowhead": "arrow", "roundness": {"type": 2}
+    },
+    {
+      "type": "arrow", "id": "push_b2", "x": 780, "y": 439, "width": 0, "height": 42,
+      "strokeColor": "#e03131", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "angle": 0,
+      "seed": 300056, "version": 1, "versionNonce": 300057, "isDeleted": false,
+      "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0, 0], [-4, -42]], "startBinding": null, "endBinding": null,
+      "startArrowhead": null, "endArrowhead": "arrow", "roundness": {"type": 2}
+    },
+
+    {
+      "type": "text", "id": "caption", "x": 250, "y": 556, "width": 730, "height": 24,
+      "text": "LLM петляє — sensors і guides ведуть її в напрямі цілі",
+      "originalText": "LLM петляє — sensors і guides ведуть її в напрямі цілі",
+      "fontSize": 19, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#495057", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "angle": 0,
+      "seed": 300060, "version": 1, "versionNonce": 300061, "isDeleted": false,
+      "groupIds": [], "boundElements": null, "link": null, "locked": false, "containerId": null, "lineHeight": 1.25
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff",
+    "gridSize": null
+  },
+  "files": {}
+}

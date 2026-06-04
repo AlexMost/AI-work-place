@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 300" font-family="JetBrains Mono, monospace">
+  <rect width="480" height="300" rx="16" fill="#111722" stroke="#ffb86c" stroke-width="2"/>
+  <text x="32" y="60" fill="#ffb86c" font-size="22" font-weight="600">harness</text>
+  <text x="32" y="120" fill="#8be9fd" font-size="16">sensors → ловлять</text>
+  <text x="32" y="160" fill="#8be9fd" font-size="16">guides  → спрямовують</text>
+  <text x="32" y="240" fill="#6b7a90" font-size="13">тестове зображення</text>
+</svg>
