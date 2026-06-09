@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quicksort — шпаргалка</title>
+<style>
+  :root {
+    --ink: #1a1a2e;
+    --muted: #5b6172;
+    --accent: #d6336c;
+    --pivot: #d6336c;
+    --less: #2f9e44;
+    --line: #e6e8ee;
+    --code-bg: #1e1e2e;
+    --code-ink: #e6e6f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: ui-serif, Georgia, "Times New Roman", serif;
+    color: var(--ink);
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 48px 28px 80px;
+    line-height: 1.55;
+    background: #fbfbfd;
+  }
+  h1 { font-size: 2rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 28px; font-style: italic; }
+  h2 {
+    font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--accent); border-bottom: 2px solid var(--line);
+    padding-bottom: 6px; margin: 34px 0 14px;
+  }
+  table { width: 100%; border-collapse: collapse; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  code, pre { font-family: "SF Mono", ui-monospace, "Cascadia Code", Menlo, monospace; }
+  code { background: #f0f0f5; padding: 1px 5px; border-radius: 4px; font-size: 0.86em; }
+  pre {
+    background: var(--code-bg); color: var(--code-ink);
+    padding: 18px 20px; border-radius: 10px; overflow-x: auto;
+    font-size: 0.84rem; line-height: 1.5;
+  }
+  pre .k { color: #c792ea; }   /* keyword */
+  pre .f { color: #82aaff; }   /* function */
+  pre .c { color: #676e95; font-style: italic; } /* comment */
+  pre .n { color: #f78c6c; }   /* number */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: #fff; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.9rem; }
+  .card h3 { margin: 0 0 6px; font-size: 0.95rem; }
+  .pivot { color: var(--pivot); font-weight: 700; }
+  .less { color: var(--less); font-weight: 700; }
+  ul { padding-left: 20px; }
+  @media print { body { padding: 0; background: #fff; } pre { border: 1px solid #ccc; } }
+</style>
+</head>
+<body>
+  <h1>Quicksort — шпаргалка</h1>
+  <p class="sub">Divide-and-conquer сортування. Серце — крок партиціювання. Tony Hoare, 1959.</p>
+
+  <h2>Велика картина</h2>
+  <ul>
+    <li><strong>Розділяй і володарюй.</strong> Обери <span class="pivot">pivot</span>, постав усі менші ліворуч, більші праворуч, потім рекурсивно сортуй кожну половину.</li>
+    <li><strong>Робота — ДО рекурсії.</strong> На відміну від merge sort (вся робота в злитті <em>після</em>), quicksort усе важке робить у <code>partition</code> <em>перед</em> рекурсивними викликами. Злиття не потрібне.</li>
+    <li><strong>In-place.</strong> Сортує всередині того ж масиву через обміни (swap). Додаткова пам'ять — лише стек рекурсії.</li>
+  </ul>
+
+  <h2>Складність</h2>
+  <table>
+    <tr><th>Випадок</th><th>Час</th><th>Чому</th></tr>
+    <tr><td>Середній</td><td><code>O(n log n)</code></td><td>pivot ділить масив приблизно навпіл → <code>log n</code> рівнів × <code>n</code> роботи</td></tr>
+    <tr><td>Гірший</td><td><code>O(n²)</code></td><td>pivot щоразу найменший/найбільший → розбиття 0 та n−1 → <code>n</code> рівнів</td></tr>
+    <tr><td>Пам'ять</td><td><code>O(log n)</code></td><td>глибина стеку рекурсії (в середньому)</td></tr>
+    <tr><td>Стабільність</td><td>нестабільний</td><td>обміни переставляють рівні елементи</td></tr>
+  </table>
+
+  <h2>Lomuto partition (TypeScript)</h2>
+  <pre><span class="k">function</span> <span class="f">quicksort</span>(arr: number[], lo = <span class="n">0</span>, hi = arr.length - <span class="n">1</span>): number[] {
+  <span class="k">if</span> (lo < hi) {
+    <span class="k">const</span> p = <span class="f">partition</span>(arr, lo, hi);   <span class="c">// pivot стає на фінальне місце</span>
+    <span class="f">quicksort</span>(arr, lo, p - <span class="n">1</span>);       <span class="c">// ліворуч від pivot</span>
+    <span class="f">quicksort</span>(arr, p + <span class="n">1</span>, hi);       <span class="c">// праворуч від pivot</span>
+  }
+  <span class="k">return</span> arr;
+}
+
+<span class="k">function</span> <span class="f">partition</span>(arr: number[], lo: number, hi: number): number {
+  <span class="k">const</span> pivot = arr[hi];          <span class="c">// беремо останній за pivot</span>
+  <span class="k">let</span> i = lo;                     <span class="c">// межа зони "менших"</span>
+  <span class="k">for</span> (<span class="k">let</span> j = lo; j < hi; j++) {
+    <span class="k">if</span> (arr[j] < pivot) {
+      [arr[i], arr[j]] = [arr[j], arr[i]]; <span class="c">// swap у зону менших</span>
+      i++;
+    }
+  }
+  [arr[i], arr[hi]] = [arr[hi], arr[i]];   <span class="c">// pivot на своє місце</span>
+  <span class="k">return</span> i;                       <span class="c">// індекс pivot</span>
+}</pre>
+
+  <h2>Інваріант партиціювання (Lomuto)</h2>
+  <p style="font-family: ui-sans-serif, system-ui, sans-serif; font-size:0.92rem;">На кожному кроці циклу масив поділений на чотири зони:</p>
+  <div class="grid">
+    <div class="card"><h3>[lo … i−1]</h3><span class="less">&lt; pivot</span> — уже відсортована зона менших</div>
+    <div class="card"><h3>[i … j−1]</h3>≥ pivot — зона більших-або-рівних</div>
+    <div class="card"><h3>[j … hi−1]</h3>ще не розглянуті</div>
+    <div class="card"><h3>[hi]</h3><span class="pivot">pivot</span> — чекає в кінці</div>
+  </div>
+
+  <h2>Hoare vs Lomuto</h2>
+  <table>
+    <tr><th></th><th>Lomuto</th><th>Hoare</th></tr>
+    <tr><td>Pivot</td><td>останній елемент</td><td>зазвичай перший/середній</td></tr>
+    <tr><td>Сканування</td><td>один вказівник <code>j</code></td><td>два, назустріч</td></tr>
+    <tr><td>Обмінів</td><td>більше</td><td>менше (~3× ефективніше)</td></tr>
+    <tr><td>Зрозумілість</td><td>простіша для навчання</td><td>хитріша, але швидша</td></tr>
+  </table>
+
+  <h2>Пастки</h2>
+  <ul>
+    <li><strong>Гірший випадок на відсортованому масиві</strong>, якщо pivot = перший/останній. Лік: рандомний pivot або «median-of-three».</li>
+    <li><strong>Нестабільність</strong> — не зберігає порядок рівних. Якщо потрібна стабільність → merge sort.</li>
+    <li><strong>Дублікати</strong> вбивають продуктивність → 3-way partition (Dutch National Flag).</li>
+  </ul>
+
+  <p style="margin-top:40px; color:var(--muted); font-size:0.85rem; font-family: ui-sans-serif, system-ui, sans-serif;">
+    Джерела: CLRS Ch.7 · Sedgewick <em>Algorithms</em> §2.3 · en.wikipedia.org/wiki/Quicksort
+  </p>
+</body>
+</html>

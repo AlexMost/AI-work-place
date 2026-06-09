@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Урок 2 — Твоя перша generic-функція</title>
+<style>
+  :root {
+    --ink:#1a1a2e; --muted:#5b6172; --accent:#1c7ed6; --green:#2f9e44;
+    --red:#e03131; --amber:#f08c00; --line:#e6e8ee; --bg:#fbfbfd;
+    --code-bg:#1e1e2e; --code-ink:#e6e6f0;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: ui-serif, Georgia, "Times New Roman", serif; color: var(--ink); background: var(--bg); max-width: 760px; margin: 0 auto; padding: 48px 24px 100px; line-height: 1.65; }
+  .kicker { font-family: ui-sans-serif, system-ui, sans-serif; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.72rem; color: var(--accent); font-weight: 700; }
+  h1 { font-size: 2.1rem; line-height: 1.15; margin: 6px 0 10px; letter-spacing: -0.02em; }
+  .lede { font-size: 1.12rem; color: var(--muted); margin: 0 0 36px; }
+  h2 { font-size: 1.35rem; margin: 40px 0 12px; letter-spacing: -0.01em; }
+  p, li { font-size: 1.04rem; }
+  a { color: var(--accent); }
+  code { font-family: "SF Mono", ui-monospace, Menlo, monospace; background: #f0f0f5; padding: 1px 5px; border-radius: 4px; font-size: 0.86em; }
+  pre { font-family: "SF Mono", ui-monospace, Menlo, monospace; background: var(--code-bg); color: var(--code-ink); padding: 18px 20px; border-radius: 10px; overflow-x: auto; font-size: 0.86rem; line-height: 1.55; }
+  pre .k { color:#c792ea; } pre .f { color:#82aaff; } pre .c { color:#676e95; font-style:italic; } pre .t { color:#ffcb6b; } pre .s { color:#c3e88d; } pre .n { color:#f78c6c; }
+  .callout { background:#fff; border-left:4px solid var(--accent); border-radius:0 10px 10px 0; padding:14px 18px; margin:24px 0; font-family: ui-sans-serif, system-ui, sans-serif; font-size:0.95rem; }
+  .callout.green { border-color: var(--green); }
+  .callout.amber { border-color: var(--amber); }
+
+  /* type-flow visual */
+  .flow { display:flex; align-items:center; justify-content:center; gap:14px; flex-wrap:wrap; background:#fff; border:1px solid var(--line); border-radius:14px; padding:22px; margin:22px 0; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .chip { padding:8px 14px; border-radius:9px; font-weight:700; font-size:0.95rem; }
+  .chip.in { background:#e7f5ff; color:#1971c2; }
+  .chip.t { background:#fff3bf; color:#e67700; border:2px dashed #f59f00; }
+  .chip.out { background:#ebfbee; color:#2b8a3e; }
+  .arrow { color: var(--muted); font-size:1.4rem; }
+
+  /* playground */
+  .pg { background:#fff; border:1px solid var(--line); border-radius:14px; padding:22px 24px; margin:22px 0; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .pg h3 { margin:0 0 6px; font-size:1rem; }
+  .pg .desc { color:var(--muted); font-size:0.9rem; margin:0 0 16px; }
+  .call { background:var(--code-bg); color:var(--code-ink); font-family:"SF Mono", ui-monospace, Menlo, monospace; padding:12px 16px; border-radius:9px; font-size:0.92rem; margin-bottom:12px; }
+  .call .lit-num { color:#f78c6c; } .call .lit-str { color:#c3e88d; } .call .lit-bool { color:#c792ea; }
+  .opts { display:flex; gap:10px; flex-wrap:wrap; }
+  .opt { font-family:inherit; font-size:0.9rem; font-weight:600; border:1px solid var(--line); background:#fff; color:var(--ink); padding:9px 16px; border-radius:9px; cursor:pointer; transition:all .12s; }
+  .opt:hover:not(:disabled) { border-color:var(--accent); }
+  .opt.correct { background:#ebfbee; border-color:var(--green); color:#2b8a3e; }
+  .opt.wrong { background:#fff0f0; border-color:var(--red); color:#c92a2a; }
+  .opt:disabled { cursor:default; }
+  .pgfb { margin-top:12px; font-size:0.9rem; padding:10px 14px; border-radius:8px; display:none; }
+  .pgfb.show { display:block; }
+  .pgfb.ok { background:#ebfbee; color:#2b8a3e; }
+  .pgfb.no { background:#fff0f0; color:#c92a2a; }
+  .score { font-family: ui-sans-serif, system-ui, sans-serif; text-align:center; font-weight:700; color:var(--accent); margin-top:8px; }
+
+  /* quiz */
+  .quiz { background:#fff; border:1px solid var(--line); border-radius:14px; padding:22px 24px; margin:22px 0; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .quiz .q { font-weight:600; margin-bottom:14px; font-size:1rem; }
+  .qopt { display:block; width:100%; text-align:left; margin:8px 0; padding:12px 14px; border:1px solid var(--line); border-radius:9px; background:#fff; cursor:pointer; font-size:0.95rem; transition:all .12s; }
+  .qopt:hover:not(:disabled) { border-color:var(--accent); }
+  .qopt.correct { background:#ebfbee; border-color:var(--green); color:#2b8a3e; font-weight:600; }
+  .qopt.wrong { background:#fff0f0; border-color:var(--red); color:#c92a2a; }
+  .qopt:disabled { cursor:default; }
+  .fb { margin-top:12px; font-size:0.9rem; padding:10px 14px; border-radius:8px; display:none; }
+  .fb.show { display:block; } .fb.ok { background:#ebfbee; color:#2b8a3e; } .fb.no { background:#fff0f0; color:#c92a2a; }
+
+  .ask { background:#1a1a2e; color:#e6e6f0; border-radius:14px; padding:22px 24px; margin:40px 0 0; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .ask h3 { color:#fff; margin-top:0; }
+  .ask code { background:#2d2d44; color:#a5d8ff; }
+  .footer { margin-top:36px; padding-top:18px; border-top:1px solid var(--line); font-size:0.82rem; color:var(--muted); font-family: ui-sans-serif, system-ui, sans-serif; }
+  .footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+  <div class="kicker">Урок 2 · TypeScript Generics</div>
+  <h1>Твоя перша generic-функція</h1>
+  <p class="lede">Ти вже <em>користуєшся</em> generics — <code>Array&lt;T&gt;</code>, <code>Promise&lt;T&gt;</code>. Цей урок про один зсув: навчитися <em>писати</em> їх. Уся магія — в одній ідеї.</p>
+
+  <h2>Велика ідея: <code>&lt;T&gt;</code> — це параметр. Для типів.</h2>
+  <p>Звичайна функція приймає <strong>значення</strong> в дужках <code>( )</code>. Generic-функція додатково приймає <strong>тип</strong> у кутових дужках <code>&lt; &gt;</code>. Хто його передає? Майже завжди — не ти вручну, а <strong>викликач</strong>, автоматично, з аргументів.</p>
+  <div class="flow">
+    <span class="chip in">аргумент: [1, 2]</span>
+    <span class="arrow">→</span>
+    <span class="chip t">T виводиться = number</span>
+    <span class="arrow">→</span>
+    <span class="chip out">результат: number</span>
+  </div>
+  <p><code>T</code> — це просто ім'я-заповнювач для типу, який стане відомий лише в момент виклику. Він <strong>зв'язує</strong> вхід із виходом.</p>
+
+  <h2>Чому не просто <code>any</code>?</h2>
+  <p>Спокуса: «нехай приймає будь-що — поставлю <code>any</code>». Але <code>any</code> <strong>стирає</strong> типову інформацію — і TS перестає тобі допомагати:</p>
+  <pre><span class="c">// any: TS більше не знає, що повернулось</span>
+<span class="k">function</span> <span class="f">firstAny</span>(arr: any[]): any { <span class="k">return</span> arr[<span class="n">0</span>]; }
+<span class="k">const</span> a = <span class="f">firstAny</span>([<span class="n">1</span>, <span class="n">2</span>]);
+a.toUpperCase();   <span class="c">// ⚠️ компілюється, але впаде в рантаймі (number.toUpperCase)</span>
+
+<span class="c">// generic: тип зберігається, помилку видно одразу</span>
+<span class="k">function</span> <span class="f">first</span>&lt;<span class="t">T</span>&gt;(arr: <span class="t">T</span>[]): <span class="t">T</span> { <span class="k">return</span> arr[<span class="n">0</span>]; }
+<span class="k">const</span> b = <span class="f">first</span>([<span class="n">1</span>, <span class="n">2</span>]);   <span class="c">// b: number</span>
+b.toUpperCase();   <span class="c">// ❌ TS-помилка ще до запуску — саме те, що треба</span></pre>
+  <div class="callout amber">
+    <strong>Тест на «потрібен generic чи any»:</strong> чи має тип <em>виходу залежати</em> від типу <em>входу</em>? Якщо так — generic. <code>any</code> розриває цей зв'язок назавжди.
+  </div>
+
+  <h2>Анатомія</h2>
+  <pre><span class="k">function</span> <span class="f">first</span><span style="color:#f59f00">&lt;T&gt;</span>(arr: <span style="color:#f59f00">T</span>[]): <span style="color:#f59f00">T</span> {
+  <span class="k">return</span> arr[<span class="n">0</span>];
+}
+<span class="c">//          ▲оголошуємо  ▲вживаємо  ▲вживаємо</span>
+<span class="c">// <T> треба ОГОЛОСИТИ один раз перед (...), далі вживай як звичайний тип.</span></pre>
+  <div class="callout green">
+    Літера значення не має: <code>T</code>, <code>Item</code>, <code>Element</code> — однаково. <code>T</code> — лише конвенція (Type). Головне — оголосити в <code>&lt; &gt;</code> перед використанням.
+  </div>
+
+  <h2>Тренажер inference: який тип виведе TS?</h2>
+  <p>Дано <code>function first&lt;T&gt;(arr: T[]): T</code>. Для кожного виклику обери, який тип <strong>буде у результату</strong>. Фідбек — одразу.</p>
+
+  <div class="pg" id="pg">
+    <div id="pgItems"></div>
+    <div class="score" id="pgScore"></div>
+  </div>
+
+  <h2>Перевір розуміння</h2>
+
+  <div class="quiz" id="q1">
+    <div class="q">1. Що головне дає <code>&lt;T&gt;</code>, чого не дає <code>any</code>?</div>
+    <button class="qopt" data-ok="0">Робить функцію швидшою в рантаймі</button>
+    <button class="qopt" data-ok="1">Зберігає зв'язок: тип виходу залежить від типу входу</button>
+    <button class="qopt" data-ok="0">Дозволяє приймати більше різних типів, ніж any</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="q2">
+    <div class="q">2. Хто зазвичай «передає» значення для <code>T</code> у виклику <code>first([1, 2])</code>?</div>
+    <button class="qopt" data-ok="0">Розробник пише <code>first&lt;number&gt;</code> вручну — інакше не працює</button>
+    <button class="qopt" data-ok="1">TS сам виводить <code>T = number</code> з аргументу (inference)</button>
+    <button class="qopt" data-ok="0">T завжди дорівнює <code>any</code>, поки не вкажеш явно</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="q3">
+    <div class="q">3. Яка сигнатура коректно описує функцію, що повертає <em>той самий</em> тип, який отримала?</div>
+    <button class="qopt" data-ok="0"><code>function id(x: any): any</code></button>
+    <button class="qopt" data-ok="1"><code>function id&lt;T&gt;(x: T): T</code></button>
+    <button class="qopt" data-ok="0"><code>function id&lt;T&gt;(x: T): any</code></button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Спробуй сам (30 секунд)</h2>
+  <p>Відкрий <a href="https://www.typescriptlang.org/play" target="_blank">TS Playground</a>, встав це і наведи мишею на <code>r1</code>, <code>r2</code>, <code>r3</code> — побачиш виведені типи:</p>
+  <pre><span class="k">function</span> <span class="f">last</span>&lt;<span class="t">T</span>&gt;(arr: <span class="t">T</span>[]): <span class="t">T</span> {
+  <span class="k">return</span> arr[arr.length - <span class="n">1</span>];
+}
+<span class="k">const</span> r1 = <span class="f">last</span>([<span class="n">10</span>, <span class="n">20</span>, <span class="n">30</span>]);     <span class="c">// наведи: number</span>
+<span class="k">const</span> r2 = <span class="f">last</span>([<span class="s">"a"</span>, <span class="s">"b"</span>]);          <span class="c">// наведи: string</span>
+<span class="k">const</span> r3 = <span class="f">last</span>([<span class="k">true</span>, <span class="k">false</span>]);       <span class="c">// наведи: boolean</span></pre>
+  <p>Одна функція — три різні типи, нуль <code>any</code>, нуль дублювання. Оце і є сила generics.</p>
+
+  <div class="ask">
+    <h3>Я — твій викладач. Питай.</h3>
+    <p style="margin-bottom:0">Готовий копати далі? Спитай мене прямо в чаті. Наприклад:</p>
+    <ul style="margin-bottom:0">
+      <li>«Покажи реальний приклад generic у моєму LangGraph/zod-коді.»</li>
+      <li>«Коли generic зайвий? Як зрозуміти, що я його тулю даремно?»</li>
+      <li>«Готовий до <code>extends</code>-constraints — наступний урок.»</li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    Джерела: <a href="https://www.typescriptlang.org/docs/handbook/2/generics.html">TS Handbook — Generics</a> ·
+    <a href="https://www.typescriptlang.org/docs/handbook/type-inference.html">TS Handbook — Type Inference</a> ·
+    <a href="https://www.totaltypescript.com/">Total TypeScript</a>.
+    Шпаргалка: <code>reference/generics-cheatsheet.html</code>
+  </div>
+
+<script>
+(function () {
+  // ---- inference playground ----
+  const ITEMS = [
+    { call: 'first([1, 2, 3])', callHtml: 'first([<span class="lit-num">1</span>, <span class="lit-num">2</span>, <span class="lit-num">3</span>])', opts: ['number', 'string', 'number[]'], ok: 0,
+      fb: 'Так. Аргумент — number[], тож T = number, а повертає T = number.' },
+    { call: 'first(["x", "y"])', callHtml: 'first([<span class="lit-str">"x"</span>, <span class="lit-str">"y"</span>])', opts: ['string[]', 'string', 'any'], ok: 1,
+      fb: 'Так. T виводиться як string, результат — string (один елемент, не масив).' },
+    { call: 'first([true, false])', callHtml: 'first([<span class="lit-bool">true</span>, <span class="lit-bool">false</span>])', opts: ['boolean', 'never', 'true'], ok: 0,
+      fb: 'Так. T = boolean → результат boolean.' },
+    { call: 'first<string>([])', callHtml: 'first&lt;<span class="lit-str">string</span>&gt;([])', opts: ['any', 'string', 'never'], ok: 1,
+      fb: 'Так. З порожнього [] вивести нема звідки, тому T задано явно як string.' }
+  ];
+  const wrap = document.getElementById('pgItems');
+  const scoreEl = document.getElementById('pgScore');
+  let answered = 0, correct = 0;
+
+  ITEMS.forEach((it, idx) => {
+    const block = document.createElement('div');
+    block.style.marginBottom = '22px';
+    const call = document.createElement('div');
+    call.className = 'call';
+    call.innerHTML = 'const r = ' + it.callHtml + ';';
+    block.appendChild(call);
+
+    const opts = document.createElement('div');
+    opts.className = 'opts';
+    const fb = document.createElement('div');
+    fb.className = 'pgfb';
+
+    it.opts.forEach((label, oi) => {
+      const btn = document.createElement('button');
+      btn.className = 'opt';
+      btn.textContent = label;
+      btn.addEventListener('click', () => {
+        const isOk = oi === it.ok;
+        opts.querySelectorAll('.opt').forEach((b, bi) => {
+          b.disabled = true;
+          if (bi === it.ok) b.classList.add('correct');
+        });
+        if (!isOk) btn.classList.add('wrong');
+        fb.classList.add('show', isOk ? 'ok' : 'no');
+        fb.textContent = isOk ? it.fb : 'Не зовсім. ' + it.fb;
+        answered++; if (isOk) correct++;
+        scoreEl.textContent = `Рахунок: ${correct} / ${answered}`;
+      });
+      opts.appendChild(btn);
+    });
+    block.appendChild(opts);
+    block.appendChild(fb);
+    wrap.appendChild(block);
+  });
+
+  // ---- quizzes ----
+  const FB = {
+    q1: { ok: 'Саме так. Generic зберігає зв\'язок вхід→вихід, тож TS знає точний тип результату й ловить помилки. any цей зв\'язок стирає.', no: 'Ні. Generics не про швидкість і не «більше типів за any». Суть — зберегти зв\'язок між типом входу і виходу.' },
+    q2: { ok: 'Так! Це inference: у переважній більшості випадків T виводиться автоматично з аргументів, писати <number> вручну не треба.', no: 'Ні. У звичайному виклику TS виводить T сам із аргументів. Явний <number> потрібен лише коли вивести нема звідки (напр. []).' },
+    q3: { ok: 'Точно. <T>(x: T): T зв\'язує вхід і вихід одним типом T — повертає рівно те, що отримала. Варіант з : any цей зв\'язок ламає.', no: 'Подивись на повернений тип: треба, щоб він був тим самим T, що й аргумент. any (як вхід чи вихід) розриває зв\'язок.' }
+  };
+  ['q1','q2','q3'].forEach(id => {
+    const box = document.getElementById(id);
+    const opts = box.querySelectorAll('.qopt');
+    const fb = box.querySelector('.fb');
+    opts.forEach(opt => opt.addEventListener('click', () => {
+      const isOk = opt.dataset.ok === '1';
+      opts.forEach(o => { o.disabled = true; if (o.dataset.ok === '1') o.classList.add('correct'); });
+      if (!isOk) opt.classList.add('wrong');
+      fb.classList.add('show', isOk ? 'ok' : 'no');
+      fb.textContent = isOk ? FB[id].ok : FB[id].no;
+    }));
+  });
+})();
+</script>
+</body>
+</html>

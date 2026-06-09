@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Урок 1 — Партиціювання: серце quicksort</title>
+<style>
+  :root {
+    --ink: #1a1a2e;
+    --muted: #5b6172;
+    --accent: #d6336c;
+    --green: #2f9e44;
+    --blue: #1c7ed6;
+    --amber: #f08c00;
+    --line: #e6e8ee;
+    --bg: #fbfbfd;
+    --code-bg: #1e1e2e;
+    --code-ink: #e6e6f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: ui-serif, Georgia, "Times New Roman", serif;
+    color: var(--ink); background: var(--bg);
+    max-width: 760px; margin: 0 auto; padding: 48px 24px 100px;
+    line-height: 1.65;
+  }
+  .kicker { font-family: ui-sans-serif, system-ui, sans-serif; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.72rem; color: var(--accent); font-weight: 700; }
+  h1 { font-size: 2.1rem; line-height: 1.15; margin: 6px 0 10px; letter-spacing: -0.02em; }
+  .lede { font-size: 1.12rem; color: var(--muted); margin: 0 0 36px; }
+  h2 { font-size: 1.35rem; margin: 40px 0 12px; letter-spacing: -0.01em; }
+  h3 { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 1rem; margin: 24px 0 8px; }
+  p, li { font-size: 1.04rem; }
+  a { color: var(--blue); }
+  code { font-family: "SF Mono", ui-monospace, Menlo, monospace; background: #f0f0f5; padding: 1px 5px; border-radius: 4px; font-size: 0.86em; }
+  pre { font-family: "SF Mono", ui-monospace, Menlo, monospace; background: var(--code-bg); color: var(--code-ink); padding: 18px 20px; border-radius: 10px; overflow-x: auto; font-size: 0.84rem; line-height: 1.55; }
+  pre .k { color: #c792ea; } pre .f { color: #82aaff; } pre .c { color: #676e95; font-style: italic; } pre .n { color: #f78c6c; } pre .s { color: #c3e88d; }
+  .callout { background: #fff; border-left: 4px solid var(--accent); border-radius: 0 10px 10px 0; padding: 14px 18px; margin: 24px 0; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.95rem; }
+  .callout.blue { border-color: var(--blue); }
+  .callout strong { color: var(--ink); }
+
+  /* visualizer */
+  .viz { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 22px; margin: 24px 0; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .bars { display: flex; gap: 8px; justify-content: center; align-items: flex-end; min-height: 170px; margin-bottom: 8px; }
+  .bar { width: 46px; border-radius: 7px 7px 0 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; color: #fff; font-weight: 700; font-size: 0.95rem; padding-bottom: 6px; transition: transform .25s, background .25s, opacity .25s; position: relative; }
+  .bar .val { font-size: 0.95rem; }
+  .ptr-row { display: flex; gap: 8px; justify-content: center; margin-top: 4px; }
+  .ptr-slot { width: 46px; text-align: center; font-size: 0.72rem; font-weight: 700; line-height: 1.2; min-height: 30px; }
+  .tag-i { color: var(--green); }
+  .tag-j { color: var(--blue); }
+  .tag-pivot { color: var(--accent); }
+  .controls { display: flex; gap: 10px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+  button { font-family: inherit; font-size: 0.92rem; font-weight: 600; border: 1px solid var(--line); background: #fff; color: var(--ink); padding: 9px 18px; border-radius: 9px; cursor: pointer; transition: all .15s; }
+  button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  button:disabled { opacity: 0.4; cursor: default; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.primary:hover:not(:disabled) { color: #fff; opacity: 0.9; }
+  .narration { text-align: center; min-height: 48px; margin-top: 14px; font-size: 0.95rem; color: var(--ink); padding: 0 8px; }
+  .legend { display: flex; gap: 18px; justify-content: center; font-size: 0.78rem; color: var(--muted); margin-top: 6px; flex-wrap: wrap; }
+  .legend span::before { content: "■ "; }
+  .lg-less::before { color: var(--green); } .lg-ge::before { color: #868e96; } .lg-unseen::before { color: #ced4da; } .lg-pivot::before { color: var(--accent); }
+
+  /* quiz */
+  .quiz { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px; margin: 22px 0; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .quiz .q { font-weight: 600; margin-bottom: 14px; font-size: 1rem; }
+  .opt { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 9px; background: #fff; cursor: pointer; font-size: 0.95rem; transition: all .12s; }
+  .opt:hover { border-color: var(--blue); }
+  .opt.correct { background: #ebfbee; border-color: var(--green); color: #2b8a3e; font-weight: 600; }
+  .opt.wrong { background: #fff0f0; border-color: #e03131; color: #c92a2a; }
+  .opt:disabled { cursor: default; }
+  .fb { margin-top: 12px; font-size: 0.9rem; padding: 10px 14px; border-radius: 8px; display: none; }
+  .fb.show { display: block; }
+  .fb.ok { background: #ebfbee; color: #2b8a3e; }
+  .fb.no { background: #fff0f0; color: #c92a2a; }
+
+  .ask { background: #1a1a2e; color: #e6e6f0; border-radius: 14px; padding: 22px 24px; margin: 40px 0 0; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .ask h3 { color: #fff; margin-top: 0; }
+  .ask code { background: #2d2d44; color: #ffd6e7; }
+  .footer { margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 0.82rem; color: var(--muted); font-family: ui-sans-serif, system-ui, sans-serif; }
+  .footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+  <div class="kicker">Урок 1 · Quicksort</div>
+  <h1>Партиціювання — серце quicksort</h1>
+  <p class="lede">Ти вже знаєш merge sort. Тут лише <em>одна</em> нова ідея — і коли вона клацне, увесь quicksort стане очевидним.</p>
+
+  <h2>Зачіпка: де робиться робота?</h2>
+  <p>І merge sort, і quicksort — це «розділяй і володарюй»: розбий масив, відсортуй частини, поєднай. Різниця в <strong>тому, коли робиться важка робота</strong>:</p>
+  <div class="callout blue">
+    <strong>Merge sort:</strong> розбиває наосліп навпіл, рекурсія, а потім уся робота — у <code>merge</code> <em>після</em> повернення.<br>
+    <strong>Quicksort:</strong> уся робота — у <code>partition</code> <em>до</em> рекурсії. Після рекурсії склеювати <em>нічого не треба</em>.
+  </div>
+  <p>Отже єдине, що тобі справді треба зрозуміти нового — це <strong>partition</strong>. Решта quicksort — це знайома тобі рекурсія.</p>
+
+  <h2>Що робить partition</h2>
+  <p>Обираємо один елемент — <span style="color:var(--accent);font-weight:700">pivot</span> (тут: останній). Завдання: переставити масив так, щоб <strong>усі менші за pivot опинились ліворуч від нього, усі більші — праворуч</strong>. Після цього pivot стоїть на своєму <em>фінальному</em> місці й більше ніколи не рухається.</p>
+  <p>Схема Lomuto тримає один вказівник <code>i</code> — це межа «зони менших». Другий вказівник <code>j</code> просто йде по масиву. Щоразу, коли <code>arr[j] &lt; pivot</code>, ми міняємо його в зону менших і розширюємо її (<code>i++</code>).</p>
+
+  <pre><span class="k">function</span> <span class="f">partition</span>(arr: number[], lo: number, hi: number): number {
+  <span class="k">const</span> pivot = arr[hi];          <span class="c">// pivot = останній елемент</span>
+  <span class="k">let</span> i = lo;                     <span class="c">// межа зони "менших за pivot"</span>
+  <span class="k">for</span> (<span class="k">let</span> j = lo; j < hi; j++) {
+    <span class="k">if</span> (arr[j] < pivot) {         <span class="c">// знайшли менший?</span>
+      [arr[i], arr[j]] = [arr[j], arr[i]];  <span class="c">// закидаємо в зону менших</span>
+      i++;                       <span class="c">// розширюємо зону</span>
+    }
+  }
+  [arr[i], arr[hi]] = [arr[hi], arr[i]];    <span class="c">// pivot на своє фінальне місце</span>
+  <span class="k">return</span> i;                       <span class="c">// індекс, де тепер стоїть pivot</span>
+}</pre>
+
+  <h2>Проведи масив крізь partition сам</h2>
+  <p>Натискай <strong>Крок</strong> і дивись, як <code>j</code> сканує, а зелена зона «менших» росте. Pivot — рожевий. У кінці pivot стрибає на межу.</p>
+
+  <div class="viz" id="viz">
+    <div class="bars" id="bars"></div>
+    <div class="ptr-row" id="ptrs"></div>
+    <div class="legend">
+      <span class="lg-less">&lt; pivot (зона i)</span>
+      <span class="lg-ge">≥ pivot</span>
+      <span class="lg-unseen">ще не дивились</span>
+      <span class="lg-pivot">pivot</span>
+    </div>
+    <div class="narration" id="narration">Масив: [7, 2, 9, 1, 5]. Pivot = 5 (останній). i та j стартують зліва.</div>
+    <div class="controls">
+      <button id="stepBtn" class="primary">Крок ▶</button>
+      <button id="resetBtn">↺ Спочатку</button>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Інваріант, який тут варто помітити:</strong> усе ліворуч від <span class="tag-i">i</span> завжди <code>&lt; pivot</code>; усе між <span class="tag-i">i</span> та <span class="tag-j">j</span> завжди <code>≥ pivot</code>. Цей інваріант — і є доказ, що partition коректний.
+  </div>
+
+  <h2>Перевір розуміння</h2>
+
+  <div class="quiz" id="q1">
+    <div class="q">1. Чому quicksort не потребує кроку «злиття» (merge), а merge sort потребує?</div>
+    <button class="opt" data-ok="0">Бо quicksort сортує лише невеликі масиви</button>
+    <button class="opt" data-ok="1">Бо partition уже ставить менші ліворуч, а більші праворуч — частини не перетинаються</button>
+    <button class="opt" data-ok="0">Бо quicksort не рекурсивний</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="q2">
+    <div class="q">2. Що гарантовано вірно для елемента, який повернув <code>partition</code> (тобто pivot на індексі <code>i</code>)?</div>
+    <button class="opt" data-ok="0">Він найменший у масиві</button>
+    <button class="opt" data-ok="0">Його ще доведеться переставити в рекурсії</button>
+    <button class="opt" data-ok="1">Він уже на своєму фінальному відсортованому місці</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="q3">
+    <div class="q">3. Масив <code>[3, 1, 2]</code>, pivot = <code>2</code> (останній). Скільки обмінів зробить Lomuto-partition (включно з фінальним обміном pivot)?</div>
+    <button class="opt" data-ok="0">0</button>
+    <button class="opt" data-ok="1">2</button>
+    <button class="opt" data-ok="0">3</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Збери повний quicksort</h2>
+  <p>Тепер, коли partition зрозумілий, увесь алгоритм — три рядки рекурсії навколо нього:</p>
+  <pre><span class="k">function</span> <span class="f">quicksort</span>(arr: number[], lo = <span class="n">0</span>, hi = arr.length - <span class="n">1</span>): number[] {
+  <span class="k">if</span> (lo < hi) {
+    <span class="k">const</span> p = <span class="f">partition</span>(arr, lo, hi);   <span class="c">// p стоїть на місці</span>
+    <span class="f">quicksort</span>(arr, lo, p - <span class="n">1</span>);       <span class="c">// сортуємо менших</span>
+    <span class="f">quicksort</span>(arr, p + <span class="n">1</span>, hi);       <span class="c">// сортуємо більших</span>
+  }
+  <span class="k">return</span> arr;
+}</pre>
+  <p>Зверни увагу: pivot <code>p</code> у рекурсію <em>не входить</em> — він уже на місці. Це і є та «безкоштовність» замість merge.</p>
+
+  <div class="ask">
+    <h3>Я — твій викладач. Питай.</h3>
+    <p style="margin-bottom:0">Щось незрозуміло чи хочеш глибше? Спитай мене прямо в чаті. Наприклад:</p>
+    <ul style="margin-bottom:0">
+      <li>«Чому гірший випадок саме O(n²)? Покажи на відсортованому масиві.»</li>
+      <li>«Чим Hoare-схема краща за Lomuto?»</li>
+      <li>«Дай вправу: реалізувати quicksort з нуля й перевірити тестами.»</li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    Джерела: <a href="https://algs4.cs.princeton.edu/23quicksort/">Sedgewick &amp; Wayne — Algorithms §2.3</a> ·
+    CLRS Ch.7 «Quicksort» ·
+    <a href="https://en.wikipedia.org/wiki/Quicksort">Wikipedia: Quicksort</a>.
+    Шпаргалка: <code>reference/quicksort-cheatsheet.html</code>
+  </div>
+
+<script>
+(function () {
+  // ---- Partition visualizer (Lomuto) on [7,2,9,1,5] ----
+  const INIT = [7, 2, 9, 1, 5];
+  const barsEl = document.getElementById('bars');
+  const ptrsEl = document.getElementById('ptrs');
+  const narr = document.getElementById('narration');
+  const stepBtn = document.getElementById('stepBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  let arr, i, j, hi, pivot, phase, steps;
+
+  function reset() {
+    arr = INIT.slice();
+    hi = arr.length - 1;
+    pivot = arr[hi];
+    i = 0; j = 0;
+    phase = 'scan'; // scan -> place -> done
+    narr.textContent = `Масив: [${arr.join(', ')}]. Pivot = ${pivot} (останній). i та j стартують зліва.`;
+    stepBtn.disabled = false;
+    stepBtn.textContent = 'Крок ▶';
+    render();
+  }
+
+  function colorFor(idx) {
+    if (idx === hi && phase !== 'done') return 'var(--accent)';      // pivot waiting
+    if (phase === 'done') return idx < window.__pPos ? 'var(--green)' : (idx === window.__pPos ? 'var(--accent)' : '#868e96');
+    if (idx < i) return 'var(--green)';        // < pivot zone
+    if (idx < j) return '#868e96';             // >= pivot zone (seen)
+    return '#ced4da';                          // unseen
+  }
+
+  function render() {
+    const max = Math.max(...arr);
+    barsEl.innerHTML = '';
+    ptrsEl.innerHTML = '';
+    arr.forEach((v, idx) => {
+      const b = document.createElement('div');
+      b.className = 'bar';
+      b.style.height = (40 + (v / max) * 120) + 'px';
+      b.style.background = colorFor(idx);
+      b.innerHTML = `<span class="val">${v}</span>`;
+      barsEl.appendChild(b);
+
+      const p = document.createElement('div');
+      p.className = 'ptr-slot';
+      let t = '';
+      if (phase !== 'done') {
+        if (idx === i) t += '<div class="tag-i">↑ i</div>';
+        if (idx === j && phase === 'scan') t += '<div class="tag-j">↑ j</div>';
+        if (idx === hi) t += '<div class="tag-pivot">pivot</div>';
+      } else if (idx === window.__pPos) {
+        t += '<div class="tag-pivot">↑ на місці</div>';
+      }
+      p.innerHTML = t;
+      ptrsEl.appendChild(p);
+    });
+  }
+
+  function step() {
+    if (phase === 'scan') {
+      if (j < hi) {
+        if (arr[j] < pivot) {
+          if (i !== j) {
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+            narr.textContent = `arr[j]=${arr[i]} < pivot=${pivot} → обмін у зону менших, i росте.`;
+          } else {
+            narr.textContent = `arr[j]=${arr[i]} < pivot=${pivot} → вже на місці, просто i++ .`;
+          }
+          i++;
+        } else {
+          narr.textContent = `arr[j]=${arr[j]} ≥ pivot=${pivot} → нічого не міняємо, j йде далі.`;
+        }
+        j++;
+        render();
+        if (j >= hi) {
+          phase = 'place';
+          narr.textContent += ' Сканування завершено — час поставити pivot.';
+        }
+        return;
+      }
+    }
+    if (phase === 'place') {
+      [arr[i], arr[hi]] = [arr[hi], arr[i]];
+      window.__pPos = i;
+      phase = 'done';
+      render();
+      narr.textContent = `Pivot ${pivot} став на індекс ${i}. Ліворуч усі < ${pivot}, праворуч усі ≥ ${pivot}. Partition повертає ${i}.`;
+      stepBtn.disabled = true;
+      stepBtn.textContent = 'Готово ✓';
+      return;
+    }
+  }
+
+  stepBtn.addEventListener('click', step);
+  resetBtn.addEventListener('click', reset);
+  reset();
+
+  // ---- Quizzes ----
+  const FB = {
+    q1: { ok: 'Саме так. Partition фізично розділяє дані — ліва й права частини вже на своїх «територіях», тож після рекурсії склеювати нічого.', no: 'Ні. Ключ у тому, що partition уже розкладає менші ліворуч і більші праворуч — частини не перетинаються, тому merge зайвий.' },
+    q2: { ok: 'Так! Це головна гарантія partition: повернутий елемент більше ніколи не рухається — він у фінальній позиції. Тому в рекурсію входять лише lo..p-1 та p+1..hi.', no: 'Ні. Pivot після partition стоїть на своєму фінальному місці й у рекурсію вже не входить — саме тому quicksort працює.' },
+    q3: { ok: 'Правильно. j=0: 3≥2 → пропуск. j=1: 1<2 → обмін (i=0,j=1), i=1. Кінець → обмін pivot з arr[1]. Разом 2 обміни. Результат [1,2,3].', no: 'Перерахуй: 3≥2 (пропуск), 1<2 (обмін #1), потім фінальний обмін pivot (#2). Разом 2.' }
+  };
+  ['q1','q2','q3'].forEach(id => {
+    const box = document.getElementById(id);
+    const opts = box.querySelectorAll('.opt');
+    const fb = box.querySelector('.fb');
+    opts.forEach(opt => opt.addEventListener('click', () => {
+      const correct = opt.dataset.ok === '1';
+      opts.forEach(o => {
+        o.disabled = true;
+        if (o.dataset.ok === '1') o.classList.add('correct');
+      });
+      if (!correct) opt.classList.add('wrong');
+      fb.classList.add('show', correct ? 'ok' : 'no');
+      fb.textContent = correct ? FB[id].ok : FB[id].no;
+    }));
+  });
+})();
+</script>
+</body>
+</html>

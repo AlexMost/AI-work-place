@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quicksort & Generics — навчальний воркспейс</title>
+<style>
+  :root {
+    --ink: #1a1a2e;
+    --muted: #5b6172;
+    --accent: #d6336c;
+    --blue: #1c7ed6;
+    --line: #e6e8ee;
+    --bg: #fbfbfd;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 20px 80px; }
+  h1 { font-size: 2rem; margin: 0 0 8px; letter-spacing: -0.02em; }
+  .lede { color: var(--muted); margin: 0 0 40px; }
+  h2 {
+    font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--accent); margin: 40px 0 16px;
+  }
+  .grid { display: grid; gap: 12px; }
+  a.card {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 18px; transition: border-color .15s, transform .15s;
+  }
+  a.card:hover { border-color: var(--blue); transform: translateY(-1px); }
+  .card .t { font-weight: 600; }
+  .card .s { color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
+  .tag {
+    display: inline-block; font-size: 0.7rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--blue); background: #eaf3fd; border-radius: 6px;
+    padding: 2px 7px; margin-bottom: 6px;
+  }
+  footer { margin-top: 56px; color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Quicksort &amp; Generics</h1>
+  <p class="lede">Навчальний воркспейс: короткі самодостатні уроки й шпаргалки по quicksort і TypeScript generics.</p>
+
+  <h2>Місія 1 — Quicksort</h2>
+  <div class="grid">
+    <a class="card" href="lessons/0001-partition-the-heart-of-quicksort.html">
+      <span class="tag">Урок</span>
+      <div class="t">Партиціювання: серце quicksort</div>
+      <div class="s">Крок партиціювання словами і на пальцях через масив.</div>
+    </a>
+    <a class="card" href="reference/quicksort-cheatsheet.html">
+      <span class="tag">Шпаргалка</span>
+      <div class="t">Quicksort — шпаргалка</div>
+      <div class="s">Складність, гірший випадок, порівняння з merge sort.</div>
+    </a>
+  </div>
+
+  <h2>Місія 2 — TypeScript Generics</h2>
+  <div class="grid">
+    <a class="card" href="lessons/0002-your-first-generic-function.html">
+      <span class="tag">Урок</span>
+      <div class="t">Твоя перша generic-функція</div>
+      <div class="s">Від використання generics до написання власних.</div>
+    </a>
+    <a class="card" href="reference/generics-cheatsheet.html">
+      <span class="tag">Шпаргалка</span>
+      <div class="t">TypeScript Generics — шпаргалка</div>
+      <div class="s">Параметри типів, constraints, інференс.</div>
+    </a>
+  </div>
+
+  <footer>Частина <a href="https://github.com/AlexMost/AI-work-place">AI-work-place</a>.</footer>
+</div>
+</body>
+</html>

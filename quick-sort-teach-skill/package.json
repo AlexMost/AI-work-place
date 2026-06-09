@@ -1,0 +1,17 @@
+{
+  "name": "quick-sort-teach-skill",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build-site": "rm -rf dist && mkdir -p dist && cp index.html dist/ && cp -r lessons reference dist/ && touch dist/.nojekyll",
+    "publish-gh-pages": "npm run build-site && gh-pages -d dist -e quick-sort-teach-skill --add --dotfiles -m \"deploy quick-sort-teach-skill\""
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
+  }
+}
