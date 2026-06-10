@@ -1,0 +1,15 @@
+{
+  "name": "footbal-predictions",
+  "version": "1.0.0",
+  "description": "World Cup 2026 score-prediction tracker — static dashboard + per-matchday reports published to GitHub Pages",
+  "license": "ISC",
+  "type": "commonjs",
+  "private": true,
+  "scripts": {
+    "build-site": "rm -rf dist && mkdir -p dist && cp dashboard.html dist/index.html && cp -r reports dist/ && touch dist/.nojekyll",
+    "publish-gh-pages": "npm run build-site && gh-pages -d dist -e footbal --add --dotfiles -m \"deploy footbal\""
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
+  }
+}
