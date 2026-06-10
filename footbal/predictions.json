@@ -4,23 +4,6 @@
     "exact": 8,
     "outcome": 5
   },
-  "reports": [
-    {
-      "file": "reports/wc-report-matchday1.html",
-      "title": "Матчдей 1 (11–12 червня)",
-      "date": "2026-06-10"
-    },
-    {
-      "file": "reports/wc-report-2026-06-11-14.html",
-      "title": "Матчі 11–14 червня",
-      "date": "2026-06-10"
-    },
-    {
-      "file": "reports/wc-report-md1-recalc.html",
-      "title": "Матчі 11–14 червня (перерахунок виправленим алгоритмом)",
-      "date": "2026-06-10"
-    }
-  ],
   "predictions": [
     {
       "home": "Mexico",

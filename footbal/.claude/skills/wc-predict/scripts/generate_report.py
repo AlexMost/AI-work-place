@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Render match predictions as a single self-contained HTML report and open it in the browser.
+"""Render match predictions as self-contained HTML reports — one file per match.
+
+Each match is written to reports/wc-report-<date>-<home>-vs-<away>.html, a name derived
+deterministically from (home, away, kickoff). Re-predicting a match overwrites its single
+file instead of piling up timestamped duplicates.
 
 Input: a JSON file with this shape (only "prediction" per match is required —
 it is exactly the output of predict_score.py --json):
 
 {
-  "title": "World Cup — predictions",
-  "subtitle": "matchday 1, June 11-14",
   "matches": [
     {
-      "kickoff": "Jun 11, 21:00",
+      "kickoff": "2026-06-11T19:00:00Z",          // ISO UTC; drives both the filename and the displayed time
       "prediction": { ...predict_score.py --json output... },
       "stats": {
         "home_form": {"record": "6W-2D-2L", "results": ["W","W","D"], "avg_scored": 1.7, "avg_conceded": 0.9},
@@ -22,15 +24,20 @@ it is exactly the output of predict_score.py --json):
 }
 
 Usage: generate_report.py --input data.json [--out report.html] [--no-open]
+  --out is honoured only when the input has exactly one match; otherwise each match
+  gets its deterministic per-match filename under reports/.
 """
 
 import argparse
 import html
 import json
 import os
+import re
 import sys
 import webbrowser
-from datetime import datetime
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from team_names import report_filename  # noqa: E402
 
 TOSS_UP_THRESHOLD = 0.40  # no outcome reaches 40% -> flag the match as a coin flip
 
@@ -43,6 +50,14 @@ def esc(s):
 
 def pct(x):
     return f"{x * 100:.0f}%"
+
+
+def fmt_kickoff(kickoff):
+    """ISO '2026-06-11T19:00:00Z' -> '2026-06-11 19:00 UTC'; any other string shown verbatim."""
+    if not kickoff:
+        return ""
+    s = str(kickoff)
+    return f"{s[:16].replace('T', ' ')} UTC" if re.match(r"\d{4}-\d{2}-\d{2}T", s) else s
 
 
 def form_chips(results):
@@ -76,7 +91,8 @@ def match_card(m):
     toss_up = max(ph, pd_, pa) < TOSS_UP_THRESHOLD
     badge = ('<span class="text-[10px] uppercase tracking-wider bg-amber-100 text-amber-800 '
              'rounded-full px-2 py-0.5">toss-up — low confidence</span>') if toss_up else ""
-    kickoff = f'<span class="text-xs text-stone-400">{esc(m["kickoff"])}</span>' if m.get("kickoff") else ""
+    kickoff = (f'<span class="text-xs text-stone-400">{esc(fmt_kickoff(m["kickoff"]))}</span>'
+               if m.get("kickoff") else "")
 
     odds = p.get("odds")
     odds_line = (f'<div class="text-xs text-stone-400 mt-1">odds {odds["home"]} / {odds["draw"]} / '
@@ -182,31 +198,44 @@ def render(data):
 </html>"""
 
 
+def match_report_data(m):
+    """Wrap one match in the single-match render() shape, titled by the fixture."""
+    p = m["prediction"]
+    title = f'{p["home"]} vs {p["away"]}'
+    return {"title": title, "subtitle": fmt_kickoff(m.get("kickoff")), "matches": [m]}
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--input", required=True, help="path to the predictions JSON file")
-    ap.add_argument("--out", help="output HTML path (default: temp dir)")
+    ap.add_argument("--out", help="output HTML path; only valid when the input has exactly one match")
     ap.add_argument("--no-open", action="store_true", help="do not open the browser")
     args = ap.parse_args()
 
     with open(args.input, encoding="utf-8") as f:
         data = json.load(f)
-    if not data.get("matches"):
+    matches = data.get("matches")
+    if not matches:
         sys.exit("error: input JSON has no matches")
+    if args.out and len(matches) != 1:
+        sys.exit("error: --out is only valid for a single-match input; "
+                 f"got {len(matches)} matches (each gets its own deterministic filename)")
 
-    if args.out:
-        out = args.out
-    else:
-        # keep reports inside the project (reports/) so the dashboard can link to them
-        root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                             "..", "..", "..", ".."))
-        out = os.path.join(root, "reports", f"wc-report-{datetime.now().strftime('%Y%m%d-%H%M')}.html")
-    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
-    with open(out, "w", encoding="utf-8") as f:
-        f.write(render(data))
-    print(f"report written: {out}")
-    if not args.no_open:
-        webbrowser.open(f"file://{os.path.abspath(out)}")
+    reports_dir = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                "..", "..", "..", "..", "reports"))
+    written = []
+    for m in matches:
+        p = m["prediction"]
+        out = args.out or os.path.join(reports_dir, report_filename(p["home"], p["away"], m.get("kickoff")))
+        os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+        with open(out, "w", encoding="utf-8") as f:
+            f.write(render(match_report_data(m)))
+        written.append(out)
+        print(f"report written: {out}")
+
+    # one match -> open it; many -> don't spam tabs (the dashboard links them all)
+    if not args.no_open and len(written) == 1:
+        webbrowser.open(f"file://{os.path.abspath(written[0])}")
 
 
 if __name__ == "__main__":

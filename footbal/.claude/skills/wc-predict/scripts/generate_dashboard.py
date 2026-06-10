@@ -5,7 +5,6 @@ Ledger (predictions.json) shape:
 {
   "title": "ЧС-2026 — трекер прогнозів",
   "scoring": {"exact": 8, "outcome": 5},            // group base; playoff is doubled (x2)
-  "reports": [{"file": "...", "title": "...", "date": "..."}],   // optional
   "predictions": [
     {
       "home": "Mexico", "away": "South Africa",
@@ -32,6 +31,10 @@ Ledger (predictions.json) shape:
 
 The dashboard is regenerated in full every time — never edit dashboard.html by hand.
 
+Each prediction card links to its per-match report (reports/wc-report-<date>-<home>-vs-<away>.html,
+named by team_names.report_filename) whenever that file exists on disk — so the report list is
+derived from the predictions, never a hand-maintained array that can drift or duplicate.
+
 Usage: generate_dashboard.py [--ledger predictions.json] [--out dashboard.html]
                              [--fixtures fixtures.json] [--no-open]
 With --fixtures (output of `fetch_stats.py fixtures --json`) the dashboard also shows a
@@ -48,7 +51,7 @@ import webbrowser
 from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from team_names import normalize  # noqa: E402
+from team_names import normalize, report_filename  # noqa: E402
 
 DEFAULT_SCORING = {"exact": 8, "outcome": 5}  # pool rules (CLAUDE.md); group base
 BONUS_POINTS = 10                              # per correct bonus question
@@ -104,7 +107,7 @@ def is_overdue(p):
     return ko < datetime.now(timezone.utc)
 
 
-def card(p, scoring):
+def card(p, scoring, report_href=None):
     stage = p.get("stage", "group")
     pred, actual = p.get("predicted"), p.get("actual")
     pts, key = score_entry(pred, actual, scoring, stage)
@@ -142,10 +145,16 @@ def card(p, scoring):
 
     note = f'<div class="mt-1 text-xs text-stone-400 italic">{esc(p["note"])}</div>' if p.get("note") else ""
 
+    title_inner = (f'{esc(p.get("home", "?"))} <span class="text-stone-400 font-normal">vs</span> '
+                   f'{esc(p.get("away", "?"))}')
+    title_html = (f'<a class="font-semibold hover:text-emerald-600" href="{esc(report_href)}" '
+                  f'title="відкрити звіт">{title_inner}</a>'
+                  if report_href else f'<div class="font-semibold">{title_inner}</div>')
+
     return f"""
     <article class="rounded-2xl border {card_cls} p-5">
       <div class="flex items-start justify-between gap-2">
-        <div class="font-semibold">{esc(p.get("home", "?"))} <span class="text-stone-400 font-normal">vs</span> {esc(p.get("away", "?"))}</div>
+        {title_html}
         <div class="flex flex-col items-end gap-1">
           <span class="shrink-0 text-[10px] uppercase tracking-wider rounded-full px-2 py-0.5 {badge_cls}">{label}{pts_txt}</span>
           {stage_badge}
@@ -237,8 +246,9 @@ def coverage_section(preds, fixtures):
             f'<div class="grid md:grid-cols-2 gap-2">{rows}</div></section>')
 
 
-def render(data, fixtures=None):
+def render(data, fixtures=None, reports_dir=None):
     scoring = data.get("scoring", DEFAULT_SCORING)
+    have_report = set(os.listdir(reports_dir)) if reports_dir and os.path.isdir(reports_dir) else set()
     preds = sorted(data["predictions"], key=lambda p: p.get("kickoff") or "9999")
     finished = [p for p in preds if p.get("actual") and p.get("predicted")]
     scored = [score_entry(p["predicted"], p["actual"], scoring, p.get("stage", "group"))
@@ -261,20 +271,13 @@ def render(data, fixtures=None):
              "text-rose-600" if overdue_n else ""),
     ]
     cov_html = coverage_section(preds, fixtures)
-    cards = "\n".join(card(p, scoring) for p in preds)
-    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-    reports_html = ""
-    reports = data.get("reports", [])
-    if reports:
-        items = "".join(
-            f'<a class="block bg-white rounded-xl border border-stone-200 px-4 py-2 text-sm '
-            f'hover:border-emerald-400" href="{esc(r["file"])}">{esc(r.get("title", r["file"]))}'
-            f'<span class="text-xs text-stone-400"> · {esc(r.get("date", ""))}</span></a>'
-            for r in reversed(reports))
-        reports_html = (f'<section class="mb-8"><div class="text-[10px] uppercase tracking-wider '
-                        f'text-stone-400 mb-2">звіти з прогнозами</div>'
-                        f'<div class="grid md:grid-cols-3 gap-3">{items}</div></section>')
+    def report_href(p):
+        fn = report_filename(p.get("home"), p.get("away"), p.get("kickoff"))
+        return f"reports/{fn}" if fn in have_report else None
+
+    cards = "\n".join(card(p, scoring, report_href(p)) for p in preds)
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     bonus_note = f" · бонуси +{bonus_pts}" if bonus_pts else ""
     return f"""<!doctype html>
@@ -293,7 +296,6 @@ def render(data, fixtures=None):
   </header>
   <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">{''.join(tiles)}</div>
   {cov_html}
-  {reports_html}
   {bonus_html}
   <div class="grid md:grid-cols-2 gap-5">
 {cards}
@@ -329,8 +331,9 @@ def main():
         with open(args.fixtures, encoding="utf-8") as f:
             fixtures = json.load(f)
 
+    reports_dir = os.path.join(os.path.dirname(os.path.abspath(args.out)), "reports")
     with open(args.out, "w", encoding="utf-8") as f:
-        f.write(render(data, fixtures))
+        f.write(render(data, fixtures, reports_dir))
     print(f"dashboard written: {args.out}")
     if not args.no_open:
         webbrowser.open(f"file://{os.path.abspath(args.out)}")

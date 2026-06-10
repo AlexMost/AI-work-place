@@ -69,13 +69,17 @@ almost always means bad odds input — re-check before presenting.
 ### 6. Present: chat summary + HTML report
 
 Write the matches to a JSON file (schema in the docstring of
-`scripts/generate_report.py`) and render:
+`scripts/generate_report.py` — each match carries an ISO `kickoff` and the
+`predict_score.py --json` output) and render:
 
 ```bash
 python3 scripts/generate_report.py --input /tmp/predictions.json
 ```
 
-This writes a self-contained HTML file and opens it in the browser. In chat, also give a
+This writes **one self-contained HTML file per match** to `reports/`, named
+deterministically (`wc-report-<date>-<home>-vs-<away>.html`) so re-predicting a match
+overwrites its file rather than piling up duplicates. A single-match input opens in the
+browser; a multi-match input doesn't (the dashboard links them all). In chat, also give a
 compact table — match, recommended score, win probability — in the user's language (the
 user writes Ukrainian), so they can fill in their prediction site without switching
 windows. Flag toss-up matches (no outcome above ~40%) honestly instead of feigning
@@ -85,8 +89,10 @@ the time — the edge comes from being consistently on the most probable side.
 ### 7. Record confirmed predictions
 
 When the user approves predictions, follow the tracking protocol in the project's
-CLAUDE.md: upsert `predictions.json`, save the report under `reports/`, regenerate
-`dashboard.html` (`scripts/generate_dashboard.py`). After matches finish, fill in
+CLAUDE.md: upsert `predictions.json`, (re)generate the per-match report(s) under
+`reports/`, regenerate `dashboard.html` (`scripts/generate_dashboard.py`, which scans
+`reports/` and links each card to its match report — there is no `reports` array to
+maintain). After matches finish, fill in
 actual scores (`fetch_stats.py results`) and regenerate — the dashboard highlights
 exact hits (green), correct outcomes (amber) and misses (red).
 
@@ -104,7 +110,7 @@ from the modal outcome, add one line explaining this — otherwise it looks like
 | `scripts/predict_score.py` | odds → probabilities, scorelines, EV-optimal prediction (pure Python) |
 | `scripts/fetch_stats.py` | team form / h2h / fixtures from football-data.org or api-football.com |
 | `scripts/elo.py` | Elo ratings from full match history: favorite cross-check, no-odds fallback (`match` emits `--lambdas`), `backtest` |
-| `scripts/generate_report.py` | predictions JSON → self-contained HTML report, opens browser |
+| `scripts/generate_report.py` | predictions JSON → one self-contained HTML report per match (deterministic name in `reports/`) |
 
 Elo context worth knowing: backtested on WC 2010–2022, the Elo favorite wins only ~56%
 of matches (draws ~22%) — football is noisy, so present confidence honestly. Elo win

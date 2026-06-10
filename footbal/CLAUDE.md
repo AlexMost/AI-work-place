@@ -21,7 +21,8 @@ site). The prediction pipeline lives in the `wc-predict` skill
 
 - `predictions.json` — the ledger, single source of truth for all tracked predictions
 - `dashboard.html` — rendered tracker; NEVER edit by hand, always regenerate
-- `reports/` — per-matchday HTML prediction reports, linked from the dashboard
+- `reports/` — one HTML report per match (`wc-report-<date>-<home>-vs-<away>.html`,
+  deterministic so regen overwrites), auto-linked from each dashboard card
 - `.env` — API keys (FOOTBALL_DATA_TOKEN, API_FOOTBALL_KEY, ODDS_API_KEY)
 
 ## Prediction-tracking protocol
@@ -41,9 +42,13 @@ site). The prediction pipeline lives in the `wc-predict` skill
      otherwise.
    Then regenerate: `python3 .claude/skills/wc-predict/scripts/generate_dashboard.py`
 
-2. **When generating a prediction report**, write it to `reports/` (descriptive name,
-   e.g. `wc-report-matchday2.html`), append it to the `reports` array in the ledger,
-   and regenerate the dashboard so it's linked.
+2. **When generating a prediction report**, run
+   `generate_report.py --input <matches.json>` — it writes **one file per match** to
+   `reports/` with a deterministic name (`wc-report-<date>-<home>-vs-<away>.html`), so
+   re-predicting a match overwrites its single file instead of accumulating duplicates.
+   There is no `reports` array in the ledger: `generate_dashboard.py` scans `reports/`
+   and links each prediction card to its report automatically. Just regenerate the
+   dashboard afterward.
 
 3. **When matches have been played** (user asks to update, or a new session starts
    mid-tournament): fetch finished scores —
