@@ -6,7 +6,7 @@
   "type": "commonjs",
   "private": true,
   "scripts": {
-    "build-site": "rm -rf dist && mkdir -p dist && cp dashboard.html dist/index.html && cp -r reports dist/ && touch dist/.nojekyll",
+    "build-site": "rm -rf dist && mkdir -p dist && cp dashboard.html dist/index.html && cp methodology.html dist/ && cp -r reports dist/ && touch dist/.nojekyll",
     "publish-gh-pages": "npm run build-site && gh-pages -d dist -e footbal --add --dotfiles -m \"deploy footbal\""
   },
   "devDependencies": {

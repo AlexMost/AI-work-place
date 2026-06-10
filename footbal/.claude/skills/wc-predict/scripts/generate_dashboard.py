@@ -292,7 +292,10 @@ def render(data, fixtures=None, reports_dir=None):
 <main class="max-w-5xl mx-auto px-6 py-12">
   <header class="mb-8">
     <div class="text-[10px] uppercase tracking-wider text-stone-400">wc-predict · оновлено {stamp}</div>
-    <h1 class="text-3xl font-bold" style="font-family: Georgia, 'Times New Roman', serif">{esc(data.get("title", "Трекер прогнозів"))}</h1>
+    <div class="flex items-end justify-between gap-4">
+      <h1 class="text-3xl font-bold" style="font-family: Georgia, 'Times New Roman', serif">{esc(data.get("title", "Трекер прогнозів"))}</h1>
+      <a href="methodology.html" class="text-xs text-emerald-700 hover:underline whitespace-nowrap">як модель рахує →</a>
+    </div>
   </header>
   <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">{''.join(tiles)}</div>
   {cov_html}
