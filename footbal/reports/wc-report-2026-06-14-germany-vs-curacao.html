@@ -1,67 +1,306 @@
 <!doctype html>
-<html lang="en">
+<html lang="uk">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Germany vs Curaçao</title>
+<title>Germany проти Curaçao</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-stone-50 text-slate-900">
-<main class="max-w-5xl mx-auto px-6 py-12">
+<main class="max-w-4xl mx-auto px-6 py-12">
   <header class="mb-8">
-    <div class="text-[10px] uppercase tracking-wider text-stone-400">wc-predict · poisson model on bookmaker odds</div>
-    <h1 class="text-3xl font-bold" style="font-family: Georgia, 'Times New Roman', serif">Germany vs Curaçao</h1>
+    <div class="text-[10px] uppercase tracking-wider text-stone-400">wc-predict · модель Пуассона на коефіцієнтах букмекерів</div>
+    <h1 class="text-3xl font-bold" style="font-family: Georgia, 'Times New Roman', serif">Germany проти Curaçao</h1>
     <p class="text-stone-500 mt-1">2026-06-14 17:00 UTC</p>
   </header>
-  <div class="grid md:grid-cols-2 gap-6">
+  <div class="space-y-8">
 
     <article class="bg-white rounded-2xl border border-stone-200 shadow-sm p-6">
+      
       <div class="flex items-start justify-between gap-2">
-        <h2 class="text-lg font-semibold">Germany <span class="text-stone-400 font-normal">vs</span> Curaçao</h2>
+        <h2 class="text-2xl font-semibold">Germany <span class="text-stone-400 font-normal">проти</span> Curaçao</h2>
         <div class="flex flex-col items-end gap-1"><span class="text-xs text-stone-400">2026-06-14 17:00 UTC</span></div>
       </div>
-      <div class="text-xs text-stone-400 mt-1">odds 1.04 / 18.25 / 50.5 · margin removed</div>
+      
+    <section class="mt-5 bg-stone-50 rounded-2xl border border-stone-200 p-5">
+      <div class="flex flex-wrap items-end gap-x-8 gap-y-3">
+        <div>
+          <div class="text-[10px] uppercase tracking-wider text-stone-400">прогноз</div>
+          <div class="text-5xl font-bold text-emerald-700 tabular-nums">4 : 0</div>
+          <div class="text-xs text-stone-500 mt-1">P(точний) 12% · очік. бали 5.15
+            <span class="text-stone-400">@ 8/5</span></div>
+        </div>
+        <div class="text-sm text-stone-500">
+          <div class="text-[10px] uppercase tracking-wider text-stone-400">очікувані голи (λ)</div>
+          <div class="tabular-nums text-lg text-stone-700">4.35 — 0.45</div>
+        </div>
+      </div>
 
       <div class="mt-4 flex h-2.5 rounded-full overflow-hidden">
         <div class="bg-emerald-500" style="width:95.5%"></div>
         <div class="bg-stone-300" style="width:3.4%"></div>
-        <div class="bg-rose-400" style="width:1.1%"></div>
+        <div class="bg-rose-400" style="width:1.0%"></div>
       </div>
       <div class="mt-1 flex justify-between text-xs text-stone-500">
         <span class="text-emerald-700">Germany 96%</span>
-        <span>draw 3%</span>
+        <span>нічия 3%</span>
         <span class="text-rose-600">Curaçao 1%</span>
       </div>
 
-      <div class="mt-5 flex items-center gap-6">
-        <div>
-          <div class="text-[10px] uppercase tracking-wider text-stone-400">prediction</div>
-          <div class="text-4xl font-bold text-emerald-700 tabular-nums">4 : 0</div>
-          <div class="text-xs text-stone-500">P(exact) 12% · EV 5.15 pts</div>
-        </div>
-        <div class="text-xs text-stone-500">
-          <div class="text-[10px] uppercase tracking-wider text-stone-400">expected goals</div>
-          <div class="tabular-nums">4.35 — 0.45</div>
-          <div class="mt-1 text-[10px] uppercase tracking-wider text-stone-400">alternatives</div>
-          <div>3-0 (EV 5.12) · 5-0 (EV 5.10) · 2-0 (EV 5.01)</div>
-        </div>
-      </div>
-
-      <div class="mt-4">
-        <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-1">most likely scorelines</div>
-        <div class="flex flex-wrap gap-1.5"><span class="inline-flex items-baseline gap-1 bg-stone-100 rounded-lg px-2 py-1"><span class="font-semibold">4-0</span><span class="text-[10px] text-stone-500">12%</span></span><span class="inline-flex items-baseline gap-1 bg-stone-100 rounded-lg px-2 py-1"><span class="font-semibold">3-0</span><span class="text-[10px] text-stone-500">11%</span></span><span class="inline-flex items-baseline gap-1 bg-stone-100 rounded-lg px-2 py-1"><span class="font-semibold">5-0</span><span class="text-[10px] text-stone-500">11%</span></span><span class="inline-flex items-baseline gap-1 bg-stone-100 rounded-lg px-2 py-1"><span class="font-semibold">2-0</span><span class="text-[10px] text-stone-500">8%</span></span><span class="inline-flex items-baseline gap-1 bg-stone-100 rounded-lg px-2 py-1"><span class="font-semibold">6-0</span><span class="text-[10px] text-stone-500">8%</span></span><span class="inline-flex items-baseline gap-1 bg-stone-100 rounded-lg px-2 py-1"><span class="font-semibold">4-1</span><span class="text-[10px] text-stone-500">6%</span></span></div>
-      </div>
-
-      <div class="mt-3 space-y-1">
-        
-        
-      </div>
+      <p class="mt-4 text-sm text-stone-600">Рекомендований рахунок водночас і найімовірніший, і найкращий за очікуваними балами.</p>
+    </section>
       
+    <section class="mt-4">
+      <div class="flex flex-wrap gap-1.5"><span class="inline-flex items-center gap-1 text-[11px] rounded-full px-2.5 py-1 border bg-amber-50 text-amber-800 border-amber-200">топ-5 рахунків — 50% імовірності</span><span class="inline-flex items-center gap-1 text-[11px] rounded-full px-2.5 py-1 border bg-emerald-50 text-emerald-700 border-emerald-200">маржа 3.6% · гостра лінія</span><span class="inline-flex items-center gap-1 text-[11px] rounded-full px-2.5 py-1 border bg-stone-100 text-stone-600 border-stone-200">консенсус 20 букмекерів</span><span class="inline-flex items-center gap-1 text-[11px] rounded-full px-2.5 py-1 border bg-emerald-50 text-emerald-700 border-emerald-200">ρ підігнано під ринок тоталів</span></div>
+      <div class="mt-2 text-[11px] text-stone-400">
+        у сучасних ЧС п'ять найчастіших рахунків покривають ~70% усіх матчів · ρ 0 — без корекції низьких рахунків.
+      </div>
+    </section>
+      
+    <section class="mt-5">
+      <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-2">аналіз</div>
+      <ul class="list-disc list-outside pl-5 space-y-1"><li class="text-sm text-stone-600">Рекомендований 4:0 рідкісний для ЧС — варто перевірити вхідні коефіцієнти.</li><li class="text-sm text-stone-600">Явний фаворит: 96% на «Germany». Невизначеності в результаті мало — головний ризик лише в точному рахунку.</li></ul>
+    </section>
+      <section class="mt-5 grid grid-cols-1 gap-5">
+        
+    <div class="bg-white rounded-2xl border border-stone-200 p-5">
+      <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-1">матриця рахунків</div>
+      <div class="text-[10px] text-stone-400 mb-3">Germany забиває ↓ · Curaçao забиває → ·
+        сітка покриває 97% імовірності (Σ — розподіл голів кожної команди)</div>
+      <div class="overflow-x-auto">
+        <table class="border-collapse"><tr><th class="px-1 py-1"></th><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums">0</th><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums">1</th><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums">2</th><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums">3</th><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums">4</th><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums">5</th><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums">6</th><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums">7</th><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums">8</th><th class="px-2 py-1 text-[10px] text-stone-400 font-normal border-l border-stone-200">Σ</th></tr><tr><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums text-right">0</th><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(120,113,108,0.132)">1%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(244,63,94,0.072)"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-l border-stone-200">1%</td></tr><tr><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums text-right">1</th><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.397)">4%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(120,113,108,0.218)">2%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(244,63,94,0.071)"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-l border-stone-200">6%</td></tr><tr><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums text-right">2</th><td class="text-center px-2 py-1.5 text-xs tabular-nums text-white font-semibold" style="background:rgba(16,185,129,0.711)">8%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.390)">4%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(120,113,108,0.127)">1%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(244,63,94,0.040)"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-l border-stone-200">12%</td></tr><tr><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums text-right">3</th><td class="text-center px-2 py-1.5 text-xs tabular-nums text-white font-semibold" style="background:rgba(16,185,129,0.939)">11%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.515)">5%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.168)">1%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(120,113,108,0.040)"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-l border-stone-200">18%</td></tr><tr><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums text-right">4</th><td class="text-center px-2 py-1.5 text-xs tabular-nums text-white font-semibold" style="background:rgba(16,185,129,1.000);box-shadow:inset 0 0 0 2px #047857">12%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.549)">6%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.179)">1%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.043)"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-l border-stone-200">19%</td></tr><tr><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums text-right">5</th><td class="text-center px-2 py-1.5 text-xs tabular-nums text-white font-semibold" style="background:rgba(16,185,129,0.901)">11%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.494)">5%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.161)">1%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.040)"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-l border-stone-200">17%</td></tr><tr><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums text-right">6</th><td class="text-center px-2 py-1.5 text-xs tabular-nums text-white font-semibold" style="background:rgba(16,185,129,0.708)">8%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.388)">3%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.127)">1%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.040)"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-l border-stone-200">12%</td></tr><tr><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums text-right">7</th><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.495)">5%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.272)">2%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.089)"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-l border-stone-200">8%</td></tr><tr><th class="px-2 py-1 text-[10px] text-stone-500 font-semibold tabular-nums text-right">8</th><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.313)">3%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.172)">1%</td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:rgba(16,185,129,0.056)"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="text-center px-2 py-1.5 text-xs tabular-nums text-stone-700" style="background:#fff"><span class="text-stone-300">·</span></td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-l border-stone-200">4%</td></tr><tr><th class="px-1 py-1 border-t border-stone-200"></th><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-t border-stone-200">64%</td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-t border-stone-200">29%</td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-t border-stone-200">6%</td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-t border-stone-200">1%</td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-t border-stone-200">0%</td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-t border-stone-200">0%</td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-t border-stone-200">0%</td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-t border-stone-200">0%</td><td class="px-2 py-1 text-[10px] text-stone-400 tabular-nums text-center border-t border-stone-200">0%</td><td class="border-t border-l border-stone-200"></td></tr></table>
+      </div>
+      <div class="mt-3 text-[10px] text-stone-400 flex flex-wrap gap-x-3 gap-y-1">
+        <span><span class="inline-block w-2.5 h-2.5 align-middle" style="box-shadow:inset 0 0 0 2px #047857"></span> рекомендація</span>
+        <span><span class="inline-block w-2.5 h-2.5 align-middle" style="box-shadow:inset 0 0 0 2px #1c1917"></span> найімовірніший</span>
+        <span>відтінок = результат (перемога / нічия / поразка)</span>
+      </div>
+    </div>
+        
+    <div class="bg-white rounded-2xl border border-stone-200 p-5">
+      <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-3">кандидати за очікуваними балами</div>
+      <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-[10px] uppercase tracking-wider text-stone-400 text-left">
+            <th class="px-2 py-1 font-normal">№</th>
+            <th class="px-2 py-1 font-normal">рахунок</th>
+            <th class="px-2 py-1 font-normal">рез.</th>
+            <th class="px-2 py-1 font-normal text-right">P(точн.)</th>
+            <th class="px-2 py-1 font-normal text-right">P(рез.)</th>
+            <th class="px-2 py-1 font-normal">очік. бали</th>
+          </tr>
+        </thead>
+        <tbody>
+        <tr class="bg-emerald-50 border-t border-stone-100">
+          <td class="px-2 py-1.5 text-stone-400 text-xs">1</td>
+          <td class="px-2 py-1.5 font-semibold tabular-nums">4-0</td>
+          <td class="px-2 py-1.5"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span></td>
+          <td class="px-2 py-1.5 text-xs tabular-nums text-stone-600 text-right">12%</td>
+          <td class="px-2 py-1.5 text-xs tabular-nums text-stone-600 text-right">96%</td>
+          <td class="px-2 py-1.5">
+            <div class="flex items-center gap-2">
+              <div class="flex h-2 rounded-full overflow-hidden bg-stone-100 grow min-w-[36px]">
+                <div class="bg-emerald-600" style="width:19.1%"></div>
+                <div class="bg-emerald-200" style="width:80.9%"></div>
+              </div>
+              <span class="text-xs tabular-nums font-medium w-9 text-right shrink-0">5.15</span>
+            </div>
+          </td>
+        </tr>
+        <tr class=" border-t border-stone-100">
+          <td class="px-2 py-1.5 text-stone-400 text-xs">2</td>
+          <td class="px-2 py-1.5 font-semibold tabular-nums">3-0</td>
+          <td class="px-2 py-1.5"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span></td>
+          <td class="px-2 py-1.5 text-xs tabular-nums text-stone-600 text-right">11%</td>
+          <td class="px-2 py-1.5 text-xs tabular-nums text-stone-600 text-right">96%</td>
+          <td class="px-2 py-1.5">
+            <div class="flex items-center gap-2">
+              <div class="flex h-2 rounded-full overflow-hidden bg-stone-100 grow min-w-[36px]">
+                <div class="bg-emerald-600" style="width:17.6%"></div>
+                <div class="bg-emerald-200" style="width:81.8%"></div>
+              </div>
+              <span class="text-xs tabular-nums font-medium w-9 text-right shrink-0">5.12</span>
+            </div>
+          </td>
+        </tr>
+        <tr class=" border-t border-stone-100">
+          <td class="px-2 py-1.5 text-stone-400 text-xs">3</td>
+          <td class="px-2 py-1.5 font-semibold tabular-nums">5-0</td>
+          <td class="px-2 py-1.5"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span></td>
+          <td class="px-2 py-1.5 text-xs tabular-nums text-stone-600 text-right">11%</td>
+          <td class="px-2 py-1.5 text-xs tabular-nums text-stone-600 text-right">96%</td>
+          <td class="px-2 py-1.5">
+            <div class="flex items-center gap-2">
+              <div class="flex h-2 rounded-full overflow-hidden bg-stone-100 grow min-w-[36px]">
+                <div class="bg-emerald-600" style="width:16.6%"></div>
+                <div class="bg-emerald-200" style="width:82.4%"></div>
+              </div>
+              <span class="text-xs tabular-nums font-medium w-9 text-right shrink-0">5.10</span>
+            </div>
+          </td>
+        </tr>
+        <tr class=" border-t border-stone-100">
+          <td class="px-2 py-1.5 text-stone-400 text-xs">4</td>
+          <td class="px-2 py-1.5 font-semibold tabular-nums">2-0</td>
+          <td class="px-2 py-1.5"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span></td>
+          <td class="px-2 py-1.5 text-xs tabular-nums text-stone-600 text-right">8%</td>
+          <td class="px-2 py-1.5 text-xs tabular-nums text-stone-600 text-right">96%</td>
+          <td class="px-2 py-1.5">
+            <div class="flex items-center gap-2">
+              <div class="flex h-2 rounded-full overflow-hidden bg-stone-100 grow min-w-[36px]">
+                <div class="bg-emerald-600" style="width:12.1%"></div>
+                <div class="bg-emerald-200" style="width:85.3%"></div>
+              </div>
+              <span class="text-xs tabular-nums font-medium w-9 text-right shrink-0">5.01</span>
+            </div>
+          </td>
+        </tr>
+        <tr class=" border-t border-stone-100">
+          <td class="px-2 py-1.5 text-stone-400 text-xs">5</td>
+          <td class="px-2 py-1.5 font-semibold tabular-nums">6-0</td>
+          <td class="px-2 py-1.5"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span></td>
+          <td class="px-2 py-1.5 text-xs tabular-nums text-stone-600 text-right">8%</td>
+          <td class="px-2 py-1.5 text-xs tabular-nums text-stone-600 text-right">96%</td>
+          <td class="px-2 py-1.5">
+            <div class="flex items-center gap-2">
+              <div class="flex h-2 rounded-full overflow-hidden bg-stone-100 grow min-w-[36px]">
+                <div class="bg-emerald-600" style="width:12.0%"></div>
+                <div class="bg-emerald-200" style="width:85.3%"></div>
+              </div>
+              <span class="text-xs tabular-nums font-medium w-9 text-right shrink-0">5.01</span>
+            </div>
+          </td>
+        </tr>
+        <tr class=" border-t border-stone-100">
+          <td class="px-2 py-1.5 text-stone-400 text-xs">6</td>
+          <td class="px-2 py-1.5 font-semibold tabular-nums">4-1</td>
+          <td class="px-2 py-1.5"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span></td>
+          <td class="px-2 py-1.5 text-xs tabular-nums text-stone-600 text-right">6%</td>
+          <td class="px-2 py-1.5 text-xs tabular-nums text-stone-600 text-right">96%</td>
+          <td class="px-2 py-1.5">
+            <div class="flex items-center gap-2">
+              <div class="flex h-2 rounded-full overflow-hidden bg-stone-100 grow min-w-[36px]">
+                <div class="bg-emerald-600" style="width:8.6%"></div>
+                <div class="bg-emerald-200" style="width:87.5%"></div>
+              </div>
+              <span class="text-xs tabular-nums font-medium w-9 text-right shrink-0">4.94</span>
+            </div>
+          </td>
+        </tr>
+        <tr class=" border-t border-stone-100">
+          <td class="px-2 py-1.5 text-stone-400 text-xs">7</td>
+          <td class="px-2 py-1.5 font-semibold tabular-nums">3-1</td>
+          <td class="px-2 py-1.5"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span></td>
+          <td class="px-2 py-1.5 text-xs tabular-nums text-stone-600 text-right">5%</td>
+          <td class="px-2 py-1.5 text-xs tabular-nums text-stone-600 text-right">96%</td>
+          <td class="px-2 py-1.5">
+            <div class="flex items-center gap-2">
+              <div class="flex h-2 rounded-full overflow-hidden bg-stone-100 grow min-w-[36px]">
+                <div class="bg-emerald-600" style="width:7.9%"></div>
+                <div class="bg-emerald-200" style="width:87.9%"></div>
+              </div>
+              <span class="text-xs tabular-nums font-medium w-9 text-right shrink-0">4.93</span>
+            </div>
+          </td>
+        </tr>
+        <tr class=" border-t border-stone-100">
+          <td class="px-2 py-1.5 text-stone-400 text-xs">8</td>
+          <td class="px-2 py-1.5 font-semibold tabular-nums">5-1</td>
+          <td class="px-2 py-1.5"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span></td>
+          <td class="px-2 py-1.5 text-xs tabular-nums text-stone-600 text-right">5%</td>
+          <td class="px-2 py-1.5 text-xs tabular-nums text-stone-600 text-right">96%</td>
+          <td class="px-2 py-1.5">
+            <div class="flex items-center gap-2">
+              <div class="flex h-2 rounded-full overflow-hidden bg-stone-100 grow min-w-[36px]">
+                <div class="bg-emerald-600" style="width:7.5%"></div>
+                <div class="bg-emerald-200" style="width:88.2%"></div>
+              </div>
+              <span class="text-xs tabular-nums font-medium w-9 text-right shrink-0">4.92</span>
+            </div>
+          </td>
+        </tr></tbody>
+      </table>
+      </div>
+      <div class="mt-3 text-[10px] text-stone-400 flex flex-wrap gap-x-3 gap-y-1">
+        <span><span class="inline-block w-2.5 h-2 rounded-sm bg-emerald-600 align-middle"></span> бали за точний рахунок</span>
+        <span><span class="inline-block w-2.5 h-2 rounded-sm bg-emerald-200 align-middle"></span> бали за вгаданий результат</span>
+      </div>
+      <div class="mt-1 text-[10px] text-stone-400">
+        EV = 8 × P(точний) + 5 × (P(результат) − P(точний)) · пул: 8/5 груповий, ×2 у плей-оф (те саме співвідношення)
+      </div>
+    </div>
+      </section>
+      
+    <section class="mt-5 bg-white rounded-2xl border border-stone-200 p-5">
+      <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-2">тотал голів</div>
+      <div class="flex h-2.5 rounded-full overflow-hidden">
+        <div class="bg-sky-500" style="width:85.7%"></div>
+        <div class="bg-stone-300" style="width:14.3%"></div>
+      </div>
+      <div class="mt-1 flex justify-between text-xs text-stone-500">
+        <span class="text-sky-700">понад 2.5 — 86%</span>
+        <span>менше — 14%</span>
+      </div>
+      <div class="mt-2 text-xs text-stone-500">сумарний xG 4.80 · ринок 1.18 / 4.95 → чесний P(понад) 83% · модель +2.6 п.п. проти ринку</div>
+    </section>
+      
+    <section class="mt-5 bg-white rounded-2xl border border-stone-200 p-5">
+      <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-2">контекст</div>
+      <div class="space-y-1">
+      <div class="flex items-center justify-between gap-2 text-sm">
+        <span class="text-stone-500 truncate">форма Germany</span>
+        <span class="flex items-center gap-2 shrink-0"><span class="inline-flex gap-1"><span class="inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-bold text-white bg-emerald-500">W</span><span class="inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-bold text-white bg-emerald-500">W</span><span class="inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-bold text-white bg-emerald-500">W</span><span class="inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-bold text-white bg-emerald-500">W</span><span class="inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-bold text-white bg-emerald-500">W</span><span class="inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-bold text-white bg-rose-500">L</span><span class="inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-bold text-white bg-rose-500">L</span><span class="inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-bold text-white bg-rose-500">L</span></span>
+          <span class="text-xs text-stone-500">5W-0D-3L
+          · 2.12 заб / 0.88 проп</span></span>
+      </div>
+      <div class="flex items-center justify-between gap-2 text-sm">
+        <span class="text-stone-500 truncate">форма Curaçao</span>
+        <span class="flex items-center gap-2 shrink-0"><span class="inline-flex gap-1"><span class="inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-bold text-white bg-emerald-500">W</span><span class="inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-bold text-white bg-emerald-500">W</span><span class="inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-bold text-white bg-emerald-500">W</span><span class="inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-bold text-white bg-stone-400">D</span><span class="inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-bold text-white bg-emerald-500">W</span><span class="inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-bold text-white bg-rose-500">L</span><span class="inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-bold text-white bg-stone-400">D</span><span class="inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-bold text-white bg-emerald-500">W</span></span>
+          <span class="text-xs text-stone-500">5W-2D-1L
+          · 2.25 заб / 0.62 проп</span></span>
+      </div></div>
+      
+    </section>
+      
+    <section class="mt-5">
+      <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-2">як модель дійшла до цього</div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div class="bg-white rounded-xl border border-stone-200 p-3">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="inline-flex w-5 h-5 rounded-full bg-stone-900 text-white text-[10px] items-center justify-center font-bold">1</span>
+          <span class="text-[10px] uppercase tracking-wider text-stone-400">ринкові коефіцієнти</span>
+        </div>
+        <div class="text-sm tabular-nums text-stone-700">1.04 / 18.25 / 50.5</div><div class="text-[10px] text-stone-400 mt-1">маржа 3.6% · 20 букмекерів · тотал 1.18 / 4.95</div>
+      </div>
+      <div class="bg-white rounded-xl border border-stone-200 p-3">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="inline-flex w-5 h-5 rounded-full bg-stone-900 text-white text-[10px] items-center justify-center font-bold">2</span>
+          <span class="text-[10px] uppercase tracking-wider text-stone-400">зняття маржі (power-метод)</span>
+        </div>
+        <div class="text-xs space-y-1"><div class="flex items-center justify-between gap-2"><span class="inline-block w-2 h-2 rounded-full shrink-0 bg-emerald-500"></span><span class="tabular-nums text-stone-600">92.8% → 95.5% <span class="text-stone-400">(+2.7 п.п.)</span></span></div><div class="flex items-center justify-between gap-2"><span class="inline-block w-2 h-2 rounded-full shrink-0 bg-stone-400"></span><span class="tabular-nums text-stone-600">5.3% → 3.4% <span class="text-stone-400">(-1.9 п.п.)</span></span></div><div class="flex items-center justify-between gap-2"><span class="inline-block w-2 h-2 rounded-full shrink-0 bg-rose-400"></span><span class="tabular-nums text-stone-600">1.9% → 1.1% <span class="text-stone-400">(-0.9 п.п.)</span></span></div></div><div class="text-[10px] text-stone-400 mt-2">точки — перемога/нічия/поразка; аутсайдерів ріжуть сильніше за фаворитів.</div>
+      </div>
+      <div class="bg-white rounded-xl border border-stone-200 p-3">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="inline-flex w-5 h-5 rounded-full bg-stone-900 text-white text-[10px] items-center justify-center font-bold">3</span>
+          <span class="text-[10px] uppercase tracking-wider text-stone-400">фіт моделі голів</span>
+        </div>
+        <div class="text-sm tabular-nums text-stone-700">λ 4.35 — 0.45</div><div class="text-xs tabular-nums text-stone-500 mt-1">ρ +0.000 · <span class="text-[10px] text-emerald-700">підігнано під ринок тоталів</span></div><div class="text-[10px] text-stone-400 mt-2">дві λ підібрано так, щоб модельні W/D/W точно збіглися з чесними коефіцієнтами.</div>
+      </div>
+      <div class="bg-white rounded-xl border border-stone-200 p-3">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="inline-flex w-5 h-5 rounded-full bg-stone-900 text-white text-[10px] items-center justify-center font-bold">4</span>
+          <span class="text-[10px] uppercase tracking-wider text-stone-400">модельні ймовірності</span>
+        </div>
+        <div class="text-xs space-y-0.5 text-stone-600"><div class="flex justify-between"><span>Germany</span><span class="tabular-nums">95.5%</span></div><div class="flex justify-between"><span>нічия</span><span class="tabular-nums">3.4%</span></div><div class="flex justify-between"><span>Curaçao</span><span class="tabular-nums">1.0%</span></div><div class="flex justify-between border-t border-stone-100 pt-0.5"><span>понад 2.5</span><span class="tabular-nums">85.7%</span></div></div><div class="text-[10px] text-emerald-700 mt-2">✓ збігається з чесними коефіцієнтами</div>
+      </div></div>
+    </section>
     </article>
   </div>
   <footer class="mt-10 text-xs text-stone-400">
-    Probabilities are de-margined bookmaker odds fitted to an independent-Poisson goals model.
-    Even the best pick lands the exact score only ~10–17% of the time — that's football.
+    Ймовірності — це коефіцієнти букмекерів зі знятою маржею, підігнані під незалежну модель голів Пуассона.
+    Навіть найкращий пік влучає у точний рахунок лише ~10–17% разів — це футбол.
+    Пік обирається за очікуваними балами (EV), а не за найімовірнішим рахунком, тож може відрізнятися від модального.
   </footer>
 </main>
 </body>

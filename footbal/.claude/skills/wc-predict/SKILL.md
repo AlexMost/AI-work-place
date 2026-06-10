@@ -76,6 +76,18 @@ Write the matches to a JSON file (schema in the docstring of
 python3 scripts/generate_report.py --input /tmp/predictions.json
 ```
 
+The report visualizes the full reasoning — de-margined odds, the fitted λ/ρ goals model,
+the scoreline heatmap, the expected-points ranking and the methodology stepper — all
+recomputed at render time from `expected_goals` + `dixon_coles_rho`, so the only required
+field per match stays the `predict_score.py --json` block. Two optional fields enrich it:
+
+- `"books": N` — bookmaker count behind the consensus odds (from `fetch_odds.py`); shown
+  as a confidence chip. Omit when odds were pasted/single-source.
+- `"analysis": ["…", …]` — 2–4 short bullets of *your* qualitative reasoning, shown as a
+  list above the evidence: the sanity-check against `references/historical-scores.md`, any
+  tension between the stats and the odds, venue/injury/altitude context. Skip generic
+  restatements of the numbers already on the page — only add what the model can't infer.
+
 This writes **one self-contained HTML file per match** to `reports/`, named
 deterministically (`wc-report-<date>-<home>-vs-<away>.html`) so re-predicting a match
 overwrites its file rather than piling up duplicates. A single-match input opens in the

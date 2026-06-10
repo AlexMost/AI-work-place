@@ -268,6 +268,7 @@ def main():
                                       "away": round(p_away, 4)} if p_home is not None else None,
             "expected_goals": {"home": round(lam_h, 3), "away": round(lam_a, 3)},
             "dixon_coles_rho": round(rho, 4),
+            "scoring": {"exact": args.points_exact, "outcome": args.points_outcome},
             "model_outcome_probabilities": {"home": round(m_home, 4), "draw": round(m_draw, 4),
                                             "away": round(m_away, 4), "over_2_5": round(m_over, 4)},
             "top_scorelines": [{"score": f"{i}-{j}", "probability": round(p, 4), "outcome": outcome_of(i, j)}
