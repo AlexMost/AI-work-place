@@ -164,7 +164,10 @@
           }
         ]
       },
-      "actual": null,
+      "actual": [
+        2,
+        0
+      ],
       "note": "",
       "books": 24
     },
