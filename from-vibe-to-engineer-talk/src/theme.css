@@ -91,9 +91,9 @@
 .reveal strong { color: var(--fg); font-weight: 800; }
 .reveal em { color: var(--accent); font-style: normal; font-weight: 600; }
 
-/* маркерне виділення ключових слів */
+/* маркерне виділення ключових слів — підкреслення під текстом, щоб не перекривати літери */
 .reveal mark {
-  background: linear-gradient(transparent 58%, rgba(179, 136, 255, 0.45) 58%, rgba(179, 136, 255, 0.45) 94%, transparent 94%);
+  background: linear-gradient(transparent 86%, var(--accent) 86%);
   color: inherit;
   padding: 0 0.12em;
 }
@@ -199,6 +199,22 @@
   pointer-events: none;
 }
 
+/* маркер автозгенерованого слайда — видаляти <span class="autogen"> зі slides.md після ручної правки */
+.reveal .autogen {
+  position: absolute;
+  top: -70px;
+  right: 0;
+  font-family: var(--font-mono);
+  font-size: 0.45em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-hot);
+  border: 1px dashed var(--accent-hot);
+  border-radius: 6px;
+  padding: 0.25em 0.7em;
+  opacity: 0.75;
+}
+
 /* === Прогрес / контролі / номер === */
 .reveal .progress { color: var(--accent); height: 4px; }
 .reveal .slide-number { background: transparent; color: var(--muted); font-family: var(--font-mono); }
@@ -210,6 +226,9 @@
   border-radius: 12px;
   background: none;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  max-width: 100%;
+  max-height: 520px;
+  object-fit: contain;
 }
 .reveal section img.plain { border: none; border-radius: 0; box-shadow: none; }
 
