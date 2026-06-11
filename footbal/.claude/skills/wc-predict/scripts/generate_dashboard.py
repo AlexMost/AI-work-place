@@ -12,13 +12,14 @@ Ledger (predictions.json) shape:
       "stage": "group",                              // "group" (default) | "playoff"
                                                      //   (or a knockout name) -> points x2
       "predicted": [2, 1],                           // what the user entered on their site
-      "model": {                                     // optional, what the model said
-        "recommended": [1, 0],
-        "probs": {"home": 0.68, "draw": 0.21, "away": 0.11},
-        "odds": [1.41, 4.5, 8.55],
-        "over25": 1.9, "under25": 1.9,               // optional totals inputs
-        "lambdas": [1.4, 0.6], "rho": -0.08          // optional, for snapshot fidelity
-      },
+      "model": {                                     // optional: the FULL `predict_score.py
+        "recommendation": {"score": "1-0", ...},     //   --json` snapshot, stored verbatim so
+        "implied_probabilities": {...},              //   the pick stays reproducible (includes
+        "expected_goals": {...}, "fit_quality": {...},//  odds, dixon_coles_rho, confidence,
+        ...                                          //   best_per_outcome, ...)
+      },                                             // legacy compact form (recommended [1,0],
+                                                     //   probs {...}, odds [..]) still accepted
+                                                     //   — model_view() normalizes both
       "actual": [3, 1],                              // null until the match is played (90' score)
       "note": ""                                     // optional
     }
@@ -65,6 +66,26 @@ def esc(s):
 def outcome(score):
     h, a = score
     return "home" if h > a else ("away" if a > h else "draw")
+
+
+def model_view(m):
+    """Normalized view over both `model` shapes the ledger has accumulated: the
+    canonical full predict_score --json snapshot (recommendation {"score": "1-0"},
+    model_outcome_probabilities) and the older compact form (recommended [1, 0],
+    probs). Returns {"rec": [h, a] | None, "probs": dict | None, "grade": str | None}."""
+    if not m:
+        return {"rec": None, "probs": None, "grade": None}
+    rec = m.get("recommended")
+    if rec is None and isinstance(m.get("recommendation"), dict):
+        score = str(m["recommendation"].get("score") or "")
+        parts = score.split("-", 1)
+        if len(parts) == 2 and all(x.isdigit() for x in parts):
+            rec = [int(x) for x in parts]
+    probs = (m.get("probs") or m.get("model_outcome_probabilities")
+             or m.get("implied_probabilities"))
+    conf = m.get("confidence")
+    grade = conf.get("grade") if isinstance(conf, dict) else None
+    return {"rec": rec, "probs": probs, "grade": grade}
 
 
 def stage_mult(stage):
@@ -132,16 +153,17 @@ def card(p, scoring, report_href=None):
     model_html = ""
     m = p.get("model")
     if m:
-        rec = m.get("recommended")
+        mv = model_view(m)
+        rec, probs = mv["rec"], mv["probs"]
         mpts, _ = score_entry(rec, actual, scoring, stage)
         agree = rec and pred and list(rec) == list(pred)
         rec_txt = f'{rec[0]}:{rec[1]}' if rec else "?"
-        probs = m.get("probs")
         prob_txt = (f' · {probs["home"]:.0%}/{probs["draw"]:.0%}/{probs["away"]:.0%}' if probs else "")
         mark = "" if mpts is None else f' → +{mpts}'
+        grade_txt = f' · довіра {mv["grade"]}' if mv["grade"] else ""
         diverged = " (ти зіграв інакше)" if (rec and pred and not agree) else ""
         model_html = (f'<div class="mt-2 text-xs text-stone-500">модель: {rec_txt}'
-                      f'{diverged}{prob_txt}{mark}</div>')
+                      f'{diverged}{prob_txt}{mark}{grade_txt}</div>')
 
     note = f'<div class="mt-1 text-xs text-stone-400 italic">{esc(p["note"])}</div>' if p.get("note") else ""
 
@@ -254,8 +276,9 @@ def render(data, fixtures=None, reports_dir=None):
     scored = [score_entry(p["predicted"], p["actual"], scoring, p.get("stage", "group"))
               for p in finished]
     my = [pts for pts, _ in scored]
-    model = [score_entry(p["model"]["recommended"], p["actual"], scoring, p.get("stage", "group"))[0]
-             for p in finished if p.get("model", {}).get("recommended")]
+    model_recs = [(p, model_view(p.get("model"))["rec"]) for p in finished]
+    model = [score_entry(rec, p["actual"], scoring, p.get("stage", "group"))[0]
+             for p, rec in model_recs if rec]
     n_exact = sum(1 for _, k in scored if k == "exact")
     n_out = sum(1 for _, k in scored if k == "outcome")
     overdue_n = sum(1 for p in preds if is_overdue(p))

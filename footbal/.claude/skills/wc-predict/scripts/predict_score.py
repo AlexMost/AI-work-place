@@ -32,6 +32,11 @@ TABLE_MAX_GOALS = 6    # scorelines shown/ranked (covers >99.9% of mass)
 DEFAULT_RHO = -0.08    # Dixon-Coles low-score correction prior when no O/U is given
                        # (references/historical-scores.md: 1-1 10.5% > 0-0 8.0% in modern WCs)
 LAMBDA_MAX = 8.0       # sanity bound for directly-supplied --lambdas
+RHO_FIT_LO, RHO_FIT_HI = -0.20, 0.0   # rho search range when fitting to O/U
+RESIDUAL_WARN = 0.03   # |model - market| P(over2.5) above which the totals fit is suspect
+                       # (rho is the only knob once 1X2 is matched exactly, so a market
+                       # totals level outside its reach clamps silently — surface it)
+RESIDUAL_BAD = 0.05    # residual above which confidence drops to C
 
 
 def poisson_pmf_vec(lam, n):
@@ -164,7 +169,7 @@ def fit_lambdas(p_home, p_away, p_over25=None, rho=None):
     within-outcome scoreline split, never the dominant 1X2 outcome probabilities. Without
     O/U, rho is the fixed prior (or a user override)."""
     if rho is None and p_over25 is not None:
-        lo_r, hi_r = -0.20, 0.0
+        lo_r, hi_r = RHO_FIT_LO, RHO_FIT_HI
         best = None
         for _ in range(2):
             rsteps = 10
@@ -179,7 +184,7 @@ def fit_lambdas(p_home, p_away, p_over25=None, rho=None):
                     local = (err, r, lh, la)
             best = local
             span = (hi_r - lo_r) / rsteps * 2
-            lo_r, hi_r = max(-0.20, best[1] - span), min(0.0, best[1] + span)
+            lo_r, hi_r = max(RHO_FIT_LO, best[1] - span), min(RHO_FIT_HI, best[1] + span)
         return best[2], best[3], best[1]
     rho_fixed = DEFAULT_RHO if rho is None else rho
     lh, la = _fit_lambdas_1x2(p_home, p_away, rho_fixed)
@@ -208,6 +213,64 @@ def outcome_of(i, j):
     return "home" if i > j else ("away" if j > i else "draw")
 
 
+def ev_ranking(matrix, outcome_p, points_exact, points_outcome):
+    """Scorelines over the table grid ranked by expected game points: an exact hit
+    pays points_exact, the same outcome with a different score pays points_outcome.
+    Returns [(i, j, prob, ev)] sorted by EV desc (deterministic tiebreaks)."""
+    ev = [(i, j, matrix[i][j],
+           matrix[i][j] * points_exact
+           + (outcome_p[outcome_of(i, j)] - matrix[i][j]) * points_outcome)
+          for i in range(TABLE_MAX_GOALS + 1)
+          for j in range(TABLE_MAX_GOALS + 1)]
+    ev.sort(key=lambda r: (-r[3], -r[2], r[0] + r[1], abs(r[0] - r[1]), -r[0]))
+    return ev
+
+
+def best_per_outcome(ev):
+    """Best scoreline of EACH outcome from an ev_ranking list, in EV order.
+    ev_drop (= best EV - this EV) is the price of hedging onto that outcome —
+    the actionable number when considering e.g. a draw hedge in a tight match."""
+    best_ev = ev[0][3]
+    seen, picks = set(), []
+    for i, j, p, e in ev:
+        o = outcome_of(i, j)
+        if o in seen:
+            continue
+        seen.add(o)
+        picks.append({"outcome": o, "score": f"{i}-{j}", "probability": round(p, 4),
+                      "expected_points": round(e, 3), "ev_drop": round(best_ev - e, 3)})
+        if len(seen) == 3:
+            break
+    return picks
+
+
+def confidence_block(has_odds, books, margin, has_ou, residual):
+    """A/B/C grade for how much to trust this prediction, from input quality only
+    (consensus breadth, margin, totals calibration) — not from how close the match is.
+    Factors are display strings for the report/dashboard (the user reads Ukrainian)."""
+    factors = []
+    if not has_odds:
+        return {"grade": "C", "factors": ["без коефіцієнтів — λ зі статистики, не з ринку"]}
+    if books:
+        factors.append(f"консенсус {books} букмекерів" if books >= 5
+                       else f"лише {books} букмекер(и)")
+    else:
+        factors.append("одне джерело коефіцієнтів")
+    if margin is not None:
+        factors.append(f"маржа {margin * 100:.1f}%")
+    if has_ou and residual is not None:
+        factors.append(f"ρ підігнано під тотали (Δ {residual * 100:.1f} п.п.)")
+    else:
+        factors.append("без тоталів — ρ з історичного пріору")
+    if residual is not None and residual > RESIDUAL_BAD:
+        return {"grade": "C", "factors": factors}
+    if (books and books >= 5 and has_ou
+            and residual is not None and residual <= RESIDUAL_WARN
+            and margin is not None and margin <= 0.07):
+        return {"grade": "A", "factors": factors}
+    return {"grade": "B", "factors": factors}
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--home", default="Home", help="home / first-listed team name")
@@ -227,6 +290,9 @@ def main():
     ap.add_argument("--points-outcome", type=float, default=5,
                     help="game points for correct outcome only (default 5; pool: 5 group / 10 playoff). "
                          "Playoff doubling keeps the 8:5 ratio, so the optimal pick is unchanged")
+    ap.add_argument("--books", type=int, default=None,
+                    help="bookmaker count behind the odds (from fetch_odds.py); feeds the "
+                         "confidence grade and is echoed into the JSON snapshot")
     ap.add_argument("--top", type=int, default=7, help="how many top scorelines to list")
     ap.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     args = ap.parse_args()
@@ -265,19 +331,37 @@ def main():
     outcome_p = {"home": m_home, "draw": m_draw, "away": m_away}
     m_btts, m_over_ladder = market_implications(matrix)
 
+    # fit diagnostics: 1X2 is matched by construction, but the totals level is reached
+    # only through rho — when the market wants more than rho's range allows, the fit
+    # clamps; the residual makes that visible instead of silent
+    fit_quality = ou_residual = None
+    if args.odds:
+        fit_quality = {"max_1x2_deviation": round(max(abs(m_home - p_home),
+                                                      abs(m_draw - p_draw),
+                                                      abs(m_away - p_away)), 4)}
+        if p_over25 is not None:
+            ou_residual = abs(m_over - p_over25)
+            rho_fitted = args.rho is None
+            fit_quality.update({
+                "target_over25": round(p_over25, 4),
+                "model_over25": round(m_over, 4),
+                "over25_residual": round(ou_residual, 4),
+                "rho_at_bound": bool(rho_fitted and (rho >= RHO_FIT_HI - 1e-9
+                                                     or rho <= RHO_FIT_LO + 1e-9)),
+                "reliable": ou_residual <= RESIDUAL_WARN,
+            })
+    confidence = confidence_block(bool(args.odds), args.books, margin,
+                                  p_over25 is not None, ou_residual)
+
     scorelines = [(i, j, matrix[i][j])
                   for i in range(TABLE_MAX_GOALS + 1)
                   for j in range(TABLE_MAX_GOALS + 1)]
     # deterministic order: probability desc, then fewer goals / tighter margin / home-leaning
     scorelines.sort(key=lambda r: (-r[2], r[0] + r[1], abs(r[0] - r[1]), -r[0]))
 
-    # expected game points for predicting scoreline (i, j):
-    # exact hit pays points_exact; same outcome but different score pays points_outcome
-    ev = [(i, j, p,
-           p * args.points_exact + (outcome_p[outcome_of(i, j)] - p) * args.points_outcome)
-          for i, j, p in scorelines]
-    ev.sort(key=lambda r: (-r[3], -r[2], r[0] + r[1], abs(r[0] - r[1]), -r[0]))
+    ev = ev_ranking(matrix, outcome_p, args.points_exact, args.points_outcome)
     rec = ev[0]
+    best_po = best_per_outcome(ev)
 
     if args.json:
         print(json.dumps({
@@ -285,6 +369,7 @@ def main():
             "odds": {"home": oh, "draw": od, "away": oa} if args.odds else None,
             "over_under_25_odds": ({"over": args.over25, "under": args.under25}
                                    if args.over25 is not None else None),
+            "books": args.books,
             "bookmaker_margin": round(margin, 4) if margin is not None else None,
             "implied_probabilities": {"home": round(p_home, 4), "draw": round(p_draw, 4),
                                       "away": round(p_away, 4)} if p_home is not None else None,
@@ -297,12 +382,18 @@ def main():
                 "btts_yes": round(m_btts, 4),
                 "over": {str(line): round(p, 4) for line, p in m_over_ladder.items()},
             },
+            "fit_quality": fit_quality,
+            "confidence": confidence,
             "top_scorelines": [{"score": f"{i}-{j}", "probability": round(p, 4), "outcome": outcome_of(i, j)}
                                for i, j, p in scorelines[:args.top]],
             "recommendation": {"score": f"{rec[0]}-{rec[1]}", "probability": round(rec[2], 4),
-                               "expected_points": round(rec[3], 3)},
-            "alternatives": [{"score": f"{i}-{j}", "probability": round(p, 4), "expected_points": round(e, 3)}
+                               "expected_points": round(rec[3], 3),
+                               "outcome": outcome_of(rec[0], rec[1]),
+                               "outcome_probability": round(outcome_p[outcome_of(rec[0], rec[1])], 4)},
+            "alternatives": [{"score": f"{i}-{j}", "probability": round(p, 4), "expected_points": round(e, 3),
+                              "outcome": outcome_of(i, j), "ev_drop": round(rec[3] - e, 3)}
                              for i, j, p, e in ev[1:4]],
+            "best_per_outcome": best_po,
         }, ensure_ascii=False, indent=2))
         return
 
@@ -313,7 +404,12 @@ def main():
         print(f"  odds {oh} / {od} / {oa}   (bookmaker margin {margin:.1%})")
         print(f"  implied probabilities: {args.home} {p_home:.1%} | draw {p_draw:.1%} | {args.away} {p_away:.1%}")
     print(f"  expected goals: {args.home} {lam_h:.2f} — {args.away} {lam_a:.2f}   (Dixon-Coles rho {rho:+.3f})")
+    if fit_quality and fit_quality.get("reliable") is False:
+        bound = " — rho at search bound" if fit_quality.get("rho_at_bound") else ""
+        print(f"  WARNING: totals fit residual {ou_residual * 100:.1f} pp "
+              f"(market P(over2.5) {p_over25:.1%} vs model {m_over:.1%}){bound}")
     print(f"  most likely outcome: {fav_name} ({outcome_p[fav]:.1%})")
+    print(f"  confidence: {confidence['grade']} ({'; '.join(confidence['factors'])})")
     print()
     print(f"  top {args.top} scorelines:")
     for i, j, p in scorelines[:args.top]:
@@ -324,6 +420,9 @@ def main():
           f" @ {args.points_exact:g}/{args.points_outcome:g} scoring)")
     alts = ", ".join(f"{i}-{j} (EV {e:.2f})" for i, j, p, e in ev[1:4])
     print(f"  alternatives: {alts}")
+    hedges = ", ".join(f"{x['outcome']} {x['score']} (EV {x['expected_points']:.2f}, "
+                       f"hedge costs {x['ev_drop']:.2f})" for x in best_po[1:])
+    print(f"  best per outcome: {hedges}")
 
 
 if __name__ == "__main__":

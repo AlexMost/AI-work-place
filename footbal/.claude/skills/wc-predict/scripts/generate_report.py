@@ -48,7 +48,8 @@ import webbrowser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from team_names import report_filename  # noqa: E402
 from predict_score import (  # noqa: E402
-    score_matrix, outcome_of, demargin_power, DEFAULT_RHO, MAX_GOALS, TABLE_MAX_GOALS,
+    score_matrix, outcome_of, demargin_power, ev_ranking, best_per_outcome,
+    DEFAULT_RHO, MAX_GOALS, TABLE_MAX_GOALS, RESIDUAL_WARN,
 )
 
 TOSS_UP_THRESHOLD = 0.40  # no outcome reaches 40% -> flag the match as a coin flip
@@ -144,17 +145,17 @@ def derive(p):
     scoring = p.get("scoring") or DEFAULT_SCORING
     pe, po = scoring["exact"], scoring["outcome"]
     outcome_p = {"home": home, "draw": draw, "away": away}
-    ev = [(i, j, pr, pr * pe + (outcome_p[outcome_of(i, j)] - pr) * po)
-          for i, j, pr in scorelines]
-    ev.sort(key=lambda r: (-r[3], -r[2], r[0] + r[1], abs(r[0] - r[1]), -r[0]))
+    ev = ev_ranking(matrix, outcome_p, pe, po)
     ev_rows = ev[:8]
+    best_po = best_per_outcome(ev)
 
     ri, rj = (int(x) for x in p["recommendation"]["score"].split("-"))
     rec_cell = (ri, rj)
 
     # Grid grows to cover >=95% of probability (so blowout favourites with high lambda
     # don't render a misleadingly truncated map), but always shows every cell of interest.
-    interest = [top_cell, rec_cell] + [(i, j) for i, j, _, _ in ev_rows]
+    interest = ([top_cell, rec_cell] + [(i, j) for i, j, _, _ in ev_rows]
+                + [tuple(int(x) for x in b["score"].split("-")) for b in best_po])
     G = max(5, max(max(i, j) for i, j in interest))
     while G < 9 and sum(matrix[i][j] for i in range(G + 1) for j in range(G + 1)) < 0.95:
         G += 1
@@ -163,7 +164,8 @@ def derive(p):
     d = {
         "matrix": matrix, "outcome": outcome, "marg_home": marg_home, "marg_away": marg_away,
         "scorelines": scorelines, "top5_mass": top5_mass, "top_cell": top_cell,
-        "rec_cell": rec_cell, "ev_rows": ev_rows, "scoring": scoring, "rho": rho,
+        "rec_cell": rec_cell, "ev_rows": ev_rows, "best_po": best_po,
+        "scoring": scoring, "rho": rho,
         "G": G, "coverage": coverage, "total_xg": lam_h + lam_a,
         "raw_implied": None, "fair_probs": None, "fair_over": None,
     }
@@ -182,6 +184,9 @@ def derive(p):
     ou = p.get("over_under_25_odds")
     if ou:
         d["fair_over"] = demargin_power([ou["over"], ou["under"]])[0]
+    # derived (not read from the snapshot) so pre-fit_quality snapshots get it too
+    d["fit_residual"] = (abs(outcome["over25"] - d["fair_over"])
+                         if d["fair_over"] is not None else None)
 
     return d
 
@@ -288,6 +293,15 @@ def section_chips(m, p, d):
         chips.append(chip("ρ підігнано під ринок тоталів", "emerald"))
     else:
         chips.append(chip("ρ = історичний пріор", "stone"))
+
+    conf = p.get("confidence")
+    if conf and conf.get("grade"):
+        tier = {"A": "emerald", "B": "stone", "C": "amber"}.get(conf["grade"], "stone")
+        chips.append(chip(f"довіра {conf['grade']}", tier))
+
+    fr = d.get("fit_residual")
+    if fr is not None and fr > RESIDUAL_WARN:
+        chips.append(chip(f"ρ не дотягнувся до тоталів · Δ {fr * 100:.1f} п.п.", "amber"))
 
     rho = d["rho"]
     if rho < -0.0005:
@@ -414,6 +428,20 @@ def section_ev_table(p, d):
           </td>
         </tr>"""
 
+    home, away = p["home"], p["away"]
+    hedge_rows = ""
+    for b in d["best_po"]:
+        is_top = b["ev_drop"] <= 0.0005
+        drop = '<span class="text-stone-300">—</span>' if is_top else f'<span class="text-amber-700">−{b["ev_drop"]:.2f}</span>'
+        hedge_rows += f"""
+        <div class="flex items-center gap-2 text-sm">
+          <span class="inline-block w-2 h-2 rounded-full shrink-0 {OUTCOME_DOT[b["outcome"]]}"></span>
+          <span class="text-stone-600 grow truncate">{esc(outcome_label(b["outcome"], home, away))}</span>
+          <span class="font-semibold tabular-nums">{esc(b["score"])}</span>
+          <span class="text-xs tabular-nums text-stone-500 w-14 text-right">EV {b["expected_points"]:.2f}</span>
+          <span class="text-xs tabular-nums w-12 text-right">{drop}</span>
+        </div>"""
+
     return f"""
     <div class="bg-white rounded-2xl border border-stone-200 p-5">
       <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-3">кандидати за очікуваними балами</div>
@@ -431,6 +459,13 @@ def section_ev_table(p, d):
         </thead>
         <tbody>{body}</tbody>
       </table>
+      </div>
+      <div class="mt-4 pt-3 border-t border-stone-100">
+        <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-2">найкращий рахунок у кожному результаті · ціна хеджу</div>
+        <div class="space-y-1">{hedge_rows}</div>
+        <div class="mt-2 text-[10px] text-stone-400">
+          ціна хеджу = EV(топ-ставки) − EV(найкращого рахунку цього результату) · бали групової шкали, у плей-оф усе ×2
+        </div>
       </div>
       <div class="mt-3 text-[10px] text-stone-400 flex flex-wrap gap-x-3 gap-y-1">
         <span><span class="inline-block w-2.5 h-2 rounded-sm bg-emerald-600 align-middle"></span> бали за точний рахунок</span>

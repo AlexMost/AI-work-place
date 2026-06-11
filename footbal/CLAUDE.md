@@ -39,9 +39,12 @@ site). The prediction pipeline lives in the `wc-predict` skill
      «беру» after a model run means "I'm playing the model's recommendation" —
      set `predicted` = `model.recommended` without asking again. Only if the user
      names a different score («ставлю 2-1») does `predicted` differ from the model.
-   - `model` = full `predict_score.py --json` snapshot (`recommended, probs, odds`, plus
-     `over25/under25, lambdas, rho` when present) so the pick stays reproducible — recorded
-     automatically every time predictions are generated, never asked from the user.
+   - `model` = the full `predict_score.py --json` output stored verbatim
+     (`recommendation`, `implied_probabilities`, `expected_goals`, `dixon_coles_rho`,
+     `fit_quality`, `confidence`, `best_per_outcome`, …) so the pick stays reproducible —
+     recorded automatically every time predictions are generated, never asked from the
+     user. Some older entries hold a compact `recommended/probs/odds` form; the scripts
+     accept both (`generate_dashboard.model_view`).
    - `stage` = `"playoff"` for any knockout match (scored ×2 = 16/10); omit or `"group"`
      otherwise.
    Then regenerate: `python3 .claude/skills/wc-predict/scripts/generate_dashboard.py`
@@ -73,3 +76,12 @@ site). The prediction pipeline lives in the `wc-predict` skill
 5. The ledger schema is documented in the docstring of
    `.claude/skills/wc-predict/scripts/generate_dashboard.py` (it includes `stage`,
    `bonus_questions`, and the 8/5 scoring; playoff is doubled in code, not in the ledger).
+
+6. **Before kickoff** (30–60 min out; predictions stay editable until T−15): run
+   `python3 .claude/skills/wc-predict/scripts/prematch_check.py --hours 6` — one call
+   re-fetches consensus odds for every upcoming entry (~2 API credits), refits the model
+   and reports whether each pick still maximizes expected points. On `CHANGED`, show the
+   user the new pick, the market move and `ev_drop_if_keeping` (what staying costs);
+   update the ledger only after the user confirms, per item 1. The script never edits
+   `predictions.json` itself. Late odds already price in lineups, injuries and weather —
+   no need to check those by hand.

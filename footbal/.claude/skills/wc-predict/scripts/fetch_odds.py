@@ -200,7 +200,7 @@ def main():
               f'  -> {probs}')
         extra = f' --over25 {r["over25"]} --under25 {r["under25"]}' if "over25" in r else ""
         print(f'  predict: python3 predict_score.py --home {r["home"]!r} --away {r["away"]!r}'
-              f' --odds {o["home"]} {o["draw"]} {o["away"]}{extra}')
+              f' --odds {o["home"]} {o["draw"]} {o["away"]}{extra} --books {r["books"]}')
 
 
 if __name__ == "__main__":

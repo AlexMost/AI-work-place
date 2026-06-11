@@ -431,6 +431,35 @@
         важить більше за рідкісний точний збіг, тож EV ставки на 1-0 (3.11) помітно вищий за 1-1 (1.68).
         <b>Висновок:</b> при схемі 8:5 майже завжди оптимально ставити <b>найімовірніший рахунок усередині найімовірнішого результату</b>.
       </div>
+      <div class="mt-5">
+        <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-2">найкращий рахунок у кожному результаті · ціна хеджу</div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm tabular-nums">
+            <thead><tr class="text-[10px] uppercase tracking-wider text-stone-400 text-left">
+              <th class="py-1 pr-4">результат</th><th class="px-3">рахунок</th>
+              <th class="px-3 text-right">очік. бали</th><th class="pl-3 text-right">ціна хеджу</th>
+            </tr></thead>
+            <tbody>
+              <tr class="border-t border-stone-200 bg-emerald-50">
+                <td class="py-1.5 pr-4 text-emerald-700 font-semibold">перемога Canada</td><td class="px-3 font-bold">1-0 ★</td>
+                <td class="px-3 text-right font-bold">3.11</td><td class="pl-3 text-right text-stone-400">—</td></tr>
+              <tr class="border-t border-stone-100 text-stone-600">
+                <td class="py-1.5 pr-4">нічия</td><td class="px-3">1-1</td>
+                <td class="px-3 text-right">1.68</td><td class="pl-3 text-right text-amber-700">−1.43</td></tr>
+              <tr class="border-t border-stone-100 text-stone-600">
+                <td class="py-1.5 pr-4">перемога Bosnia</td><td class="px-3">0-1</td>
+                <td class="px-3 text-right">1.20</td><td class="pl-3 text-right text-amber-700">−1.91</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-xs text-stone-500 mt-2">
+          <b>Ціна хеджу</b> — скільки очікуваних балів коштує зіграти інший результат замість
+          топ-ставки. Тут хедж дорогий, бо фаворит явний. Він стає цікавим у рівних матчах:
+          коли ціна нічийного хеджу падає до ~0.1–0.3 бала, нічия (яку суперники «серцем»
+          майже не ставлять) — виправдане відхилення. Звіт показує ці три рядки для кожного
+          матчу під таблицею кандидатів.
+        </p>
+      </div>
     </div>
   </section>
 
@@ -491,6 +520,87 @@
     </div>
   </section>
 
+  <!-- ───────── Впевненість і якість фіту ───────── -->
+  <section class="mb-10">
+    <div class="flex items-center gap-2 mb-3">
+      <span class="step-num" style="background:#4f46e5">+</span>
+      <h2 class="serif text-xl font-bold">Наскільки довіряти прогнозу</h2>
+    </div>
+    <div class="rounded-2xl border border-stone-200 bg-white p-5">
+      <p class="text-sm text-stone-600 mb-3">
+        Кожен прогноз отримує грейд <b>A / B / C</b>. Це оцінка не того, наскільки рівний матч,
+        а того, <b>наскільки якісні вхідні дані</b>: ширина консенсусу, маржа лінії та чи зійшовся
+        фіт тоталів.
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <div class="font-bold text-emerald-700 mb-1">A</div>
+          <p class="text-xs text-stone-600">Консенсус ≥ 5 букмекерів, маржа ≤ 7%,
+            тотали підігнані з відхиленням ≤ 3 п.п.</p>
+        </div>
+        <div class="rounded-xl border border-stone-200 bg-stone-50 p-4">
+          <div class="font-bold text-stone-700 mb-1">B</div>
+          <p class="text-xs text-stone-600">Чогось бракує: одне джерело коефіцієнтів,
+            немає ринку тоталів або ширша маржа.</p>
+        </div>
+        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <div class="font-bold text-amber-700 mb-1">C</div>
+          <p class="text-xs text-stone-600">Без коефіцієнтів (λ зі статистики) або фіт тоталів
+            розійшовся з ринком на &gt; 5 п.п.</p>
+        </div>
+      </div>
+      <p class="text-sm text-stone-600 mb-3">
+        Звідки береться «відхилення тоталів» (residual): 1X2 модель підганяє <b>точно за
+        побудовою</b>, а рівень тоталів досягається лише через ρ. Якщо ринковий тотал поза
+        досяжністю ρ — фіт «не дотягується», і це відхилення показується у звіті
+        попередженням, а не ховається.
+      </p>
+      <div class="text-sm text-stone-600 bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+        <b>Наскрізний приклад:</b> Canada vs Bosnia — 23 букмекери, маржа 4.5%,
+        residual 0.1 п.п. → грейд <b class="text-emerald-700">A</b>. Грейд видно чіпом
+        у звіті матчу і на картці дашборда.
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── Перевірка перед матчем ───────── -->
+  <section class="mb-10">
+    <div class="flex items-center gap-2 mb-3">
+      <span class="step-num" style="background:#b45309">+</span>
+      <h2 class="serif text-xl font-bold">Перевірка перед матчем</h2>
+    </div>
+    <div class="rounded-2xl border border-stone-200 bg-white p-5">
+      <p class="text-sm text-stone-600 mb-3">
+        Прогноз можна правити до <b>15 хвилин</b> до кікофу, а пізні коефіцієнти вже містять
+        склади, травми й погоду — ринок збирає ці новини швидше за будь-яку ручну перевірку.
+        Тому за 30–60 хв до матчу модель проганяється ще раз на свіжому консенсусі
+        (<span class="font-mono text-xs">prematch_check.py</span>):
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <div class="rounded-xl border border-stone-200 bg-stone-50 p-4">
+          <div class="font-semibold text-sm mb-1">1 · Свіжий консенсус</div>
+          <p class="text-xs text-stone-600">Один запит покриває всі найближчі матчі
+            (~2 кредити API): медіанні 1X2 + тотали.</p>
+        </div>
+        <div class="rounded-xl border border-stone-200 bg-stone-50 p-4">
+          <div class="font-semibold text-sm mb-1">2 · Рефіт моделі</div>
+          <p class="text-xs text-stone-600">Той самий конвеєр на нових цифрах. Якщо свіжих
+            тоталів нема — ρ береться зі снапшота прогнозу, щоб зміна піка могла бути
+            лише від руху ринку.</p>
+        </div>
+        <div class="rounded-xl border border-stone-200 bg-stone-50 p-4">
+          <div class="font-semibold text-sm mb-1">3 · Порівняння</div>
+          <p class="text-xs text-stone-600"><b>OK</b> — пік тримається. <b>ЗМІНИВСЯ</b> —
+            новий best-EV, рух ринку в п.п. і скільки балів коштує лишити старий пік.</p>
+        </div>
+      </div>
+      <div class="text-sm text-stone-600 bg-amber-50 border border-amber-200 rounded-lg p-3">
+        Скрипт <b>нічого не змінює сам</b> — рішення міняти пік завжди за гравцем.
+        Окремо перевіряти склади/погоду не треба: усе це вже в пізніх коефіцієнтах.
+      </div>
+    </div>
+  </section>
+
   <!-- ───────── Чого модель не знає ───────── -->
   <section class="mb-10">
     <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-3">межі моделі</div>
@@ -520,7 +630,10 @@
           <tr class="border-b border-stone-100"><td class="py-2 pr-4 font-mono text-stone-700">сітка голів</td><td class="pr-4 text-stone-600">15 / 6</td><td class="text-stone-500">15×15 для фіту λ, 6×6 для ранжування рахунків</td></tr>
           <tr class="border-b border-stone-100"><td class="py-2 pr-4 font-mono text-stone-700">бали</td><td class="pr-4 text-stone-600">8 / 5</td><td class="text-stone-500">точний рахунок / вгаданий результат (плей-оф ×2 = 16 / 10)</td></tr>
           <tr class="border-b border-stone-100"><td class="py-2 pr-4 font-mono text-stone-700">поріг «toss-up»</td><td class="pr-4 text-stone-600">40%</td><td class="text-stone-500">якщо жоден результат не перевищує — матч рівний</td></tr>
-          <tr><td class="py-2 pr-4 font-mono text-stone-700">межа λ</td><td class="pr-4 text-stone-600">0.05–4.5</td><td class="text-stone-500">діапазон пошуку очікуваних голів</td></tr>
+          <tr class="border-b border-stone-100"><td class="py-2 pr-4 font-mono text-stone-700">межа λ</td><td class="pr-4 text-stone-600">0.05–4.5</td><td class="text-stone-500">діапазон пошуку очікуваних голів</td></tr>
+          <tr class="border-b border-stone-100"><td class="py-2 pr-4 font-mono text-stone-700">поріг residual</td><td class="pr-4 text-stone-600">3 п.п.</td><td class="text-stone-500">відхилення P(понад 2.5) модель↔ринок; вище — попередження у звіті й не-A</td></tr>
+          <tr class="border-b border-stone-100"><td class="py-2 pr-4 font-mono text-stone-700">грейд A</td><td class="pr-4 text-stone-600">≥5 книг · маржа ≤7% · Δ ≤3 п.п.</td><td class="text-stone-500">довіра до входів; C — без коефіцієнтів або Δ &gt; 5 п.п.</td></tr>
+          <tr><td class="py-2 pr-4 font-mono text-stone-700">pre-match вікно</td><td class="pr-4 text-stone-600">30–60 хв</td><td class="text-stone-500">повторний фетч коефіцієнтів перед дедлайном (правки до T−15 хв)</td></tr>
         </tbody>
       </table>
     </div>

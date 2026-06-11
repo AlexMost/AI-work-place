@@ -45,10 +45,15 @@ Stats provide the report's form/h2h sections; odds stay the primary signal.
 
 ```bash
 python3 scripts/predict_score.py --home Mexico --away "South Africa" \
-  --odds 1.65 3.6 5.5 [--over25 1.9 --under25 1.9] [--json]
+  --odds 1.65 3.6 5.5 [--over25 1.9 --under25 1.9] [--books 24] [--json]
 ```
 
 - Resolve script paths relative to this skill's directory.
+- Pass `--books N` when the odds are a consensus (the commands `fetch_odds.py` prints
+  include it) — it feeds the A/B/C `confidence` grade. The JSON also carries
+  `fit_quality` (totals-fit residual — relay the warning when `reliable` is false) and
+  `best_per_outcome` (the best scoreline of each outcome with `ev_drop`, the price of
+  hedging) — in tight matches mention the draw hedge and its price in chat.
 - Scoring defaults match the user's pool: 8 points exact / 5 points correct outcome
   (group stage); playoff doubles both (16/10) — same ratio, so per-match picks don't
   change. At 8:5 the outcome term dominates the EV: usually pick the most probable
@@ -132,6 +137,24 @@ slight favorite, because the favorite's win probability is spread across many sc
 while the draw concentrates in one or two. When the recommended score's outcome differs
 from the modal outcome, add one line explaining this — otherwise it looks like a bug.
 
+### 8. Pre-match refresh (before the deadline)
+
+Predictions stay editable until 15 minutes before kickoff, and late odds absorb
+lineups, injuries and weather faster than any manual check — so don't research those
+by hand; re-query the market instead. 30–60 minutes before kickoff run:
+
+```bash
+python3 scripts/prematch_check.py [--hours 6] [--team X]
+```
+
+One call re-fetches consensus odds for every upcoming ledger entry (~2 API credits),
+refits the model and compares the fresh best-EV pick against `predictions.json`.
+`OK` — the pick holds. `CHANGED` — tell the user what moved and what staying costs
+(`ev_drop_if_keeping`, already ×2 for playoff entries); on their confirmation re-run
+step 4 with the fresh odds and upsert per step 7. The script is report-only — it never
+writes the ledger. Exit code 3 means something needs attention (a changed pick or a
+match missing from the odds feed).
+
 ## Scripts
 
 | script | purpose |
@@ -140,6 +163,7 @@ from the modal outcome, add one line explaining this — otherwise it looks like
 | `scripts/fetch_stats.py` | team form / h2h / fixtures from football-data.org or api-football.com |
 | `scripts/elo.py` | Elo ratings from full match history: favorite cross-check, no-odds fallback (`match` emits `--lambdas`), `backtest` |
 | `scripts/generate_report.py` | predictions JSON → one self-contained HTML report per match (deterministic name in `reports/`) |
+| `scripts/prematch_check.py` | fresh-odds re-check of upcoming ledger picks before kickoff (report-only, never writes the ledger) |
 
 Elo context worth knowing: backtested on WC 2010–2022, the Elo favorite wins only ~56%
 of matches (draws ~22%) — football is noisy, so present confidence honestly. Elo win
@@ -151,4 +175,5 @@ so group-stage results update the ratings.
 ## Caveats
 
 - Knockout-stage odds price 90 minutes; predict the 90-minute score and say so.
-- Odds drift; for matches days away, recommend re-running closer to the deadline.
+- Odds drift; for matches days away, recommend re-running closer to the deadline —
+  `scripts/prematch_check.py` (step 8) automates exactly that check.
