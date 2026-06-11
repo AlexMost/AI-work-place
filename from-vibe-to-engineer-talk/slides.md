@@ -213,15 +213,23 @@ https://www.youtube.com/watch?v=96jN2OCOfLs
 
 ---
 
+## Агенти можуть приймати в край дивні рішення, які якось вивели статистично, тому зараз людина має залишатися в постійному циклі розробки і не довіряти ШІ проектування архітектур
+
+---
+
 ## Заміна ролі людини-інженера
 
 ---
 
-## Agent зараз функціонує як надзвичайно здібний стажер який не втомлюється і завжди готовий до виконання задач.
+## Головним завданням людини стає смак, архітектурне бачення, написання детальних спецефікацій та загальний нагляд
 
 ---
 
-## Головним завданням людини стає смак, архітектурне бачення, написання детальних спецефікацій та загальний нагляд
+## Agent - надзвичайно здібний стажер який не втомлюється і завжди готовий до виконання задач.
+
+---
+
+![Screenshot 2026-06-11 at 23.53.45.png](img/content/Screenshot%202026-06-11%20at%2023.53.45.png)
 
 ---
 
@@ -288,25 +296,101 @@ Note:
 
 ---
 
-![specs.png](public/img/content/specs.png)
+![specs.png](img/content/specs.png)
 
 ---
 
-![duck.png](public/img/content/duck.png)
+![duck.png](img/content/duck.png)
 
 Note:
 Раніше пояснював задачу качечці — інсайт був випадковим. Тепер качечка відповідає і допитує. Перший ефект формалізації: поки не сів формулювати — здається, що все ясно; питання агента показують, що ні.
 
 ---
+![Screenshot 2026-06-11 at 23.58.12.png](img/content/Screenshot%202026-06-11%20at%2023.58.12.png)
 
-Harness Engineering
-
----
-
-SDD
+## Harness Engineering
 
 ---
 
-Loops
+<img class="plain" src="img/diagrams/sensors-guides-rails.svg" style="max-height:560px" />
 
 ---
+
+![guides.png](public/img/content/guides.png)
+
+---
+
+![sensors.png](public/img/content/sensors.png)
+
+---
+
+# TDD
+
+---
+
+# superpowers:tdd
+
+---
+
+## superpowers:subagent-driven-development
+
+![specs.png](img/content/specs.png)
+
+---
+
+# Core principle
+## Fresh subagent per task + two-stage review 
+## (spec then quality) = high quality, fast iteration
+
+---
+
+# SDD (OpenSpec)
+## https://github.com/Fission-AI/OpenSpec/
+
+---
+
+![openspec.png](public/img/content/openspec.png)
+
+---
+
+# OpenSpec + Superpowers
+
+## Процесс + кращі практики розробки
+
+---
+
+# Loops
+
+---
+
+![harness-engineering.png](public/img/content/harness-engineering.png)
+
+---
+
+# Висновки
+
+---
+
+<ul>
+    <li class="fragment">Концентруйтесь на можливостях</li>
+    <li class="fragment">Баланс якість vs швидкість</li>
+    <li class="fragment">Інженер відповідальний за архітектуру і якість</li>
+</ul>
+
+---
+
+# Відкриті питання
+
+<ul>
+    <li class="fragment">Вартість agent first систем</li>
+    <li class="fragment">Вимірювання загальної ефективності системи</li>
+    <li class="fragment">Безпека</li>
+</ul>
+
+---
+
+# Дякую!
+
+## https://t.me/ainomadic
+
+![ainomad.png](public/img/content/ainomad.png)
