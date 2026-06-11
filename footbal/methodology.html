@@ -434,6 +434,63 @@
     </div>
   </section>
 
+  <!-- ───────── Крос-чек спірних випадків ───────── -->
+  <section class="mb-10">
+    <div class="flex items-center gap-2 mb-3">
+      <span class="step-num" style="background:#0d9488">+</span>
+      <h2 class="serif text-xl font-bold">Крос-чек спірних випадків</h2>
+      <span class="text-[10px] uppercase tracking-wider text-teal-700 bg-teal-50 border border-teal-200 rounded-full px-2 py-0.5">опційно</span>
+    </div>
+    <div class="rounded-2xl border border-stone-200 bg-white p-5">
+      <p class="text-sm text-stone-600 mb-3">
+        Коли два верхні рахунки майже рівні за очікуваними балами (різниця EV &lt; ~0.1), додаємо
+        <b>незалежний фактор</b>. Прямого ринку «точний рахунок» не беремо: він тонкий і з маржею
+        <b>15–40%</b> проти ~3–5% на 1X2 — це шум, а не сигнал. Натомість звіряємо <b>форму розподілу
+        рахунків</b> з двома ліквідними ринками, що описують її з різних боків:
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+        <div class="rounded-xl border border-stone-200 bg-stone-50 p-4">
+          <div class="font-semibold text-sm mb-1">BTTS — «обидві заб'ють?»</div>
+          <p class="text-xs text-stone-600">Вісь, що вирішує: суха перемога (1-0, 2-0 → <b>ні</b>)
+            проти обопільного рахунку (2-1, 1-1 → <b>так</b>). Саме вона розводить два спірні рахунки.</p>
+        </div>
+        <div class="rounded-xl border border-stone-200 bg-stone-50 p-4">
+          <div class="font-semibold text-sm mb-1">Драбина тоталів — P(over) по лініях</div>
+          <p class="text-xs text-stone-600">Over/Under на 0.5 … 4.5, а не лише 2.5 — перевіряє форму
+            суми голів цілком, а не одну точку.</p>
+        </div>
+      </div>
+      <p class="text-xs text-stone-400 mb-2">Наскрізний приклад — Canada vs Bosnia (модель точна, ринок — приклад консенсусу):</p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm tabular-nums">
+          <thead><tr class="text-[10px] uppercase tracking-wider text-stone-400 text-left">
+            <th class="py-1 pr-4">ринок</th><th class="px-3 text-right">модель</th>
+            <th class="px-3 text-right">букмекери</th><th class="pl-3 text-right">збіг</th>
+          </tr></thead>
+          <tbody>
+            <tr class="border-t border-stone-200">
+              <td class="py-1.5 pr-4 font-semibold">BTTS так</td><td class="px-3 text-right">46%</td>
+              <td class="px-3 text-right">45%</td><td class="pl-3 text-right text-emerald-700">✓</td></tr>
+            <tr class="border-t border-stone-100">
+              <td class="py-1.5 pr-4">over 1.5</td><td class="px-3 text-right">70%</td>
+              <td class="px-3 text-right">69%</td><td class="pl-3 text-right text-emerald-700">✓</td></tr>
+            <tr class="border-t border-stone-100">
+              <td class="py-1.5 pr-4">over 2.5</td><td class="px-3 text-right">44%</td>
+              <td class="px-3 text-right">44%</td><td class="pl-3 text-right text-emerald-700">✓</td></tr>
+            <tr class="border-t border-stone-100">
+              <td class="py-1.5 pr-4">over 3.5</td><td class="px-3 text-right">23%</td>
+              <td class="px-3 text-right">24%</td><td class="pl-3 text-right text-emerald-700">✓</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4 text-sm text-stone-600 bg-teal-50 border border-teal-200 rounded-lg p-3">
+        <b>Як читати.</b> Збігається — впевненість у спірному рахунку росте (тут низький BTTS підтверджує
+        суху перемогу 1-0 над 2-1). Різко розходиться — це <b>прапорець</b> покопати (травма, ротація, погода),
+        а <b>не</b> вхід у модель. Це лише фактор у тай-брейку, ваги він не змінює.
+      </div>
+    </div>
+  </section>
+
   <!-- ───────── Чого модель не знає ───────── -->
   <section class="mb-10">
     <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-3">межі моделі</div>
