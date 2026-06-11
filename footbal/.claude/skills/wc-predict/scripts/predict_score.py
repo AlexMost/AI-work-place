@@ -85,6 +85,27 @@ def outcome_probs(matrix):
     return home, draw, away, over25
 
 
+TOTALS_LADDER = (0.5, 1.5, 2.5, 3.5, 4.5)
+
+
+def market_implications(matrix):
+    """Model-implied probabilities for the same markets bookmakers quote, so the
+    scoreline sheet can be cross-checked against btts / over-under consensus.
+    Returns btts_yes and P(total > line) for each ladder line."""
+    n = len(matrix)
+    btts_yes = 0.0
+    over = {line: 0.0 for line in TOTALS_LADDER}
+    for i in range(n):
+        for j in range(n):
+            p = matrix[i][j]
+            if i >= 1 and j >= 1:
+                btts_yes += p
+            for line in TOTALS_LADDER:
+                if i + j > line:
+                    over[line] += p
+    return btts_yes, over
+
+
 def _outcome_from_vecs(ph, pa, lam_h, lam_a, rho):
     """home/draw/away/over2.5 from precomputed pmf vectors (fast inner loop for fitting)."""
     home = draw = away = over25 = total = 0.0
@@ -242,6 +263,7 @@ def main():
     matrix = score_matrix(lam_h, lam_a, rho, MAX_GOALS)
     m_home, m_draw, m_away, m_over = outcome_probs(matrix)
     outcome_p = {"home": m_home, "draw": m_draw, "away": m_away}
+    m_btts, m_over_ladder = market_implications(matrix)
 
     scorelines = [(i, j, matrix[i][j])
                   for i in range(TABLE_MAX_GOALS + 1)
@@ -271,6 +293,10 @@ def main():
             "scoring": {"exact": args.points_exact, "outcome": args.points_outcome},
             "model_outcome_probabilities": {"home": round(m_home, 4), "draw": round(m_draw, 4),
                                             "away": round(m_away, 4), "over_2_5": round(m_over, 4)},
+            "model_market_implications": {
+                "btts_yes": round(m_btts, 4),
+                "over": {str(line): round(p, 4) for line, p in m_over_ladder.items()},
+            },
             "top_scorelines": [{"score": f"{i}-{j}", "probability": round(p, 4), "outcome": outcome_of(i, j)}
                                for i, j, p in scorelines[:args.top]],
             "recommendation": {"score": f"{rec[0]}-{rec[1]}", "probability": round(rec[2], 4),

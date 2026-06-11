@@ -14,31 +14,101 @@
         0
       ],
       "model": {
-        "recommended": [
-          1,
-          0
-        ],
-        "probs": {
-          "home": 0.6936,
-          "draw": 0.2048,
-          "away": 0.1016
+        "home": "Mexico",
+        "away": "South Africa",
+        "odds": {
+          "home": 1.44,
+          "draw": 4.45,
+          "away": 8.55
         },
-        "odds": [
-          1.415,
-          4.5,
-          8.765
+        "over_under_25_odds": {
+          "over": 2.19,
+          "under": 1.68
+        },
+        "bookmaker_margin": 0.0361,
+        "implied_probabilities": {
+          "home": 0.6833,
+          "draw": 0.2103,
+          "away": 0.1064
+        },
+        "expected_goals": {
+          "home": 1.851,
+          "away": 0.569
+        },
+        "dixon_coles_rho": 0.0,
+        "scoring": {
+          "exact": 8,
+          "outcome": 5
+        },
+        "model_outcome_probabilities": {
+          "home": 0.6833,
+          "draw": 0.2102,
+          "away": 0.1064,
+          "over_2_5": 0.4355
+        },
+        "top_scorelines": [
+          {
+            "score": "1-0",
+            "probability": 0.1646,
+            "outcome": "home"
+          },
+          {
+            "score": "2-0",
+            "probability": 0.1524,
+            "outcome": "home"
+          },
+          {
+            "score": "3-0",
+            "probability": 0.0941,
+            "outcome": "home"
+          },
+          {
+            "score": "1-1",
+            "probability": 0.0936,
+            "outcome": "draw"
+          },
+          {
+            "score": "0-0",
+            "probability": 0.0889,
+            "outcome": "draw"
+          },
+          {
+            "score": "2-1",
+            "probability": 0.0866,
+            "outcome": "home"
+          },
+          {
+            "score": "3-1",
+            "probability": 0.0535,
+            "outcome": "home"
+          }
         ],
-        "over25": 2.165,
-        "under25": 1.695,
-        "lambdas": [
-          1.89,
-          0.56
-        ],
-        "rho": 0.0,
-        "books": 24
+        "recommendation": {
+          "score": "1-0",
+          "probability": 0.1646,
+          "expected_points": 3.911
+        },
+        "alternatives": [
+          {
+            "score": "2-0",
+            "probability": 0.1524,
+            "expected_points": 3.874
+          },
+          {
+            "score": "3-0",
+            "probability": 0.0941,
+            "expected_points": 3.699
+          },
+          {
+            "score": "2-1",
+            "probability": 0.0866,
+            "expected_points": 3.677
+          }
+        ]
       },
       "actual": null,
-      "note": ""
+      "note": "",
+      "books": 25
     },
     {
       "home": "South Korea",

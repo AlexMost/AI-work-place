@@ -13,10 +13,16 @@ Commands:
   odds [--sport KEY] [--team X]   consensus odds per match; --sport defaults to
                                   auto-discovering the FIFA World Cup competition
        [--totals]                 also fetch Over/Under 2.5 (costs 1 extra credit)
+  crosscheck --team X             consensus BTTS + Over/Under ladder for a borderline
+                                  match, de-margined — a scoreline-distribution
+                                  cross-check (The Odds API has no correct-score market;
+                                  btts + alternate_totals pin the same shape from two
+                                  orthogonal axes). Per-event call, costs ~2 credits.
 
 Examples:
   fetch_odds.py odds                       # all WC matches, consensus 1X2
   fetch_odds.py odds --team mexico --totals --json
+  fetch_odds.py crosscheck --team mexico --json
 """
 
 import argparse
@@ -72,6 +78,38 @@ def median_market(bookmakers, market_key, point=None):
     return {name: (round(statistics.median(ps), 3), len(ps)) for name, ps in prices.items()}
 
 
+def devig_two_way(price_a, price_b):
+    """Proportional de-vig of a two-outcome market -> P(a). Drops the overround
+    by normalising the two implied probabilities so they sum to 1."""
+    ia, ib = 1 / price_a, 1 / price_b
+    return ia / (ia + ib)
+
+
+TOTALS_LINES = (0.5, 1.5, 2.5, 3.5, 4.5)
+
+
+def crosscheck_event(sport, ev, key, regions):
+    """Consensus, de-margined BTTS + Over/Under ladder for one event. Returns the
+    market side of a scoreline cross-check, comparable to predict_score.py's
+    model_market_implications."""
+    data, quota = get(f"/sports/{sport}/events/{ev['id']}/odds",
+                      {"regions": regions, "markets": "btts,alternate_totals",
+                       "oddsFormat": "decimal"}, key)
+    books = data.get("bookmakers", [])
+    btts = median_market(books, "btts")
+    out = {"home": ev["home_team"], "away": ev["away_team"], "kickoff": ev["commence_time"]}
+    if "Yes" in btts and "No" in btts:
+        out["btts_yes"] = round(devig_two_way(btts["Yes"][0], btts["No"][0]), 4)
+        out["btts_books"] = btts["Yes"][1]
+    over = {}
+    for line in TOTALS_LINES:
+        tot = median_market(books, "alternate_totals", point=line)
+        if "Over" in tot and "Under" in tot:
+            over[str(line)] = round(devig_two_way(tot["Over"][0], tot["Under"][0]), 4)
+    out["over"] = over
+    return out, quota
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -82,6 +120,11 @@ def main():
     p.add_argument("--team", help="only matches involving this team (substring)")
     p.add_argument("--regions", default="eu")
     p.add_argument("--totals", action="store_true", help="also fetch Over/Under 2.5")
+    c = sub.add_parser("crosscheck")
+    c.add_argument("--team", required=True, help="match involving this team (substring)")
+    c.add_argument("--sport", help="sport key (default: auto-discover the World Cup)")
+    c.add_argument("--regions", default="eu")
+    c.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
     load_dotenv()
@@ -95,6 +138,29 @@ def main():
         for s in sports:
             if s["key"].startswith("soccer"):
                 print(f'  {s["key"]:<40} {s["title"]}')
+        return
+
+    if args.cmd == "crosscheck":
+        sport = args.sport or discover_world_cup(key)
+        events, _ = get(f"/sports/{sport}/events", {}, key)
+        hits = [e for e in events
+                if args.team.lower() in (e["home_team"] + e["away_team"]).lower()]
+        if not hits:
+            sys.exit(f"error: no upcoming match involving {args.team!r}")
+        cc, quota = crosscheck_event(sport, hits[0], key, args.regions)
+        if args.json:
+            print(json.dumps({"sport": sport, "credits_remaining": quota, "crosscheck": cc},
+                             ensure_ascii=False, indent=2))
+            return
+        print(f'{cc["home"]} vs {cc["away"]} — {cc["kickoff"]} | credits remaining: {quota}')
+        if "btts_yes" in cc:
+            print(f'  BTTS (both teams score): yes {cc["btts_yes"]:.0%} / no {1 - cc["btts_yes"]:.0%}'
+                  f'  ({cc["btts_books"]} books)')
+        if cc["over"]:
+            print("  total goals — P(over) by line:")
+            for line, p in cc["over"].items():
+                print(f"    over {line}: {p:.0%}")
+        print("\n  compare against predict_score.py --json -> model_market_implications")
         return
 
     sport = args.sport or discover_world_cup(key)

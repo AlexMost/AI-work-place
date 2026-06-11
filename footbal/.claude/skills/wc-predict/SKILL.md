@@ -66,6 +66,23 @@ Compare the model's top scorelines with `references/historical-scores.md`. Footb
 scores cluster hard around 1-0 / 2-1 / 1-1 / 2-0; an exotic recommendation (4-2, 3-3)
 almost always means bad odds input — re-check before presenting.
 
+**Borderline cross-check (only when the top two scorelines are within ~0.1 EV).**
+The Odds API has no correct-score market (high-vig, thin — we don't want it as a model
+input anyway). Instead cross-check the scoreline *distribution* against two liquid,
+lower-margin markets that pin the same shape from orthogonal axes:
+
+```bash
+python3 scripts/fetch_odds.py crosscheck --team "South Africa"   # market: btts + O/U ladder
+```
+
+Compare its de-margined `btts_yes` and `over` ladder against the model's
+`model_market_implications` block in `predict_score.py --json`. BTTS is the axis that
+decides clean-sheet picks (1-0, 2-0 = no) vs both-score picks (2-1, 1-1 = yes); the
+totals ladder checks the goal-sum shape beyond the single 2.5 line. If they agree,
+confidence in the borderline pick rises; a sharp divergence is a flag to investigate
+(injury, rotation, weather) — never a model input, only a tiebreak factor. Costs ~2 API
+credits (per-event call), so reserve it for genuinely close calls.
+
 ### 6. Present: chat summary + HTML report
 
 Write the matches to a JSON file (schema in the docstring of
