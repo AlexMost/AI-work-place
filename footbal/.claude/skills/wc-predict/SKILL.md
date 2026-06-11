@@ -124,7 +124,7 @@ the time — the edge comes from being consistently on the most probable side.
 
 When the user approves predictions, follow the tracking protocol in the project's
 CLAUDE.md: upsert `predictions.json`, (re)generate the per-match report(s) under
-`reports/`, regenerate `dashboard.html` (`scripts/generate_dashboard.py`, which scans
+`reports/`, regenerate the dashboard `index.html` (`scripts/generate_dashboard.py`, which scans
 `reports/` and links each card to its match report — there is no `reports` array to
 maintain). After matches finish, fill in
 actual scores (`fetch_stats.py results`) and regenerate — the dashboard highlights

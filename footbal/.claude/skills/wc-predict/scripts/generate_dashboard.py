@@ -30,13 +30,15 @@ Ledger (predictions.json) shape:
   ]
 }
 
-The dashboard is regenerated in full every time — never edit dashboard.html by hand.
+The dashboard is regenerated in full every time — never edit index.html by hand.
+(The file is named index.html so GitHub Pages serves it at the directory root and
+back-links from methodology.html work the same locally and in prod.)
 
 Each prediction card links to its per-match report (reports/wc-report-<date>-<home>-vs-<away>.html,
 named by team_names.report_filename) whenever that file exists on disk — so the report list is
 derived from the predictions, never a hand-maintained array that can drift or duplicate.
 
-Usage: generate_dashboard.py [--ledger predictions.json] [--out dashboard.html]
+Usage: generate_dashboard.py [--ledger predictions.json] [--out index.html]
                              [--fixtures fixtures.json] [--no-open]
 With --fixtures (output of `fetch_stats.py fixtures --json`) the dashboard also shows a
 coverage section: upcoming matches with no prediction yet (guaranteed zeros otherwise).
@@ -341,7 +343,7 @@ def main():
                                          "..", "..", "..", ".."))
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ledger", default=os.path.join(root, "predictions.json"))
-    ap.add_argument("--out", default=os.path.join(root, "dashboard.html"))
+    ap.add_argument("--out", default=os.path.join(root, "index.html"))
     ap.add_argument("--fixtures", help="fetch_stats.py fixtures --json output, for the coverage section")
     ap.add_argument("--no-open", action="store_true")
     args = ap.parse_args()

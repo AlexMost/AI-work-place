@@ -20,12 +20,14 @@ site). The prediction pipeline lives in the `wc-predict` skill
 ## Files
 
 - `predictions.json` — the ledger, single source of truth for all tracked predictions
-- `dashboard.html` — rendered tracker; NEVER edit by hand, always regenerate
+- `index.html` — rendered tracker dashboard; NEVER edit by hand, always regenerate
+  (named index.html so the GitHub Pages root and back-links work identically locally
+  and in prod)
 - `reports/` — one HTML report per match (`wc-report-<date>-<home>-vs-<away>.html`,
   deterministic so regen overwrites), auto-linked from each dashboard card
 - `methodology.html` — static Ukrainian infographic explaining how the model computes
   predictions (odds → de-margin → Poisson/Dixon-Coles → EV); edited by hand (unlike
-  `dashboard.html`), linked from the dashboard header. Numbers use Canada vs Bosnia as a
+  `index.html`), linked from the dashboard header. Numbers use Canada vs Bosnia as a
   worked example — recompute via `predict_score.py` if you change them.
 - `.env` — API keys (FOOTBALL_DATA_TOKEN, API_FOOTBALL_KEY, ODDS_API_KEY)
 
