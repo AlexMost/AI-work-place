@@ -200,40 +200,8 @@ Note:
 
 ---
 
-## «Складність — це будь-що, пов’язане зі структурою програмної системи, що робить важким розуміння та модифікацію системи».
+# «Складність — це будь-що, пов’язане зі структурою програмної системи, що робить важким розуміння та модифікацію системи».
 ## - John Ousterhout
-
----
-
-# Agentic Engineering
-
-![Screenshot 2026-06-11 at 21.10.25.png](img/content/Screenshot%202026-06-11%20at%2021.10.25.png)
-
-https://www.youtube.com/watch?v=96jN2OCOfLs
-
----
-
-## Агенти можуть приймати в край дивні рішення, які якось вивели статистично, тому зараз людина має залишатися в постійному циклі розробки і не довіряти ШІ проектування архітектур
-
----
-
-## Заміна ролі людини-інженера
-
----
-
-## Головним завданням людини стає смак, архітектурне бачення, написання детальних спецефікацій та загальний нагляд
-
----
-
-## Agent - надзвичайно здібний стажер який не втомлюється і завжди готовий до виконання задач.
-
----
-
-![Screenshot 2026-06-11 at 23.53.45.png](img/content/Screenshot%202026-06-11%20at%2023.53.45.png)
-
----
-
-# Швидкість vs Якість
 
 ---
 
@@ -256,6 +224,46 @@ https://www.youtube.com/watch?v=v4F1gFy-hqg
 ---
 
 ![bad-code-production.png](img/content/bad-code-production.png)
+
+---
+
+# Agentic Engineering
+
+![Screenshot 2026-06-11 at 21.10.25.png](img/content/Screenshot%202026-06-11%20at%2021.10.25.png)
+
+https://www.youtube.com/watch?v=96jN2OCOfLs
+
+---
+
+# Головна мета "агентної інженерії"
+## Полягає не просто у швидкості, а у збереженні високих стандартів професійного софту, щоб не допускати появи вразливостей
+
+---
+
+# Людина має "залишатися в циклі"
+## Моделі бувають непередбачуваними у своїх можливостях, тому їх треба сприймати як інструменти і постійно стежити за їхніми діями
+
+---
+
+# Відповідальність за дизайн лежить на людині
+## Людина має повністю відповідати за специфікації, план розробки, дизайн та інженерний смак
+
+---
+
+# ШІ погано справляється з архітектурою
+## Карпатий зізнається, що іноді згенерований код викликає у нього "серцевий напад", оскільки він може працювати, але при цьому бути дуже роздутим, містити "незграбні абстракції, які є крихкими"
+
+---
+
+![Screenshot 2026-06-11 at 23.53.45.png](img/content/Screenshot%202026-06-11%20at%2023.53.45.png)
+
+---
+
+## Agent - надзвичайно здібний стажер який не втомлюється і завжди готовий до виконання задач.
+
+---
+
+# Швидкість vs Якість
 
 ---
 
@@ -306,9 +314,14 @@ Note:
 Раніше пояснював задачу качечці — інсайт був випадковим. Тепер качечка відповідає і допитує. Перший ефект формалізації: поки не сів формулювати — здається, що все ясно; питання агента показують, що ні.
 
 ---
-![Screenshot 2026-06-11 at 23.58.12.png](img/content/Screenshot%202026-06-11%20at%2023.58.12.png)
+
+# Agent = Harness + LLM
+
+---
 
 ## Harness Engineering
+
+![Screenshot 2026-06-11 at 23.58.12.png](img/content/Screenshot%202026-06-11%20at%2023.58.12.png)
 
 ---
 
@@ -316,11 +329,11 @@ Note:
 
 ---
 
-![guides.png](public/img/content/guides.png)
+![guides.png](img/content/guides.png)
 
 ---
 
-![sensors.png](public/img/content/sensors.png)
+![sensors.png](img/content/sensors.png)
 
 ---
 
@@ -349,13 +362,54 @@ Note:
 
 ---
 
-![openspec.png](public/img/content/openspec.png)
+![openspec.png](img/content/openspec.png)
 
 ---
 
 # OpenSpec + Superpowers
 
-## Процесс + кращі практики розробки
+<ul>
+    <li class="fragment">Синхронізація ментальної моделі</li>
+    <li class="fragment">Кращі практики розробки вшиті в процесс</li>
+    <li class="fragment">Можливість налаштовувати/впроваджувати процесс</li>
+    <li class="fragment">Автооновлення документації</li>
+    <li class="fragment">Системне покращення Harness</li>
+</ul>
+
+---
+
+# Agent native / Agent first
+
+---
+
+![agentic-first.png](img/content/agentic-first.png)
+
+---
+
+![bigproject-good-architecture.png](img/content/bigproject-good-architecture.png)
+
+---
+
+![Screenshot 2026-06-12 at 7.59.25.png](img/content/Screenshot%202026-06-12%20at%207.59.25.png)
+
+---
+
+![Screenshot 2026-06-12 at 7.43.22.png](img/content/Screenshot%202026-06-12%20at%207.43.22.png)
+
+---
+
+![Screenshot 2026-06-12 at 7.44.06.png](img/content/Screenshot%202026-06-12%20at%207.44.06.png)
+
+---
+
+## Простіше/швидше самому?
+
+<ul>
+    <li class="fragment">Тести</li>
+    <li class="fragment">Документація</li>
+    <li class="fragment">Моніторинг CI</li>
+    <li class="fragment">Оновлення задачі в jira</li>
+</ul>
 
 ---
 
@@ -363,19 +417,28 @@ Note:
 
 ---
 
-![harness-engineering.png](public/img/content/harness-engineering.png)
+![harness-engineering.png](img/content/harness-engineering.png)
 
+---
+- https://ghuntley.com/loop/
+- https://addyosmani.com/blog/loop-engineering/
+- https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents
+- https://www.anthropic.com/engineering/harness-design-long-running-apps
+- https://openai.com/uk-UA/index/harness-engineering/
 ---
 
 # Висновки
 
----
-
 <ul>
     <li class="fragment">Концентруйтесь на можливостях</li>
+    <li class="fragment">Будуйте процес</li>
     <li class="fragment">Баланс якість vs швидкість</li>
     <li class="fragment">Інженер відповідальний за архітектуру і якість</li>
+    <li class="fragment">Людина — в центрі архітектури, як <mark>диригент</mark>: агенти грають, ви тримаєте задум і темп</li>
 </ul>
+
+Note:
+Фінальний образ: harness — це оркестр. Агенти — виконавці, sensors і guides — партитура, але диригент — людина: задає задум, тримає темп, чує, коли хтось фальшивить. Без диригента оркестр грає голосно, але не музику. Це відповідь і на «engineering solved?» з початку — ні, роль інженера не зникла, вона піднялася на рівень вище.
 
 ---
 
@@ -393,4 +456,4 @@ Note:
 
 ## https://t.me/ainomadic
 
-![ainomad.png](public/img/content/ainomad.png)
+![ainomad.png](img/content/ainomad.png)
