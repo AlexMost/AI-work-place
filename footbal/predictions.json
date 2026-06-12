@@ -330,7 +330,10 @@
           }
         ]
       },
-      "actual": null,
+      "actual": [
+        2,
+        1
+      ],
       "note": "",
       "books": 24
     },
