@@ -677,24 +677,24 @@
         "home": "Qatar",
         "away": "Switzerland",
         "odds": {
-          "home": 13.69,
-          "draw": 6.75,
-          "away": 1.21
+          "home": 14.0,
+          "draw": 6.425,
+          "away": 1.22
         },
         "over_under_25_odds": {
-          "over": 1.66,
-          "under": 2.185
+          "over": 1.71,
+          "under": 2.15
         },
-        "books": 23,
-        "bookmaker_margin": 0.0476,
+        "books": 24,
+        "bookmaker_margin": 0.0467,
         "implied_probabilities": {
-          "home": 0.0592,
-          "draw": 0.127,
-          "away": 0.8138
+          "home": 0.0582,
+          "draw": 0.1347,
+          "away": 0.8071
         },
         "expected_goals": {
-          "home": 0.593,
-          "away": 2.675
+          "home": 0.535,
+          "away": 2.53
         },
         "dixon_coles_rho": 0.0,
         "scoring": {
@@ -702,129 +702,130 @@
           "outcome": 5
         },
         "model_outcome_probabilities": {
-          "home": 0.0591,
-          "draw": 0.127,
-          "away": 0.8139,
-          "over_2_5": 0.6341
+          "home": 0.0582,
+          "draw": 0.1347,
+          "away": 0.8071,
+          "over_2_5": 0.5911
         },
         "model_market_implications": {
-          "btts_yes": 0.4163,
+          "btts_yes": 0.3811,
           "over": {
-            "0.5": 0.9619,
-            "1.5": 0.8375,
-            "2.5": 0.6341,
-            "3.5": 0.4126,
-            "4.5": 0.2316
+            "0.5": 0.9533,
+            "1.5": 0.8103,
+            "2.5": 0.5911,
+            "3.5": 0.3672,
+            "4.5": 0.1957
           }
         },
         "fit_quality": {
-          "max_1x2_deviation": 0.0001,
-          "target_over25": 0.5746,
-          "model_over25": 0.6341,
-          "over25_residual": 0.0595,
+          "max_1x2_deviation": 0.0,
+          "target_over25": 0.5613,
+          "model_over25": 0.5911,
+          "over25_residual": 0.0298,
           "rho_at_bound": true,
-          "reliable": false
+          "reliable": true
         },
         "confidence": {
-          "grade": "C",
+          "grade": "A",
           "factors": [
-            "консенсус 23 букмекерів",
-            "маржа 4.8%",
-            "ρ підігнано під тотали (Δ 6.0 п.п.)"
+            "консенсус 24 букмекерів",
+            "маржа 4.7%",
+            "ρ підігнано під тотали (Δ 3.0 п.п.)"
           ]
         },
         "top_scorelines": [
           {
             "score": "0-2",
-            "probability": 0.1363,
+            "probability": 0.1494,
             "outcome": "away"
           },
           {
             "score": "0-3",
-            "probability": 0.1216,
+            "probability": 0.126,
             "outcome": "away"
           },
           {
             "score": "0-1",
-            "probability": 0.1019,
-            "outcome": "away"
-          },
-          {
-            "score": "0-4",
-            "probability": 0.0813,
+            "probability": 0.1181,
             "outcome": "away"
           },
           {
             "score": "1-2",
-            "probability": 0.0808,
+            "probability": 0.0799,
+            "outcome": "away"
+          },
+          {
+            "score": "0-4",
+            "probability": 0.0797,
             "outcome": "away"
           },
           {
             "score": "1-3",
-            "probability": 0.072,
+            "probability": 0.0673,
             "outcome": "away"
           },
           {
             "score": "1-1",
-            "probability": 0.0604,
+            "probability": 0.0631,
             "outcome": "draw"
           }
         ],
         "recommendation": {
           "score": "0-2",
-          "probability": 0.1363,
-          "expected_points": 4.478,
+          "probability": 0.1494,
+          "expected_points": 4.484,
           "outcome": "away",
-          "outcome_probability": 0.8139
+          "outcome_probability": 0.8071
         },
         "alternatives": [
           {
             "score": "0-3",
-            "probability": 0.1216,
-            "expected_points": 4.434,
+            "probability": 0.126,
+            "expected_points": 4.413,
             "outcome": "away",
-            "ev_drop": 0.044
+            "ev_drop": 0.07
           },
           {
             "score": "0-1",
-            "probability": 0.1019,
-            "expected_points": 4.375,
+            "probability": 0.1181,
+            "expected_points": 4.39,
             "outcome": "away",
-            "ev_drop": 0.103
+            "ev_drop": 0.094
           },
           {
-            "score": "0-4",
-            "probability": 0.0813,
-            "expected_points": 4.313,
+            "score": "1-2",
+            "probability": 0.0799,
+            "expected_points": 4.275,
             "outcome": "away",
-            "ev_drop": 0.165
+            "ev_drop": 0.209
           }
         ],
         "best_per_outcome": [
           {
             "outcome": "away",
             "score": "0-2",
-            "probability": 0.1363,
-            "expected_points": 4.478,
+            "probability": 0.1494,
+            "expected_points": 4.484,
             "ev_drop": 0.0
           },
           {
             "outcome": "draw",
             "score": "1-1",
-            "probability": 0.0604,
-            "expected_points": 0.816,
-            "ev_drop": 3.662
+            "probability": 0.0631,
+            "expected_points": 0.863,
+            "ev_drop": 3.621
           },
           {
             "outcome": "home",
             "score": "1-0",
-            "probability": 0.0226,
-            "expected_points": 0.363,
-            "ev_drop": 4.115
+            "probability": 0.025,
+            "expected_points": 0.366,
+            "ev_drop": 4.118
           }
         ]
       },
-      "actual": null
+      "actual": null,
+      "books": 24
     },
     {
       "home": "Brazil",
@@ -838,24 +839,24 @@
         "home": "Brazil",
         "away": "Morocco",
         "odds": {
-          "home": 1.67,
-          "draw": 3.83,
-          "away": 5.5
+          "home": 1.665,
+          "draw": 3.805,
+          "away": 5.47
         },
         "over_under_25_odds": {
-          "over": 2.05,
+          "over": 2.045,
           "under": 1.75
         },
-        "books": 23,
-        "bookmaker_margin": 0.0417,
+        "books": 24,
+        "bookmaker_margin": 0.0462,
         "implied_probabilities": {
-          "home": 0.5854,
-          "draw": 0.246,
-          "away": 0.1686
+          "home": 0.5857,
+          "draw": 0.2461,
+          "away": 0.1682
         },
         "expected_goals": {
-          "home": 1.709,
-          "away": 0.801
+          "home": 1.707,
+          "away": 0.798
         },
         "dixon_coles_rho": -0.04,
         "scoring": {
@@ -863,46 +864,46 @@
           "outcome": 5
         },
         "model_outcome_probabilities": {
-          "home": 0.5855,
-          "draw": 0.2458,
-          "away": 0.1687,
-          "over_2_5": 0.4586
+          "home": 0.5858,
+          "draw": 0.2459,
+          "away": 0.1682,
+          "over_2_5": 0.4577
         },
         "model_market_implications": {
-          "btts_yes": 0.4557,
+          "btts_yes": 0.4547,
           "over": {
-            "0.5": 0.9142,
-            "1.5": 0.7191,
-            "2.5": 0.4586,
-            "3.5": 0.2445,
-            "4.5": 0.1101
+            "0.5": 0.9139,
+            "1.5": 0.7183,
+            "2.5": 0.4577,
+            "3.5": 0.2437,
+            "4.5": 0.1096
           }
         },
         "fit_quality": {
           "max_1x2_deviation": 0.0002,
-          "target_over25": 0.457,
-          "model_over25": 0.4586,
-          "over25_residual": 0.0017,
+          "target_over25": 0.4575,
+          "model_over25": 0.4577,
+          "over25_residual": 0.0001,
           "rho_at_bound": false,
           "reliable": true
         },
         "confidence": {
           "grade": "A",
           "factors": [
-            "консенсус 23 букмекерів",
-            "маржа 4.2%",
-            "ρ підігнано під тотали (Δ 0.2 п.п.)"
+            "консенсус 24 букмекерів",
+            "маржа 4.6%",
+            "ρ підігнано під тотали (Δ 0.0 п.п.)"
           ]
         },
         "top_scorelines": [
           {
             "score": "1-0",
-            "probability": 0.1345,
+            "probability": 0.1349,
             "outcome": "home"
           },
           {
             "score": "2-0",
-            "probability": 0.1187,
+            "probability": 0.1189,
             "outcome": "home"
           },
           {
@@ -912,17 +913,17 @@
           },
           {
             "score": "2-1",
-            "probability": 0.0951,
+            "probability": 0.095,
             "outcome": "home"
           },
           {
             "score": "0-0",
-            "probability": 0.0858,
+            "probability": 0.0861,
             "outcome": "draw"
           },
           {
             "score": "3-0",
-            "probability": 0.0676,
+            "probability": 0.0677,
             "outcome": "home"
           },
           {
@@ -933,59 +934,60 @@
         ],
         "recommendation": {
           "score": "1-0",
-          "probability": 0.1345,
-          "expected_points": 3.331,
+          "probability": 0.1349,
+          "expected_points": 3.334,
           "outcome": "home",
-          "outcome_probability": 0.5855
+          "outcome_probability": 0.5858
         },
         "alternatives": [
           {
             "score": "2-0",
-            "probability": 0.1187,
-            "expected_points": 3.283,
+            "probability": 0.1189,
+            "expected_points": 3.286,
             "outcome": "home",
-            "ev_drop": 0.047
+            "ev_drop": 0.048
           },
           {
             "score": "2-1",
-            "probability": 0.0951,
-            "expected_points": 3.213,
+            "probability": 0.095,
+            "expected_points": 3.214,
             "outcome": "home",
-            "ev_drop": 0.118
+            "ev_drop": 0.12
           },
           {
             "score": "3-0",
-            "probability": 0.0676,
-            "expected_points": 3.13,
+            "probability": 0.0677,
+            "expected_points": 3.132,
             "outcome": "home",
-            "ev_drop": 0.201
+            "ev_drop": 0.202
           }
         ],
         "best_per_outcome": [
           {
             "outcome": "home",
             "score": "1-0",
-            "probability": 0.1345,
-            "expected_points": 3.331,
+            "probability": 0.1349,
+            "expected_points": 3.334,
             "ev_drop": 0.0
           },
           {
             "outcome": "draw",
             "score": "1-1",
             "probability": 0.1157,
-            "expected_points": 1.576,
-            "ev_drop": 1.754
+            "expected_points": 1.577,
+            "ev_drop": 1.757
           },
           {
             "outcome": "away",
             "score": "0-1",
             "probability": 0.0607,
-            "expected_points": 1.025,
-            "ev_drop": 2.306
+            "expected_points": 1.023,
+            "ev_drop": 2.31
           }
         ]
       },
-      "actual": null
+      "actual": null,
+      "books": 24
     },
     {
       "home": "Haiti",
