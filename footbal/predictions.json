@@ -827,7 +827,10 @@
           }
         ]
       },
-      "actual": null,
+      "actual": [
+        1,
+        1
+      ],
       "books": 24
     },
     {
