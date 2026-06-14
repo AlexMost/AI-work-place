@@ -67,13 +67,18 @@ site). The prediction pipeline lives in the `wc-predict` skill
    (extra time and shootouts excluded) plus `duration`/`stage`, matching the pool rule.
    Match team names loosely: sources disagree (Czechia vs Czech Republic,
    Bosnia-Herzegovina vs Bosnia and Herzegovina) — `scripts/team_names.py` normalizes them.
+   Also refresh the live bonus tallies (item 7: `bonus_stats.py`) so the dashboard's
+   «поточний стан» counters stay current.
 
 4. **Coverage check** (every dashboard regen, and always when a session starts
    mid-tournament): make sure no upcoming match is missing a prediction — a forgotten
-   match is a guaranteed 0. Pass the fixtures feed to the dashboard to surface gaps:
+   match is a guaranteed 0. Pass the fixtures feed to the dashboard:
    `fetch_stats.py fixtures --limit 200 --json > /tmp/fixtures.json` then
-   `generate_dashboard.py --fixtures /tmp/fixtures.json`. The dashboard also flags
-   overdue entries (kickoff passed, no `actual` yet).
+   `generate_dashboard.py --fixtures /tmp/fixtures.json`. Gaps within
+   `COVERAGE_WINDOW_DAYS` are printed as a **console warning** (stderr) — they are no
+   longer rendered on the dashboard itself (decluttered at the user's request), so watch
+   the terminal output when regenerating. The dashboard still flags overdue entries
+   (kickoff passed, no `actual` yet) on the match cards.
 
 5. The ledger schema is documented in the docstring of
    `.claude/skills/wc-predict/scripts/generate_dashboard.py` (it includes `stage`,
@@ -87,3 +92,15 @@ site). The prediction pipeline lives in the `wc-predict` skill
    update the ledger only after the user confirms, per item 1. The script never edits
    `predictions.json` itself. Late odds already price in lineups, injuries and weather —
    no need to check those by hand.
+
+7. **Bonus questions** show a live «поточний стан» tally on the dashboard (collapsed by
+   default). Each `bonus_questions` entry carries a `metric` block driving it:
+   - `{"kind": "group_goals"}` and `{"kind": "top_scorer_country"}` are computed
+     automatically from finished results (goals tally / top-scoring country).
+   - `{"kind": "manual", "unit": "...", "count": N, "leader": "..."}` covers what the free
+     football-data tier cannot expose — its match detail has only the score and referees,
+     **no cards/penalties**. Update `count` (and `leader`, for the most-yellows question)
+     by hand as those numbers come in.
+   Run `python3 .claude/skills/wc-predict/scripts/bonus_stats.py` (fetches results itself,
+   ~1 credit, or pass `--results <file>`); it writes a `live` block per question into the
+   ledger. Then regenerate the dashboard. `bonus_stats.py --dry-run` prints without writing.

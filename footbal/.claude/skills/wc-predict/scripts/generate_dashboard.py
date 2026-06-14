@@ -205,6 +205,25 @@ def tile(value, label, accent=""):
             f'<div class="text-[10px] uppercase tracking-wider text-stone-400 mt-1">{label}</div></div>')
 
 
+def live_block(live):
+    """The 'поточний стан' line under a bonus question: headline + sub + optional bar.
+    `live` is written by bonus_stats.py; absent until that script has run."""
+    if not live:
+        return ""
+    accent = {"in": "text-emerald-700", "below": "text-amber-600",
+              "above": "text-amber-600"}.get(live.get("status"), "text-slate-900")
+    p = live.get("progress")
+    bar = ""
+    if p is not None:
+        pct = max(0.0, min(1.0, p)) * 100
+        bar = ('<div class="mt-1.5 h-1 rounded-full bg-stone-100 overflow-hidden">'
+               f'<div class="h-full bg-emerald-400" style="width:{pct:.0f}%"></div></div>')
+    return (f'<div class="mt-2 pt-2 border-t border-stone-100">'
+            f'<div class="text-[10px] uppercase tracking-wider text-stone-400">поточний стан</div>'
+            f'<div class="text-lg font-bold tabular-nums {accent}">{esc(live.get("headline", ""))}</div>'
+            f'<div class="text-xs text-stone-500">{esc(live.get("sub", ""))}</div>{bar}</div>')
+
+
 def bonus_section(bonus, scoring):
     if not bonus:
         return "", 0
@@ -227,17 +246,29 @@ def bonus_section(bonus, scoring):
             f'<div class="text-sm text-emerald-700 font-semibold mt-1">{esc(b.get("answer", ""))}'
             f'<span class="text-xs text-stone-400 font-normal">{conf}</span></div>'
             + (f'<div class="text-xs text-stone-400 mt-1">{esc(b["basis"])}</div>' if b.get("basis") else "")
+            + live_block(b.get("live"))
             + '</div>')
-    head = (f'<div class="text-[10px] uppercase tracking-wider text-stone-400 mb-2">'
-            f'бонусні питання · +{BONUS_POINTS} за кожне · набрано {earned}</div>')
-    return (f'<section class="mb-8">{head}<div class="grid md:grid-cols-2 gap-3">'
-            f'{"".join(rows)}</div></section>'), earned
+    # collapsed by default (<details> without `open`): the bonus tallies are reference,
+    # not the daily focus — the summary still shows the points banked so far.
+    summary = (
+        '<summary class="cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden '
+        'flex items-center justify-between rounded-xl border border-stone-200 bg-white px-4 py-3">'
+        f'<span class="text-xs font-medium text-stone-600">🎯 бонусні питання · +{BONUS_POINTS} за кожне '
+        f'· набрано {earned}</span>'
+        '<span class="text-xs text-stone-400">розгорнути ▾</span></summary>')
+    return (f'<section class="mb-8"><details>{summary}'
+            f'<div class="grid md:grid-cols-2 gap-3 mt-3">{"".join(rows)}</div></details></section>'), earned
 
 
-def coverage_section(preds, fixtures):
-    """Upcoming fixtures with no prediction in the ledger — guaranteed zeros otherwise."""
+def missing_fixtures(preds, fixtures):
+    """Upcoming fixtures with no prediction in the ledger — guaranteed zeros otherwise.
+
+    Returned as a sorted list of (kickoff, home, away, group) within the coverage window.
+    No longer rendered on the dashboard (decluttered per user request); main() prints it as
+    a console warning so a forgotten match still surfaces when the dashboard is regenerated.
+    """
     if not fixtures:
-        return ""
+        return []
     have = {frozenset((normalize(p.get("home")), normalize(p.get("away")))) for p in preds}
     now = datetime.now(timezone.utc)
     horizon = now + timedelta(days=COVERAGE_WINDOW_DAYS)
@@ -256,21 +287,11 @@ def coverage_section(preds, fixtures):
         except ValueError:
             continue  # no usable kickoff -> can't place it in the window
         missing.append((ko, h, a, f.get("group") or f.get("stage") or ""))
-    if not missing:
-        return ""
     missing.sort(key=lambda r: r[0])
-    rows = "".join(
-        f'<div class="flex items-center justify-between bg-white rounded-xl border border-amber-300 px-4 py-2 text-sm">'
-        f'<span>{esc(h)} <span class="text-stone-400">vs</span> {esc(a)}'
-        f'{(" · " + esc(g)) if g else ""}</span>'
-        f'<span class="text-xs text-stone-400">{esc(ko[:16].replace("T", " "))}</span></div>'
-        for ko, h, a, g in missing)
-    return (f'<section class="mb-8"><div class="text-[10px] uppercase tracking-wider text-amber-700 '
-            f'mb-2">⚠ матчі без прогнозу ({len(missing)}) — кожен пропуск = гарантований 0</div>'
-            f'<div class="grid md:grid-cols-2 gap-2">{rows}</div></section>')
+    return missing
 
 
-def render(data, fixtures=None, reports_dir=None):
+def render(data, reports_dir=None):
     scoring = data.get("scoring", DEFAULT_SCORING)
     have_report = set(os.listdir(reports_dir)) if reports_dir and os.path.isdir(reports_dir) else set()
     preds = sorted(data["predictions"], key=lambda p: p.get("kickoff") or "9999")
@@ -295,7 +316,6 @@ def render(data, fixtures=None, reports_dir=None):
         tile(len(preds) - len(finished), "очікують гри",
              "text-rose-600" if overdue_n else ""),
     ]
-    cov_html = coverage_section(preds, fixtures)
 
     def report_href(p):
         fn = report_filename(p.get("home"), p.get("away"), p.get("kickoff"))
@@ -323,7 +343,6 @@ def render(data, fixtures=None, reports_dir=None):
     </div>
   </header>
   <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">{''.join(tiles)}</div>
-  {cov_html}
   {bonus_html}
   <div class="grid md:grid-cols-2 gap-5">
 {cards}
@@ -344,7 +363,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ledger", default=os.path.join(root, "predictions.json"))
     ap.add_argument("--out", default=os.path.join(root, "index.html"))
-    ap.add_argument("--fixtures", help="fetch_stats.py fixtures --json output, for the coverage section")
+    ap.add_argument("--fixtures", help="fetch_stats.py fixtures --json output; checks coverage "
+                                       "and warns (in the console only) about unpredicted matches")
     ap.add_argument("--no-open", action="store_true")
     args = ap.parse_args()
 
@@ -354,15 +374,21 @@ def main():
     except FileNotFoundError:
         sys.exit(f"error: ledger not found: {args.ledger}")
 
-    fixtures = None
+    reports_dir = os.path.join(os.path.dirname(os.path.abspath(args.out)), "reports")
+    with open(args.out, "w", encoding="utf-8") as f:
+        f.write(render(data, reports_dir))
+    print(f"dashboard written: {args.out}")
+
     if args.fixtures:
         with open(args.fixtures, encoding="utf-8") as f:
             fixtures = json.load(f)
-
-    reports_dir = os.path.join(os.path.dirname(os.path.abspath(args.out)), "reports")
-    with open(args.out, "w", encoding="utf-8") as f:
-        f.write(render(data, fixtures, reports_dir))
-    print(f"dashboard written: {args.out}")
+        missing = missing_fixtures(data["predictions"], fixtures)
+        if missing:
+            print(f"\n⚠ матчі без прогнозу в межах {COVERAGE_WINDOW_DAYS} днів "
+                  f"({len(missing)}) — кожен пропуск = гарантований 0:", file=sys.stderr)
+            for ko, h, a, g in missing:
+                grp = f" [{g}]" if g else ""
+                print(f"  {ko[:16].replace('T', ' ')}  {h} vs {a}{grp}", file=sys.stderr)
     if not args.no_open:
         webbrowser.open(f"file://{os.path.abspath(args.out)}")
 
