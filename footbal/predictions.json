@@ -992,7 +992,10 @@
           }
         ]
       },
-      "actual": null,
+      "actual": [
+        1,
+        1
+      ],
       "books": 24
     },
     {
@@ -1154,7 +1157,10 @@
           }
         ]
       },
-      "actual": null,
+      "actual": [
+        0,
+        1
+      ],
       "books": 24
     },
     {
