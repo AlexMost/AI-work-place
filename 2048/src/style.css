@@ -24,6 +24,9 @@ html,
 body {
   margin: 0;
   min-height: 100%;
+  /* Solid base color: modern iOS Safari derives the toolbar tint from this,
+     not from the (ignored) theme-color meta. */
+  background-color: var(--bg-0);
 }
 
 body {
@@ -33,6 +36,8 @@ body {
     radial-gradient(120% 80% at 15% 0%, rgba(52, 225, 255, 0.18), transparent 60%),
     radial-gradient(120% 80% at 100% 100%, rgba(255, 78, 213, 0.16), transparent 55%),
     linear-gradient(160deg, var(--bg-1), var(--bg-0));
+  /* re-assert after the `background` shorthand reset it to transparent */
+  background-color: var(--bg-0);
   min-height: 100dvh;
   display: grid;
   place-items: center;
