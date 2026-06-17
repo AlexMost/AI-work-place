@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>2048 · neon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" crossorigin src="/AI-work-place/2048/assets/index-ebF2Ga84.js"></script>
+    <link rel="stylesheet" crossorigin href="/AI-work-place/2048/assets/index-B4X6okZL.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div class="title-block">
+          <h1 class="logo">2048</h1>
+          <p class="tagline">Зливай плитки. Дійди до 2048.</p>
+        </div>
+        <div class="scores">
+          <div class="score-box" id="score-box">
+            <span class="score-label">Рахунок</span>
+            <span class="score-value" id="score">0</span>
+          </div>
+          <div class="score-box">
+            <span class="score-label">Рекорд</span>
+            <span class="score-value" id="best">0</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="controls">
+        <button class="btn" id="new-game">Нова гра</button>
+        <span class="hint">← ↑ → ↓ або свайп</span>
+      </div>
+
+      <div class="board" id="board">
+        <div class="grid" id="grid"></div>
+        <div class="tiles" id="tiles"></div>
+        <div class="overlay" id="overlay">
+          <p class="overlay-title" id="overlay-title"></p>
+          <div class="overlay-actions" id="overlay-actions">
+            <button class="btn btn-primary" id="overlay-restart">
+              Ще раз
+            </button>
+            <button class="btn btn-ghost" id="keep-playing">
+              Грати далі
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+  </body>
+</html>
