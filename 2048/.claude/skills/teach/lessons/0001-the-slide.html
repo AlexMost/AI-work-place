@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Урок 0001 · Слайд: як плитка їде, а не стрибає</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --paper: #fffff8;
+    --dim: #6b6b63;
+    --rule: #e2e0d4;
+    --accent: #2f7df6;
+    --neon: #34b6ff;
+    --good: #1a7f4b;
+    --bad: #c0392b;
+    --code-bg: #f4f2e8;
+  }
+  * { box-sizing: border-box; }
+  html { font-size: 18px; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Georgia, "ET Book", "Iowan Old Style", serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 56px 24px 96px; }
+  .eyebrow {
+    font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--dim); font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+  h1 { font-size: 2.05rem; line-height: 1.15; margin: 0.3em 0 0.2em; letter-spacing: -0.01em; }
+  h2 {
+    font-size: 1.25rem; margin: 2.4em 0 0.5em; padding-top: 0.6em;
+    border-top: 1px solid var(--rule);
+  }
+  .lede { font-size: 1.12rem; color: #333; }
+  p { margin: 0.7em 0; }
+  code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.86em;
+    background: var(--code-bg); padding: 0.1em 0.34em; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--rule); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; font-size: 0.82rem; line-height: 1.5;
+  }
+  pre code { background: none; padding: 0; }
+  .muted { color: var(--dim); }
+  a { color: var(--accent); }
+  .mission {
+    font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.9rem;
+    background: #f0f6ff; border: 1px solid #cfe0fb; border-left: 3px solid var(--accent);
+    border-radius: 6px; padding: 12px 16px; color: #2c3e50;
+  }
+
+  /* ---------- live lab ---------- */
+  .lab {
+    margin: 1.2em 0; border: 1px solid var(--rule); border-radius: 12px;
+    background: #fbfaf3; padding: 20px; font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+  .lab-title {
+    font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--dim); margin-bottom: 14px;
+  }
+  .track {
+    position: relative; height: 84px; border-radius: 10px;
+    background:
+      repeating-linear-gradient(90deg, #eceadd 0 1px, transparent 1px 25%);
+    background-color: #16203a;
+    overflow: hidden;
+  }
+  .demo-tile {
+    position: absolute; top: 12px; left: 12px;
+    width: 60px; height: 60px; border-radius: 10px;
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 1.4rem; color: #04101a;
+    background: linear-gradient(135deg, #7fe3ff, #34b6ff);
+    box-shadow: 0 6px 18px rgba(52, 182, 255, 0.5);
+    /* THE star of this lesson — toggled by the checkbox below */
+    transform: translateX(0px);
+  }
+  .demo-tile.animated { transition: transform var(--dur, 0.35s) ease-in-out; }
+  .controls { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; margin-top: 16px; }
+  .controls button {
+    font: inherit; font-weight: 600; cursor: pointer;
+    background: #fff; border: 1px solid #c9c7ba; border-radius: 8px;
+    padding: 8px 16px; transition: transform 0.1s ease, border-color 0.15s;
+  }
+  .controls button:hover { border-color: var(--accent); }
+  .controls button:active { transform: scale(0.94); }
+  .toggle { display: flex; align-items: center; gap: 8px; font-size: 0.92rem; cursor: pointer; user-select: none; }
+  .toggle input { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; }
+  .dur { display: flex; align-items: center; gap: 8px; font-size: 0.86rem; color: var(--dim); }
+  .verdict { font-size: 0.86rem; margin-top: 12px; min-height: 1.3em; font-weight: 600; }
+  .verdict.slide { color: var(--good); }
+  .verdict.jump { color: var(--bad); }
+
+  /* ---------- quiz ---------- */
+  .quiz { margin: 1.1em 0; border: 1px solid var(--rule); border-radius: 12px; padding: 18px 20px;
+          font-family: ui-sans-serif, system-ui, sans-serif; background: #fbfaf3; }
+  .quiz p.q { font-weight: 600; margin: 0 0 12px; }
+  .opt {
+    display: block; width: 100%; text-align: left; font: inherit; cursor: pointer;
+    background: #fff; border: 1px solid #c9c7ba; border-radius: 8px;
+    padding: 10px 14px; margin: 7px 0; transition: border-color 0.12s, background 0.12s;
+  }
+  .opt:hover { border-color: var(--accent); }
+  .opt.correct { background: #e7f6ec; border-color: var(--good); }
+  .opt.wrong { background: #fbeae8; border-color: var(--bad); }
+  .opt:disabled { cursor: default; }
+  .feedback { font-size: 0.86rem; margin-top: 8px; min-height: 1.2em; }
+  .feedback.ok { color: var(--good); }
+  .feedback.no { color: var(--bad); }
+
+  .task { background: #fffaf0; border: 1px solid #f0e0c0; border-left: 3px solid #e0a82e;
+          border-radius: 6px; padding: 14px 18px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.92rem; }
+  .src { background: #f0f6ff; border: 1px solid #cfe0fb; border-radius: 8px; padding: 14px 18px;
+         font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.92rem; }
+  footer { margin-top: 3em; padding-top: 1em; border-top: 1px solid var(--rule);
+           font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.88rem; color: var(--dim); }
+  .next a { text-decoration: none; font-weight: 600; }
+  kbd { font-family: ui-monospace, monospace; background: #eee; border: 1px solid #ccc;
+        border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; font-size: 0.82em; }
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Урок 0001 · CSS-анімації плиток</div>
+  <h1>Слайд: чому плитка <em>їде</em>, а не стрибає</h1>
+  <p class="lede">Один маленький рядок CSS перетворює миттєвий стрибок на плавний рух.
+  Це — фундамент усього руху плиток у твоїй грі 2048. Опануєш його — і половина магії вже твоя.</p>
+
+  <div class="mission">
+    🎯 <strong>Навіщо це тобі:</strong> ти хочеш сам писати такі анімації. Усе починається
+    звідси — з єдиної ідеї, на якій тримається рух плиток. Решта уроків добудовуються на ній.
+  </div>
+
+  <h2>Дві складові плавного руху</h2>
+  <p>Щоб щось анімувалося, потрібні <strong>дві</strong> речі — і це майже все, що тут є:</p>
+  <ol>
+    <li><strong>Зміна</strong> — ти змінюєш значення властивості (наприклад, посунув елемент праворуч).</li>
+    <li><strong>Transition</strong> — ти заздалегідь сказав браузеру: «коли ця властивість
+      зміниться — не стрибай, а пройди шлях плавно за певний час».</li>
+  </ol>
+  <p>Без пункту 2 зміна застосовується <em>миттєво</em> — стрибок. З ним — браузер сам
+  «домальовує» всі проміжні кадри. Ти не пишеш кадри руками; ти лише оголошуєш правило.</p>
+
+  <h2>Спробуй сам 👇</h2>
+  <p class="muted">Спочатку познач галочку <code>transition</code> і посунь плитку. Потім
+  <strong>зніми галочку</strong> й посунь ще раз. Відчуй різницю — це і є весь урок.</p>
+
+  <div class="lab">
+    <div class="lab-title">Жива лабораторія</div>
+    <div class="track">
+      <div class="demo-tile animated" id="tile">2</div>
+    </div>
+    <div class="controls">
+      <button id="left">← посунути</button>
+      <button id="right">посунути →</button>
+      <label class="toggle">
+        <input type="checkbox" id="anim" checked />
+        <code>transition: transform</code>
+      </label>
+      <label class="dur">
+        тривалість
+        <input type="range" id="dur" min="0.1" max="1.5" step="0.05" value="0.35" />
+        <span id="durVal">0.35s</span>
+      </label>
+    </div>
+    <div class="verdict slide" id="verdict">Галочка стоїть → плитка <strong>їде</strong>. ✨</div>
+  </div>
+
+  <h2>Як це виглядає в коді</h2>
+  <p>Рівно те, що щойно відбулося в лабораторії, мовою CSS + JS:</p>
+<pre><code>/* CSS — правило оголошується ОДИН раз */
+.tile {
+  transform: translateX(0px);
+  transition: transform 0.35s ease-in-out;   /* ← уся магія тут */
+}</code></pre>
+<pre><code>// JS — ти лише змінюєш значення; браузер сам анімує перехід
+tile.style.transform = "translateX(150px)";  // плитка плавно поїде</code></pre>
+  <p>Прибери рядок <code>transition</code> — і той самий <code>tile.style.transform = …</code>
+  спрацює <em>миттєво</em>. Код руху не змінився; зникло лише <strong>правило про плавність</strong>.</p>
+
+  <h2>А тепер — у твоїй грі 2048</h2>
+  <p>Ти це вже бачив. У <code>src/style.css</code> кожна плитка має саме таке правило:</p>
+<pre><code>.tile {
+  transition: transform var(--slide) ease-in-out;   /* --slide = 0.12s */
+}</code></pre>
+  <p>А у <code>src/render.ts</code> функція <code>position()</code> просто <em>змінює</em>
+  <code>transform</code> на нові координати — і плитка їде сама:</p>
+<pre><code>function position(el, x, y) {
+  el.style.transform =
+    `translate(calc((var(--cell) + var(--gap)) * ${x}), …)`;
+}</code></pre>
+  <p class="muted">Чому <code>transform</code>, а не <code>left</code>/<code>top</code>? Бо
+  <code>transform</code> не змушує браузер перераховувати розкладку сторінки (layout) —
+  тому він дешевий і плавний. Це підтверджує і
+  <a href="https://web.dev/articles/animations-guide" target="_blank" rel="noopener">web.dev</a>.
+  (Детальніше розберемо в наступних уроках.)</p>
+
+  <h2>Перевір себе</h2>
+  <p class="muted">Не підглядай вгору — спробуй пригадати. Згадування з пам'яті закріплює
+  міцніше, ніж перечитування.</p>
+
+  <div class="quiz" id="q1">
+    <p class="q">1. Без чого зміна позиції буде миттєвим стрибком, а не плавним рухом?</p>
+    <button class="opt" data-correct="1">Без властивості transition</button>
+    <button class="opt">Без властивості position</button>
+    <button class="opt">Без властивості background</button>
+    <div class="feedback"></div>
+  </div>
+
+  <div class="quiz" id="q2">
+    <p class="q">2. Чому плитку рухають через <code>transform</code>, а не <code>left/top</code>?</p>
+    <button class="opt" data-correct="1">transform не зачіпає layout</button>
+    <button class="opt">transform збільшує шрифт удвічі</button>
+    <button class="opt">transform працює лише в JS</button>
+    <div class="feedback"></div>
+  </div>
+
+  <h2>🛠 Твоє завдання (5 хвилин)</h2>
+  <div class="task">
+    Відкрий гру локально (<code>cd 2048 &amp;&amp; npm run dev</code>), у DevTools знайди
+    в <code>style.css</code> правило <code>.tile</code> і <strong>тимчасово видали</strong>
+    рядок <code>transition: transform …</code>. Зроби кілька ходів. Плитки тепер
+    <em>телепортуються</em> — точно як у тому базі, який ми разом ловили. Поверни рядок —
+    плавність відновиться. Ти щойно власноруч відтворив і полагодив анімацію. 💪
+  </div>
+
+  <div class="src" style="margin-top:1.2em">
+    📖 <strong>Першоджерело (прочитай одне):</strong>
+    <a href="https://www.joshwcomeau.com/animation/css-transitions/" target="_blank" rel="noopener">Josh
+    Comeau — An Interactive Guide to CSS Transitions</a>. Найкращий інтерактивний вступ:
+    пограйся з його прикладами 10–15 хв, особливо з розділом про різницю «миттєво vs плавно».
+  </div>
+
+  <footer>
+    <p>❓ <strong>Я — твій вчитель.</strong> Якщо щось незрозуміло, або хочеш глибше про
+    будь-який рядок — просто запитай мене в чаті. Це найкорисніша частина.</p>
+    <p class="next">Далі: <a href="#">Урок 0002 — Easing і тривалість: як налаштувати
+    «відчуття» руху</a> (скажи «давай далі», коли будеш готовий).</p>
+  </footer>
+</main>
+
+<script>
+  const tile = document.getElementById("tile");
+  const anim = document.getElementById("anim");
+  const verdict = document.getElementById("verdict");
+  const durInput = document.getElementById("dur");
+  const durVal = document.getElementById("durVal");
+  const STEP = 150;
+  const MAX_STEPS = 3;
+  let step = 0;
+
+  function apply() {
+    tile.style.transform = `translateX(${step * STEP}px)`;
+  }
+  function move(dir) {
+    step = Math.min(MAX_STEPS, Math.max(0, step + dir));
+    apply();
+  }
+  document.getElementById("right").onclick = () => move(1);
+  document.getElementById("left").onclick = () => move(-1);
+
+  anim.onchange = () => {
+    tile.classList.toggle("animated", anim.checked);
+    if (anim.checked) {
+      verdict.className = "verdict slide";
+      verdict.innerHTML = "Галочка стоїть → плитка <strong>їде</strong>. ✨";
+    } else {
+      verdict.className = "verdict jump";
+      verdict.innerHTML = "Галочки нема → плитка <strong>стрибає</strong> миттєво. 🧱";
+    }
+  };
+
+  durInput.oninput = () => {
+    durVal.textContent = (+durInput.value).toFixed(2) + "s";
+    tile.style.setProperty("--dur", durInput.value + "s");
+  };
+
+  // quiz feedback
+  document.querySelectorAll(".quiz").forEach((quiz) => {
+    const fb = quiz.querySelector(".feedback");
+    quiz.querySelectorAll(".opt").forEach((btn) => {
+      btn.onclick = () => {
+        const correct = btn.dataset.correct === "1";
+        quiz.querySelectorAll(".opt").forEach((b) => {
+          b.disabled = true;
+          if (b.dataset.correct === "1") b.classList.add("correct");
+        });
+        if (!correct) btn.classList.add("wrong");
+        fb.className = "feedback " + (correct ? "ok" : "no");
+        fb.textContent = correct
+          ? "✅ Саме так. transition — це правило плавності."
+          : "❌ Майже. Правильна відповідь підсвічена зеленим — поглянь чому.";
+      };
+    });
+  });
+</script>
+</body>
+</html>

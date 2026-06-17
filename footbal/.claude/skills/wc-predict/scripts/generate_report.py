@@ -86,12 +86,39 @@ def pp(delta):
     return f"{delta * 100:+.1f} п.п."
 
 
+# Times are emitted as UTC <span class="js-localtime" data-utc="…"> and rewritten in the
+# browser to each viewer's own timezone; the UTC text is the no-JS fallback.
+LOCALTIME_JS = """<script>
+(function () {
+  function pad(n) { return String(n).padStart(2, '0'); }
+  document.querySelectorAll('.js-localtime').forEach(function (el) {
+    var iso = el.getAttribute('data-utc');
+    if (!iso) return;
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return;
+    var out = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+              ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    try {
+      var tz = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' })
+                 .formatToParts(d).find(function (p) { return p.type === 'timeZoneName'; });
+      if (tz) out += ' ' + tz.value;
+    } catch (e) {}
+    el.textContent = out;
+  });
+})();
+</script>"""
+
+
 def fmt_kickoff(kickoff):
-    """ISO '2026-06-11T19:00:00Z' -> '2026-06-11 19:00 UTC'; any other string shown verbatim."""
+    """ISO '2026-06-11T19:00:00Z' -> a <span> the browser localizes to the viewer's own
+    timezone (see LOCALTIME_JS); UTC is the no-JS fallback. Non-ISO strings shown verbatim."""
     if not kickoff:
         return ""
     s = str(kickoff)
-    return f"{s[:16].replace('T', ' ')} UTC" if re.match(r"\d{4}-\d{2}-\d{2}T", s) else s
+    if re.match(r"\d{4}-\d{2}-\d{2}T", s):
+        fallback = s[:16].replace("T", " ") + " UTC"
+        return f'<span class="js-localtime" data-utc="{esc(s)}">{esc(fallback)}</span>'
+    return esc(s)
 
 
 def outcome_label(outc, home, away):
@@ -201,7 +228,7 @@ def section_header(m, p):
     toss_up = max(d_out["home"], d_out["draw"], d_out["away"]) < TOSS_UP_THRESHOLD
     badge = ('<span class="text-[10px] uppercase tracking-wider bg-amber-100 text-amber-800 '
              'rounded-full px-2 py-0.5">монетка — низька впевненість</span>') if toss_up else ""
-    kickoff = (f'<span class="text-xs text-stone-400">{esc(fmt_kickoff(m["kickoff"]))}</span>'
+    kickoff = (f'<span class="text-xs text-stone-400">{fmt_kickoff(m["kickoff"])}</span>'
                if m.get("kickoff") else "")
     return f"""
       <div class="flex items-start justify-between gap-2">
@@ -658,7 +685,7 @@ def match_page(m):
 
 def render(data):
     cards = "\n".join(match_page(m) for m in data["matches"])
-    subtitle = f'<p class="text-stone-500 mt-1">{esc(data["subtitle"])}</p>' if data.get("subtitle") else ""
+    subtitle = f'<p class="text-stone-500 mt-1">{data["subtitle"]}</p>' if data.get("subtitle") else ""
     return f"""<!doctype html>
 <html lang="uk">
 <head>
@@ -683,6 +710,7 @@ def render(data):
     Пік обирається за очікуваними балами (EV), а не за найімовірнішим рахунком, тож може відрізнятися від модального.
   </footer>
 </main>
+{LOCALTIME_JS}
 </body>
 </html>"""
 

@@ -1,0 +1,17 @@
+{
+  "name": "2048",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "publish-gh-pages": "npm run build && gh-pages -d dist -e 2048 --add"
+  },
+  "devDependencies": {
+    "gh-pages": "^6.2.0",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.7"
+  }
+}

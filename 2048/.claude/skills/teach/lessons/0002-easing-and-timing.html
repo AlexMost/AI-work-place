@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Урок 0002 · Easing і тривалість: відчуття руху</title>
+<style>
+  :root {
+    --ink: #1a1a1a; --paper: #fffff8; --dim: #6b6b63; --rule: #e2e0d4;
+    --accent: #2f7df6; --good: #1a7f4b; --bad: #c0392b; --code-bg: #f4f2e8;
+  }
+  * { box-sizing: border-box; }
+  html { font-size: 18px; }
+  body { margin: 0; background: var(--paper); color: var(--ink);
+    font-family: Georgia, "ET Book", "Iowan Old Style", serif; line-height: 1.55;
+    -webkit-font-smoothing: antialiased; }
+  main { max-width: 720px; margin: 0 auto; padding: 56px 24px 96px; }
+  .eyebrow { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--dim); font-family: ui-sans-serif, system-ui, sans-serif; }
+  h1 { font-size: 2.05rem; line-height: 1.15; margin: 0.3em 0 0.2em; letter-spacing: -0.01em; }
+  h2 { font-size: 1.25rem; margin: 2.4em 0 0.5em; padding-top: 0.6em; border-top: 1px solid var(--rule); }
+  .lede { font-size: 1.12rem; color: #333; }
+  p { margin: 0.7em 0; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.86em;
+    background: var(--code-bg); padding: 0.1em 0.34em; border-radius: 4px; }
+  pre { background: var(--code-bg); border: 1px solid var(--rule); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; font-size: 0.82rem; line-height: 1.5; }
+  pre code { background: none; padding: 0; }
+  .muted { color: var(--dim); }
+  a { color: var(--accent); }
+  table.ease { width: 100%; border-collapse: collapse; font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.9rem; margin: 1em 0; }
+  table.ease th, table.ease td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  table.ease th { color: var(--dim); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; }
+  table.ease td:first-child { white-space: nowrap; }
+
+  .mission { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.9rem;
+    background: #f0f6ff; border: 1px solid #cfe0fb; border-left: 3px solid var(--accent);
+    border-radius: 6px; padding: 12px 16px; color: #2c3e50; }
+
+  .lab { margin: 1.2em 0; border: 1px solid var(--rule); border-radius: 12px;
+    background: #fbfaf3; padding: 20px; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .lab-title { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--dim); margin-bottom: 14px; }
+
+  /* race lab */
+  .race { background: #16203a; border-radius: 10px; padding: 14px 0; position: relative; }
+  .lane { position: relative; height: 46px; display: flex; align-items: center; }
+  .lane + .lane { border-top: 1px dashed rgba(255,255,255,0.08); }
+  .finish { position: absolute; right: 64px; top: 8px; bottom: 8px; width: 2px;
+    background: repeating-linear-gradient(#ffffff55 0 6px, transparent 6px 12px); }
+  .runner { position: absolute; left: 12px; width: 34px; height: 34px; border-radius: 8px;
+    display: grid; place-items: center; font-weight: 700; font-size: 0.78rem; color: #04101a;
+    background: linear-gradient(135deg, #7fe3ff, #34b6ff); transform: translateX(0); }
+  .race.go .runner { transform: translateX(var(--end)); }
+  .runner.linear      { transition: transform var(--rdur) linear; }
+  .runner.ease-in     { transition: transform var(--rdur) ease-in; }
+  .runner.ease-out    { transition: transform var(--rdur) ease-out; }
+  .runner.ease-in-out { transition: transform var(--rdur) ease-in-out; }
+  .lane .tag { position: absolute; left: 52px; color: #cfe0ff; font-size: 0.74rem;
+    font-family: ui-monospace, monospace; pointer-events: none; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: center; margin-top: 16px; }
+  .controls button { font: inherit; font-weight: 600; cursor: pointer; background: #fff;
+    border: 1px solid #c9c7ba; border-radius: 8px; padding: 8px 16px; transition: transform 0.1s, border-color 0.15s; }
+  .controls button:hover { border-color: var(--accent); }
+  .controls button:active { transform: scale(0.94); }
+  .controls select, .controls input[type=range] { font: inherit; }
+  .controls label { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; }
+
+  /* custom lab */
+  .track { position: relative; height: 70px; border-radius: 10px; background-color: #16203a;
+    overflow: hidden; margin-bottom: 6px; }
+  .demo-tile { position: absolute; top: 10px; left: 12px; width: 50px; height: 50px; border-radius: 9px;
+    display: grid; place-items: center; font-weight: 700; color: #04101a;
+    background: linear-gradient(135deg, #7fe3ff, #34b6ff); box-shadow: 0 5px 14px rgba(52,182,255,.5);
+    transform: translateX(0); transition: transform var(--cdur, .9s) var(--cease, ease-in-out); }
+  .liveline { font-family: ui-monospace, monospace; font-size: 0.8rem; color: #2c3e50;
+    background: #eef3fb; border: 1px solid #cfe0fb; border-radius: 6px; padding: 8px 10px; margin-top: 10px; }
+
+  .quiz { margin: 1.1em 0; border: 1px solid var(--rule); border-radius: 12px; padding: 18px 20px;
+    font-family: ui-sans-serif, system-ui, sans-serif; background: #fbfaf3; }
+  .quiz p.q { font-weight: 600; margin: 0 0 12px; }
+  .opt { display: block; width: 100%; text-align: left; font: inherit; cursor: pointer; background: #fff;
+    border: 1px solid #c9c7ba; border-radius: 8px; padding: 10px 14px; margin: 7px 0; transition: border-color .12s, background .12s; }
+  .opt:hover { border-color: var(--accent); }
+  .opt.correct { background: #e7f6ec; border-color: var(--good); }
+  .opt.wrong { background: #fbeae8; border-color: var(--bad); }
+  .opt:disabled { cursor: default; }
+  .feedback { font-size: 0.86rem; margin-top: 8px; min-height: 1.2em; }
+  .feedback.ok { color: var(--good); } .feedback.no { color: var(--bad); }
+
+  .task { background: #fffaf0; border: 1px solid #f0e0c0; border-left: 3px solid #e0a82e;
+    border-radius: 6px; padding: 14px 18px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.92rem; }
+  .src { background: #f0f6ff; border: 1px solid #cfe0fb; border-radius: 8px; padding: 14px 18px;
+    font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.92rem; }
+  footer { margin-top: 3em; padding-top: 1em; border-top: 1px solid var(--rule);
+    font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.88rem; color: var(--dim); }
+  .next a { text-decoration: none; font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Урок 0002 · CSS-анімації плиток</div>
+  <h1>Easing і тривалість: <em>відчуття</em> руху</h1>
+  <p class="lede">В уроці <a href="0001-the-slide.html">0001</a> плитка вже їде. Тепер
+  керуємо <strong>як саме</strong> вона їде: скільки часу та з яким ритмом — рівномірно,
+  з розгону чи з гальмуванням. Це різниця між «дешево» і «соковито».</p>
+
+  <div class="mission">
+    🎯 <strong>Прямо з нашої роботи:</strong> у грі ми спершу зробили «розгін»
+    <code>cubic-bezier(0.4, 0, 1, 1)</code> (плитка прискорюється й врізається), а потім
+    ти попросив класичний плавний рух — і ми перейшли на <code>ease-in-out</code>. Цей урок
+    пояснює, що саме ми тоді міняли.
+  </div>
+
+  <h2>Два регулятори</h2>
+  <p>У рядку <code>transition: transform <strong>0.12s</strong> <strong>ease-in-out</strong></code>
+  сховані два незалежні регулятори:</p>
+  <ul>
+    <li><strong>Тривалість</strong> (<code>0.12s</code>) — <em>скільки</em> триває рух. Більше = повільніше.</li>
+    <li><strong>Easing</strong> (<code>ease-in-out</code>) — <em>ритм</em> руху: де він повільний, а де швидкий.</li>
+  </ul>
+
+  <table class="ease">
+    <tr><th>Easing</th><th>Ритм</th><th>Де доречний</th></tr>
+    <tr><td><code>linear</code></td><td>рівномірно, як робот</td><td>безперервні речі (спінер)</td></tr>
+    <tr><td><code>ease-out</code></td><td>швидко → гальмує</td><td>поява елементів (влітає й зупиняється)</td></tr>
+    <tr><td><code>ease-in</code></td><td>повільно → розганяється</td><td>зникнення; наш «розгін» у грі</td></tr>
+    <tr><td><code>ease-in-out</code></td><td>повільно → швидко → повільно</td><td>рух між позиціями ← <strong>наш вибір для плиток</strong></td></tr>
+    <tr><td><code>ease</code></td><td>легкий ease-in-out</td><td>дефолт, якщо не вказати нічого</td></tr>
+  </table>
+
+  <h2>Перегони кривих 🏁</h2>
+  <p class="muted">Усі стартують одночасно й мають однакову тривалість. Дивись, хто як їде —
+  і хто фінішує разом, хоч і по-різному в дорозі. Натисни <strong>Старт</strong>.</p>
+
+  <div class="lab">
+    <div class="lab-title">Жива лабораторія · перегони easing</div>
+    <div class="race" id="race" style="--end: calc(100% - 110px); --rdur: 1.6s;">
+      <div class="finish"></div>
+      <div class="lane"><div class="runner linear">L</div><span class="tag">linear</span></div>
+      <div class="lane"><div class="runner ease-out">O</div><span class="tag">ease-out</span></div>
+      <div class="lane"><div class="runner ease-in">I</div><span class="tag">ease-in</span></div>
+      <div class="lane"><div class="runner ease-in-out">IO</div><span class="tag">ease-in-out</span></div>
+    </div>
+    <div class="controls">
+      <button id="start">▶ Старт</button>
+      <button id="reset">↺ Скинути</button>
+      <span class="muted" style="font-size:.82rem">Підказка: <code>ease-in</code> пасе задніх на старті,
+      але наздоганяє в кінці.</span>
+    </div>
+  </div>
+
+  <h2>Власна крива: cubic-bezier</h2>
+  <p>Усі назви вище — це просто <strong>іменовані</strong> <code>cubic-bezier()</code>. Чотири
+  числа = дві «контрольні точки», що згинають криву часу. Не обов'язково знати математику —
+  досить розуміти: <em>це форма руху</em>. Наш ігровий «розгін» був
+  <code>cubic-bezier(0.4, 0, 1, 1)</code>.</p>
+
+  <div class="lab">
+    <div class="lab-title">Жива лабораторія · одна плитка, твої налаштування</div>
+    <div class="track"><div class="demo-tile" id="tile2">2</div></div>
+    <div class="controls">
+      <button id="move2">Посунути →</button>
+      <label>easing
+        <select id="ease2">
+          <option value="ease-in-out" selected>ease-in-out (наш вибір)</option>
+          <option value="linear">linear</option>
+          <option value="ease-out">ease-out</option>
+          <option value="ease-in">ease-in</option>
+          <option value="cubic-bezier(0.4, 0, 1, 1)">cubic-bezier(0.4,0,1,1) — розгін з гри</option>
+          <option value="cubic-bezier(0.34, 1.56, 0.64, 1)">cubic-bezier(…1.56…) — з відскоком</option>
+        </select>
+      </label>
+      <label>тривалість
+        <input type="range" id="dur2" min="0.1" max="2" step="0.05" value="0.9" />
+        <span id="dur2val" class="muted">0.90s</span>
+      </label>
+    </div>
+    <div class="liveline" id="liveline">transition: transform 0.90s ease-in-out;</div>
+  </div>
+  <p class="muted">Спробуй <code>cubic-bezier(…1.56…)</code> — друге число &gt; 1 робить
+  «перельот» за ціль і відскок назад. Саме так роблять «пружні» появи. Запам'ятай це
+  відчуття — знадобиться, коли робитимемо «поп» при злитті в уроці 0003.</p>
+
+  <h2>Перевір себе</h2>
+  <p class="muted">Пригадай із пам'яті, не гортай угору.</p>
+
+  <div class="quiz" id="q1">
+    <p class="q">1. Який easing стартує повільно й РОЗГАНЯЄТЬСЯ до кінця (його ми пробували в грі)?</p>
+    <button class="opt" data-correct="1">ease-in</button>
+    <button class="opt">ease-out</button>
+    <button class="opt">linear</button>
+    <div class="feedback"></div>
+  </div>
+
+  <div class="quiz" id="q2">
+    <p class="q">2. Що задають чотири числа у <code>cubic-bezier(…)</code>?</p>
+    <button class="opt" data-correct="1">Дві контрольні точки кривої</button>
+    <button class="opt">Колір, розмір, кут, час</button>
+    <button class="opt">Чотири послідовні кадри</button>
+    <div class="feedback"></div>
+  </div>
+
+  <h2>🛠 Твоє завдання (5 хвилин)</h2>
+  <div class="task">
+    У <code>2048/src/style.css</code> знайди <code>--slide: 0.12s</code> і правило
+    <code>.tile { transition: transform var(--slide) ease-in-out; }</code>.
+    <ol style="margin:.4em 0">
+      <li>Постав <code>--slide: 0.5s</code> — відчуй, як гра «розм'якла».</li>
+      <li>Заміни <code>ease-in-out</code> на <code>linear</code> — рух стає механічним.</li>
+      <li>Спробуй <code>cubic-bezier(0.4, 0, 1, 1)</code> — той самий «розгін», що ми колись робили.</li>
+      <li>Поверни <code>0.12s ease-in-out</code>. Тепер ти <em>знаєш</em>, чому саме так.</li>
+    </ol>
+  </div>
+
+  <div class="src" style="margin-top:1.2em">
+    📖 <strong>Першоджерело:</strong>
+    <a href="https://www.joshwcomeau.com/animation/css-transitions/" target="_blank" rel="noopener">Josh
+    Comeau — розділ «Timing functions»</a> (той самий гайд). Плюс пограйся з тулом
+    <a href="https://cubic-bezier.com/" target="_blank" rel="noopener">cubic-bezier.com</a> —
+    тягни точки й дивись криву наживо.
+  </div>
+
+  <footer>
+    <p>❓ <strong>Я твій вчитель.</strong> Не зрозумів якусь криву чи число — питай мене в чаті.</p>
+    <p class="next">Далі: <a href="#">Урок 0003 — «Поп»: поява й злиття через <code>@keyframes</code></a>
+    (скажи «давай далі»). Там і знадобиться відскок, який ти щойно намацав.</p>
+  </footer>
+</main>
+
+<script>
+  // race
+  const race = document.getElementById("race");
+  document.getElementById("start").onclick = () => race.classList.add("go");
+  document.getElementById("reset").onclick = () => race.classList.remove("go");
+
+  // custom lab
+  const tile2 = document.getElementById("tile2");
+  const ease2 = document.getElementById("ease2");
+  const dur2 = document.getElementById("dur2");
+  const dur2val = document.getElementById("dur2val");
+  const liveline = document.getElementById("liveline");
+  let out = false;
+
+  function sync() {
+    tile2.style.setProperty("--cease", ease2.value);
+    tile2.style.setProperty("--cdur", dur2.value + "s");
+    dur2val.textContent = (+dur2.value).toFixed(2) + "s";
+    liveline.textContent = `transition: transform ${(+dur2.value).toFixed(2)}s ${ease2.value};`;
+  }
+  document.getElementById("move2").onclick = () => {
+    out = !out;
+    const track = tile2.parentElement.clientWidth;
+    tile2.style.transform = out ? `translateX(${track - 74}px)` : "translateX(0px)";
+  };
+  ease2.onchange = sync;
+  dur2.oninput = sync;
+  sync();
+
+  // quiz
+  document.querySelectorAll(".quiz").forEach((quiz) => {
+    const fb = quiz.querySelector(".feedback");
+    quiz.querySelectorAll(".opt").forEach((btn) => {
+      btn.onclick = () => {
+        const correct = btn.dataset.correct === "1";
+        quiz.querySelectorAll(".opt").forEach((b) => {
+          b.disabled = true;
+          if (b.dataset.correct === "1") b.classList.add("correct");
+        });
+        if (!correct) btn.classList.add("wrong");
+        fb.className = "feedback " + (correct ? "ok" : "no");
+        fb.textContent = correct
+          ? "✅ Точно. Це і є форма руху в часі."
+          : "❌ Майже — поглянь на зелену відповідь.";
+      };
+    });
+  });
+</script>
+</body>
+</html>

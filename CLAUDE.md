@@ -7,6 +7,7 @@ Umbrella-репозиторій з незалежними експеримент
 - `fact-checker/` — TypeScript + LangGraph граф для фактчекінгу тексту. Має React/Vite UI (`src/ui`) і ядро (`src/core`). Тести на vitest, форматування prettier. Власний `.claude/` з додатковими дозволами і плагіном `frontend-design`.
 - `langraph-quickstart/` — мінімальний LangGraph-агент на `tsx`, без UI і без тестів. Швидкі проби концептів.
 - `code-agent/` — кодовий агент за мотивами статті [How to build an agent](https://ampcode.com/notes/how-to-build-an-agent). LangGraph + OpenAI, три tools (`read_file`/`list_files`/`edit_file`), REPL. Усе в одному `index.ts`.
+- `2048/` — браузерна гра 2048 на TypeScript + Vite (без фреймворків). Неоновий glassmorphism-стиль, анімовані переходи плиток, керування клавіатурою і свайпом. Логіка в `src/game.ts`, рендер у `src/render.ts`. Деплой через `npm run publish-gh-pages`.
 
 ## Як працювати
 

@@ -60,9 +60,39 @@ DEFAULT_SCORING = {"exact": 8, "outcome": 5}  # pool rules (CLAUDE.md); group ba
 BONUS_POINTS = 10                              # per correct bonus question
 COVERAGE_WINDOW_DAYS = 4                        # flag unpredicted fixtures kicking off within N days
 
+# Times are emitted as UTC <span class="js-localtime" data-utc="…"> and rewritten in the
+# browser to each viewer's own timezone; the UTC text is the no-JS fallback.
+LOCALTIME_JS = """<script>
+(function () {
+  function pad(n) { return String(n).padStart(2, '0'); }
+  document.querySelectorAll('.js-localtime').forEach(function (el) {
+    var iso = el.getAttribute('data-utc');
+    if (!iso) return;
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return;
+    var out = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+              ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    try {
+      var tz = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' })
+                 .formatToParts(d).find(function (p) { return p.type === 'timeZoneName'; });
+      if (tz) out += ' ' + tz.value;
+    } catch (e) {}
+    el.textContent = out;
+  });
+})();
+</script>"""
+
 
 def esc(s):
     return html.escape(str(s))
+
+
+def local_time_html(iso):
+    """ISO-UTC instant -> a <span> the browser localizes to the viewer's own timezone
+    (see LOCALTIME_JS); the UTC value is the no-JS fallback text."""
+    s = str(iso)
+    fallback = (s[:16].replace("T", " ") + " UTC") if ("T" in s and len(s) >= 16) else s
+    return f'<span class="js-localtime" data-utc="{esc(s)}">{esc(fallback)}</span>'
 
 
 def outcome(score):
@@ -146,7 +176,7 @@ def card(p, scoring, report_href=None):
 
     kickoff = ""
     if p.get("kickoff"):
-        kickoff = f'<div class="text-xs text-stone-400">{esc(p["kickoff"][:16].replace("T", " "))} UTC</div>'
+        kickoff = f'<div class="text-xs text-stone-400">{local_time_html(p["kickoff"])}</div>'
     overdue_html = ('<div class="text-xs font-semibold text-rose-600 mt-1">⚠ матч зіграно — '
                     'впиши фактичний рахунок</div>' if overdue else "")
 
@@ -322,7 +352,7 @@ def render(data, reports_dir=None):
         return f"reports/{fn}" if fn in have_report else None
 
     cards = "\n".join(card(p, scoring, report_href(p)) for p in preds)
-    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    stamp = local_time_html(datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"))
 
     bonus_note = f" · бонуси +{bonus_pts}" if bonus_pts else ""
     return f"""<!doctype html>
@@ -353,6 +383,7 @@ def render(data, reports_dir=None):
     «бали моделі» — якби завжди грати рекомендацію моделі
   </footer>
 </main>
+{LOCALTIME_JS}
 </body>
 </html>"""
 
