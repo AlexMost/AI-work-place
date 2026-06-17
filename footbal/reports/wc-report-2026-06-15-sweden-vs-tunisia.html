@@ -11,7 +11,7 @@
   <header class="mb-8">
     <div class="text-[10px] uppercase tracking-wider text-stone-400">wc-predict · модель Пуассона на коефіцієнтах букмекерів</div>
     <h1 class="text-3xl font-bold" style="font-family: Georgia, 'Times New Roman', serif">Sweden проти Tunisia</h1>
-    <p class="text-stone-500 mt-1">2026-06-15 02:00 UTC</p>
+    <p class="text-stone-500 mt-1"><span class="js-localtime" data-utc="2026-06-15T02:00:00Z">2026-06-15 02:00 UTC</span></p>
   </header>
   <div class="space-y-8">
 
@@ -19,7 +19,7 @@
       
       <div class="flex items-start justify-between gap-2">
         <h2 class="text-2xl font-semibold">Sweden <span class="text-stone-400 font-normal">проти</span> Tunisia</h2>
-        <div class="flex flex-col items-end gap-1"><span class="text-xs text-stone-400">2026-06-15 02:00 UTC</span></div>
+        <div class="flex flex-col items-end gap-1"><span class="text-xs text-stone-400"><span class="js-localtime" data-utc="2026-06-15T02:00:00Z">2026-06-15 02:00 UTC</span></span></div>
       </div>
       
     <section class="mt-5 bg-stone-50 rounded-2xl border border-stone-200 p-5">
@@ -57,10 +57,6 @@
       </div>
     </section>
       
-    <section class="mt-5">
-      <div class="text-[10px] uppercase tracking-wider text-stone-400 mb-2">аналіз</div>
-      <ul class="list-disc list-outside pl-5 space-y-1"><li class="text-sm text-stone-600">Найрівніший матч дня — Швеція лише 51%, нічия 1-1 поруч. Свіжий пік 1-0 = твій бет.</li></ul>
-    </section>
       <section class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
         
     <div class="bg-white rounded-2xl border border-stone-200 p-5">
@@ -314,5 +310,24 @@
     Пік обирається за очікуваними балами (EV), а не за найімовірнішим рахунком, тож може відрізнятися від модального.
   </footer>
 </main>
+<script>
+(function () {
+  function pad(n) { return String(n).padStart(2, '0'); }
+  document.querySelectorAll('.js-localtime').forEach(function (el) {
+    var iso = el.getAttribute('data-utc');
+    if (!iso) return;
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return;
+    var out = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+              ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    try {
+      var tz = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' })
+                 .formatToParts(d).find(function (p) { return p.type === 'timeZoneName'; });
+      if (tz) out += ' ' + tz.value;
+    } catch (e) {}
+    el.textContent = out;
+  });
+})();
+</script>
 </body>
 </html>
