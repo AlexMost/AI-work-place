@@ -125,7 +125,7 @@
   <div>
     <a class="back" href="index.html">&larr; усі матчі</a>
     <div class="title">Гонка пулу — хто кого обганяв</div>
-    <div class="sub">кумулятивні бали за матчі · оновлено 28.06.2026 01:12</div>
+    <div class="sub">кумулятивні бали за матчі · оновлено 28.06.2026 01:21</div>
   </div>
 </div>
 
@@ -172,6 +172,7 @@ const byId = Object.fromEntries(PLAYERS.map(p => [p.id, p]));
 
 const TRACK_LEN = 60, LANE_GAP = 3.2;
 const laneZ = i => (i - (PLAYERS.length - 1) / 2) * LANE_GAP;
+const laneIndex = Object.fromEntries(PLAYERS.map((p, i) => [p.id, i])); // fixed lane per player
 const xOf = pts => (pts / MAXT) * TRACK_LEN;
 
 let cur = 0;        // integer step index we are heading toward
@@ -370,12 +371,6 @@ requestAnimationFrame(frame);
     return {p, rn, trail, positions, filled:0, phase:i*0.7};
   });
 
-  function laneOf(id, stepIdx){
-    if (stepIdx<0) return PLAYERS.findIndex(p=>p.id===id);
-    const r = STEPS[stepIdx].ranks.indexOf(id);
-    return r<0 ? PLAYERS.findIndex(p=>p.id===id) : r;
-  }
-
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.55, 0.45, 0.2);
@@ -389,8 +384,7 @@ requestAnimationFrame(frame);
     for (const r of runners){
       const id = r.p.id;
       const x = xOf(t[id]||0); sumX += x;
-      const z0 = laneZ(laneOf(id, cur-1)), z1 = laneZ(laneOf(id, cur));
-      const z = z0 + (z1-z0)*Math.min(prog,1);
+      const z = laneZ(laneIndex[id]); // fixed lane — overtakes show as forward distance only
       const ph = runPhase + r.phase;
       const sw = Math.sin(ph);
       const bob = Math.abs(sw) * 0.10;
