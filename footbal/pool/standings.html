@@ -69,8 +69,9 @@
   #board h2{margin:0 0 8px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-dim); font-weight:600;
             display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; user-select:none}
   #board h2 .chev{font-size:10px; opacity:.8}
-  #board.collapsed{padding-bottom:10px}
+  #board.collapsed{padding-bottom:10px; width:auto; max-height:none; overflow:visible}
   #board.collapsed #rows{display:none}
+  #board.collapsed h2{margin-bottom:0}
   .row{display:flex; align-items:center; gap:8px; padding:4px 2px; font-size:14px}
   .row .pos{width:18px; text-align:right; color:var(--text-dim); font-variant-numeric:tabular-nums}
   .row .dot{width:10px; height:10px; border-radius:50%; flex:0 0 auto; box-shadow:0 0 8px currentColor}
@@ -124,7 +125,7 @@
   <div>
     <a class="back" href="index.html">&larr; усі матчі</a>
     <div class="title">Гонка пулу — хто кого обганяв</div>
-    <div class="sub">кумулятивні бали за матчі · оновлено 28.06.2026 01:03</div>
+    <div class="sub">кумулятивні бали за матчі · оновлено 28.06.2026 01:12</div>
   </div>
 </div>
 
@@ -238,10 +239,13 @@ function setPlaying(v){
   if (playing && cur>=NSTEP-1 && prog>=1){ cur=0; prog=0; } // restart from the top
 }
 const boardEl = document.getElementById('board');
-document.getElementById('boardToggle').onclick = ()=>{
-  boardEl.classList.toggle('collapsed');
-  document.getElementById('boardChev').textContent = boardEl.classList.contains('collapsed') ? '▸' : '▾';
-};
+function setBoardCollapsed(v){
+  boardEl.classList.toggle('collapsed', v);
+  document.getElementById('boardChev').textContent = v ? '▸' : '▾';
+}
+document.getElementById('boardToggle').onclick = ()=> setBoardCollapsed(!boardEl.classList.contains('collapsed'));
+// on phones the full table would cover the runners — start collapsed, tap to peek
+if (matchMedia('(max-width:640px)').matches) setBoardCollapsed(true);
 playBtn.onclick = ()=> setPlaying(!playing);
 speedBtn.onclick = ()=>{ speedIdx=(speedIdx+1)%SPEEDS.length; speedBtn.textContent = SPEEDS[speedIdx]+'×'; };
 scrub.oninput = ()=>{ setPlaying(false); const v=parseFloat(scrub.value); cur=Math.round(v); prog=1; renderHUD(); };
