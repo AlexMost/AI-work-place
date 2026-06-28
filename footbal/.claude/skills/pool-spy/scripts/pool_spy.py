@@ -654,7 +654,13 @@ const byId = Object.fromEntries(PLAYERS.map(p => [p.id, p]));
 
 const TRACK_LEN = 60, LANE_GAP = 3.2;
 const laneZ = i => (i - (PLAYERS.length - 1) / 2) * LANE_GAP;
-const laneIndex = Object.fromEntries(PLAYERS.map((p, i) => [p.id, i])); // fixed lane per player
+// random lane layout, shuffled once per page load, fixed for the whole run
+const _laneOrder = PLAYERS.map((_, i) => i);
+for (let i = _laneOrder.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [_laneOrder[i], _laneOrder[j]] = [_laneOrder[j], _laneOrder[i]];
+}
+const laneIndex = Object.fromEntries(PLAYERS.map((p, i) => [p.id, _laneOrder[i]])); // fixed lane per player
 const xOf = pts => (pts / MAXT) * TRACK_LEN;
 
 let cur = 0;        // integer step index we are heading toward
@@ -846,7 +852,7 @@ requestAnimationFrame(frame);
 
   // small football goals at the start and finish lines — just the white frame (posts + crossbar),
   // centred on the track. The leader curls the ball into the finish frame at the end of the race.
-  const GOAL_HALF = 4.0, GOAL_H = 3.4, POST_R = 0.13, GOAL_OFF = 3.0; // sit just beyond the group zones
+  const GOAL_HALF = 4.0, GOAL_H = 3.4, POST_R = 0.13, GOAL_OFF = 6.0; // sit beyond the group zones, with room for the shot to read
   function goal(gx){
     const white = new THREE.MeshBasicMaterial({color:0xffffff}); // bright -> bloom glow
     function post(z){ const m = new THREE.Mesh(new THREE.CylinderGeometry(POST_R, POST_R, GOAL_H, 10), white); m.position.set(gx, GOAL_H/2, z); scene.add(m); }
@@ -959,6 +965,7 @@ requestAnimationFrame(frame);
   let ballX = null, ballZ = 0;      // ball's own glided position (lags the leader -> reads as a pass)
   let lastBX = 0, lastBZ = 0;       // previous frame position, for roll
   let shotProg = 0, shotFromX = 0, shotFromZ = 0; // finish-line shot into the net (0..1)
+  let celebrate = 0;                // 0..1 ramp: crowd goes wild once the ball is through the goal
 
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
@@ -976,10 +983,14 @@ requestAnimationFrame(frame);
       const z = laneZ(laneIndex[id]); // fixed lane — overtakes show as forward distance only
       const ph = runPhase + r.phase;
       const sw = Math.sin(ph);
-      const bob = Math.abs(sw) * 0.10;
+      // run cycle blends into a springy two-footed jump with arms thrown overhead as `celebrate` ramps up
+      const run = 1 - celebrate;
+      const jump = Math.abs(Math.sin(runPhase*0.9 + r.phase)) * 0.9;
+      const bob = Math.abs(sw)*0.10*run + jump*celebrate;
       r.rn.g.position.set(x, bob, z);
-      r.rn.legL.rotation.z =  sw*0.7; r.rn.legR.rotation.z = -sw*0.7;
-      r.rn.armL.rotation.z = -sw*0.5; r.rn.armR.rotation.z =  sw*0.5;
+      r.rn.legL.rotation.z =  sw*0.7*run; r.rn.legR.rotation.z = -sw*0.7*run;
+      r.rn.armL.rotation.z = (-sw*0.5)*run + ( 2.7)*celebrate;
+      r.rn.armR.rotation.z = ( sw*0.5)*run + (-2.7)*celebrate;
       // push torso point into trail ring buffer
       const arr = r.positions, yy = 1.05 + bob;
       if (r.filled < TRAIL) { const k=r.filled*3; arr[k]=x; arr[k+1]=yy; arr[k+2]=z; r.filled++; }
@@ -1004,13 +1015,27 @@ requestAnimationFrame(frame);
         ballX += (tx - ballX) * 0.08; ballZ += (tz - ballZ) * 0.08; // dribble toward the leader
         bx = ballX; bz = ballZ; by = BALL_R + Math.abs(Math.sin(runPhase*1.4)) * 0.10;
       } else {
-        const e = 1 - Math.pow(1 - shotProg, 3); // ease-out
-        const netX = TRACK_LEN + GOAL_OFF - 0.3, netY = 1.2, netZ = 0; // rest on the goal line, not past it
-        bx = shotFromX + (netX - shotFromX) * e;
-        bz = shotFromZ + (netZ - shotFromZ) * e;
-        by = BALL_R + (netY - BALL_R) * e + Math.sin(Math.PI * e) * 1.5; // arc over the line
+        // two-phase strike: curl into the dead centre of the goal mouth, then blast straight through it.
+        // (the leader's lane Z can be far wider than the posts, so the ball MUST converge before the line
+        // or it sails wide — phase 1 guarantees bz=0 exactly at the goal line.)
+        const goalX = TRACK_LEN + GOAL_OFF, endX = goalX + 16;
+        const eg = 0.45; // share of the shot spent reaching the line; the rest is the fly-through
+        if (shotProg <= eg){
+          const k = shotProg / eg;
+          bx = shotFromX + (goalX - shotFromX) * k;
+          bz = shotFromZ * (1 - k);                       // converge to centre exactly at the line
+          by = BALL_R + Math.sin(Math.PI*0.5*k) * 1.3;    // ~1.75 high at the line, well under the crossbar
+        } else {
+          const k = (shotProg - eg) / (1 - eg);
+          bx = goalX + (endX - goalX) * k;
+          bz = 0;
+          by = (BALL_R + 1.3) + k * 4.0;                  // rise and sail off past the net
+        }
         ballX = bx; ballZ = bz;
       }
+      // crowd erupts the instant the ball crosses the goal line; smooth ramp so the jump kicks in cleanly
+      const scored = shotProg > 0 && bx >= (TRACK_LEN + GOAL_OFF - 0.3) ? 1 : 0;
+      celebrate += (scored - celebrate) * 0.06;
       ball.visible = true;
       ball.position.set(bx, by, bz);
       const dx = bx - lastBX, dz = bz - lastBZ, dist = Math.hypot(dx, dz);

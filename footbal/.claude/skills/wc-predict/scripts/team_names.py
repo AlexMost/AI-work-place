@@ -31,6 +31,10 @@ ALIASES = {
     "curaçao": "curacao",
     "ir iran": "iran",
     "iran islamic republic": "iran",
+    "cape verde": "cape verde islands",
+    "dr congo": "congo dr",
+    "democratic republic of congo": "congo dr",
+    "congo democratic republic": "congo dr",
 }
 
 

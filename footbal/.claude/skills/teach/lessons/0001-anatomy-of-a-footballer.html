@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Урок 1 — Анатомія 3D-футболіста</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Урок 1 · pool-spy 3D · three.js</p>
+  <h1>Анатомія одного футболіста</h1>
+  <p class="lede">Кожен біжун у гонці пулу — це не модель, завантажена з файлу, а фігурка,
+  <strong>зібрана з примітивів у коді</strong>. Цей урок дає тобі ментальну модель, з якою
+  ти прочитаєш функцію <code>makeRunner()</code> рядок за рядком.</p>
+
+  <div class="callout pitch">
+    <strong>Ціль уроку:</strong> після нього ти зможеш подивитися на торс і голову біжуна
+    на екрані й точно сказати, який рядок коду їх створив і з чого вони складаються.
+  </div>
+
+  <h2>Одна ідея, з якої виросло все: <code>Mesh = Geometry + Material</code></h2>
+  <p>У three.js усе видиме — це <strong>Mesh</strong> (меш). А меш — це завжди дві окремі речі,
+  склеєні разом<span class="cite"><a href="https://threejs.org/manual/en/fundamentals.html" title="three.js Fundamentals">[1]</a></span>:</p>
+
+  <ul>
+    <li><strong>Geometry</strong> — лише <em>форма</em>: набір вершин. Сама по собі невидима.
+    Це «куля», «капсула», «коробка».</li>
+    <li><strong>Material</strong> — лише <em>вигляд</em> поверхні: колір, блиск, текстура.</li>
+  </ul>
+
+  <p>Форма + вигляд = видимий об'єкт. Це як «контур фігури» та «чим його зафарбувати» —
+  два незалежні рішення. Той самий <code>SphereGeometry</code> можна пофарбувати білим
+  (м'яч) чи неоновим (голова).</p>
+
+  <pre><code><span class="c-com">// торс: капсула (циліндр з півсферами на кінцях)</span>
+<span class="c-key">const</span> torso = <span class="c-key">new</span> THREE.<span class="c-fn">Mesh</span>(
+  <span class="c-key">new</span> THREE.<span class="c-fn">CapsuleGeometry</span>(<span class="c-num">0.26</span>, <span class="c-num">0.7</span>, <span class="c-num">4</span>, <span class="c-num">8</span>),  <span class="c-com">// ← форма</span>
+  mat);                                          <span class="c-com">// ← матеріал (колір гравця)</span></code></pre>
+
+  <p>Аргументи <code>CapsuleGeometry(radius, length, …)</code>: радіус <code>0.26</code>,
+  «зріст» циліндричної частини <code>0.7</code>. Останні два числа — скільки сегментів
+  (гладкість). Менше сегментів = гранчастіше й дешевше.</p>
+
+  <h2>Друга ідея: граф сцени (<code>Group</code> — це контейнер)</h2>
+  <p>Окремі меші треба згрупувати, щоб футболіст рухався як <em>одне ціле</em>. Для цього є
+  <strong>Group</strong> — об'єкт без власної форми, просто контейнер. Головне правило
+  графа сцени: <mark>діти позиціонуються відносно батька</mark>. Рухаєш групу —
+  рухаються всі діти разом, як колеса разом з машиною<span class="cite"><a href="https://threejs.org/manual/en/scenegraph.html" title="three.js Scenegraph">[2]</a></span>.</p>
+
+  <pre><code><span class="c-key">const</span> g = <span class="c-key">new</span> THREE.<span class="c-fn">Group</span>();              <span class="c-com">// контейнер = «один футболіст»</span>
+torso.position.y = <span class="c-num">1.25</span>; g.<span class="c-fn">add</span>(torso); <span class="c-com">// торс на висоту 1.25</span>
+<span class="c-key">const</span> head = <span class="c-key">new</span> THREE.<span class="c-fn">Mesh</span>(<span class="c-key">new</span> THREE.<span class="c-fn">SphereGeometry</span>(<span class="c-num">0.30</span>, <span class="c-num">16</span>, <span class="c-num">16</span>), mat);
+head.position.y = <span class="c-num">1.95</span>; g.<span class="c-fn">add</span>(head);   <span class="c-com">// голова — куля, ще вище</span></code></pre>
+
+  <p>Зверни увагу на <code>.position.y</code>. У three.js вісь <strong>Y дивиться вгору</strong>,
+  тому <code>y = 1.25</code> і <code>y = 1.95</code> ставлять торс і голову на потрібну
+  висоту <em>всередині групи</em>. Коли пізніше код посуне всю групу вздовж доріжки
+  (<code>g.position.x = …</code>, дистанція = бали гравця), торс і голова поїдуть з нею
+  автоматично — бо вони її діти.</p>
+
+  <figure>
+    <svg class="diagram" viewBox="0 0 520 300" role="img" aria-label="Анатомія футболіста">
+      <!-- ground -->
+      <line x1="40" y1="250" x2="300" y2="250" stroke="#0a7d4d" stroke-width="2"/>
+      <text x="44" y="268" font-size="11" fill="#6b6f76" font-family="monospace">y = 0 (земля)</text>
+      <!-- axes -->
+      <text x="20" y="60" font-size="11" fill="#6b6f76" font-family="monospace">Y ↑</text>
+      <!-- runner -->
+      <!-- head -->
+      <circle cx="150" cy="80" r="20" fill="#19b6ff"/>
+      <!-- torso (capsule) -->
+      <rect x="138" y="110" width="24" height="60" rx="12" fill="#19b6ff"/>
+      <!-- limbs -->
+      <line x1="150" y1="120" x2="125" y2="160" stroke="#0c84bd" stroke-width="7" stroke-linecap="round"/>
+      <line x1="150" y1="120" x2="175" y2="160" stroke="#0c84bd" stroke-width="7" stroke-linecap="round"/>
+      <line x1="150" y1="172" x2="130" y2="225" stroke="#0c84bd" stroke-width="9" stroke-linecap="round"/>
+      <line x1="150" y1="172" x2="172" y2="225" stroke="#0c84bd" stroke-width="9" stroke-linecap="round"/>
+      <!-- labels -->
+      <line x1="170" y1="80" x2="330" y2="80" stroke="#cfcabd" stroke-width="1"/>
+      <text x="336" y="84" font-size="12" fill="#1a1c20" font-family="monospace">SphereGeometry → голова (y 1.95)</text>
+      <line x1="166" y1="140" x2="330" y2="140" stroke="#cfcabd" stroke-width="1"/>
+      <text x="336" y="144" font-size="12" fill="#1a1c20" font-family="monospace">CapsuleGeometry → торс (y 1.25)</text>
+      <line x1="176" y1="195" x2="330" y2="195" stroke="#cfcabd" stroke-width="1"/>
+      <text x="336" y="199" font-size="12" fill="#1a1c20" font-family="monospace">4 × CapsuleGeometry → кінцівки</text>
+      <text x="336" y="216" font-size="11" fill="#6b6f76" font-family="monospace">(урок 2)</text>
+      <!-- group bracket -->
+      <rect x="108" y="55" width="86" height="180" rx="8" fill="none" stroke="#0a7d4d" stroke-dasharray="4 4"/>
+      <text x="98" y="250" font-size="12" fill="#0a7d4d" font-family="monospace" text-anchor="middle" transform="rotate(-90 98 150)">Group g = один футболіст</text>
+    </svg>
+    <figcaption>Один біжун: <code>Group</code> з мешів. Усі діти рухаються разом із групою.</figcaption>
+  </figure>
+
+  <h2>Чому фігурки <em>світяться</em>, хоча матеріал «базовий»?</h2>
+  <p>Матеріал тут — <code>MeshBasicMaterial</code>. Важлива деталь: він <strong>ігнорує
+  світло</strong> — завжди показує свій плаский колір<span class="cite"><a href="https://threejs.org/docs/#api/en/materials/MeshBasicMaterial" title="MeshBasicMaterial">[3]</a></span>.
+  То звідки неонове свічення? Не від ламп, а від <strong>bloom</strong> — постобробки, що
+  розмиває яскраві пікселі в ореол. Світло у сцені є, але для неону відповідає саме bloom.
+  Це окрема тема (урок 4), поки досить знати: <em>колір = матеріал, свічення = bloom</em>.</p>
+
+  <hr>
+  <h2>Перевір себе</h2>
+
+  <div class="quiz" data-correct="1">
+    <p class="q">Геометрія сама по собі на екрані виглядає як…</p>
+    <button class="opt">готовий пофарбований видимий об'єкт</button>
+    <button class="opt">ніяк — це лише форма, потрібен матеріал</button>
+    <button class="opt">завжди суцільний білий силует завжди</button>
+    <p class="fb" data-ok="Саме так. Geometry — лише вершини (форма). Видимим стає тільки Mesh = Geometry + Material."
+       data-no="Ні. Geometry — це лише форма (вершини). Видно тільки Mesh = Geometry + Material."></p>
+  </div>
+
+  <div class="quiz" data-correct="2">
+    <p class="q">Навіщо торс і голова покладені в одну <code>Group</code>?</p>
+    <button class="opt">щоб зробити їх яскравішими у кадрі сцени</button>
+    <button class="opt">бо меш не можна додати прямо у сцену</button>
+    <button class="opt">щоб рухати футболіста як одне ціле</button>
+    <p class="fb" data-ok="Так. Діти успадковують трансформацію батька — посунув групу, поїхали всі частини разом."
+       data-no="Не зовсім. Сенс групи — діти рухаються разом із нею (успадковують трансформацію батька)."></p>
+  </div>
+
+  <div class="quiz" data-correct="0">
+    <p class="q">Неонове свічення біжунів дає…</p>
+    <button class="opt">bloom-постобробка, не матеріал і не світло</button>
+    <button class="opt">MeshBasicMaterial реагує на яскраве світло</button>
+    <button class="opt">SphereGeometry з увімкненим режимом glow</button>
+    <p class="fb" data-ok="Саме так. MeshBasicMaterial ігнорує світло; ореол додає UnrealBloomPass (урок 4)."
+       data-no="Ні. MeshBasicMaterial ігнорує світло. Свічення — це bloom-постобробка (урок 4)."></p>
+  </div>
+
+  <hr>
+  <div class="callout">
+    <strong>Першоджерело (прочитати 10 хв):</strong>
+    <a href="https://threejs.org/manual/en/fundamentals.html">three.js Manual — Fundamentals</a>.
+    Найнадійніший вступ: Scene, Mesh = Geometry + Material, граф сцени, цикл рендера.
+    Решта термінів — у <a href="../reference/glossary.html">глосарії</a>.
+  </div>
+
+  <p class="ask"><strong>Застряг чи цікаво глибше?</strong> Питай мене — я твій викладач.
+  Можу показати будь-який рядок <code>makeRunner()</code> прямо у файлі або намалювати, як
+  міняється фігурка, якщо покрутити числа.</p>
+
+  <div class="nav">
+    <span></span>
+    <span>Далі → Урок 2: як ноги й руки крутяться навколо суглоба (pivot trick)</span>
+  </div>
+
+  <footer>Урок 1 · Анатомія 3D-футболіста · код: <code>pool_spy.py:895</code> ·
+  джерела: [1] threejs.org/manual/fundamentals · [2] …/scenegraph · [3] threejs.org/docs MeshBasicMaterial</footer>
+
+  <script src="../assets/quiz.js"></script>
+</main>
+</body>
+</html>

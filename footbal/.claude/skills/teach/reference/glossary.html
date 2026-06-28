@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Глосарій — three.js / pool-spy 3D</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+  dl.gloss { margin: 1.4rem 0; }
+  dl.gloss dt { font-weight: 600; margin-top: 1.1rem; }
+  dl.gloss dt code { font-size: 0.82em; }
+  dl.gloss dd { margin: 0.25rem 0 0; color: #34373d; }
+  dl.gloss dd .src { color: var(--muted); font-size: 0.82rem; }
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Reference · оновлюється з кожним уроком</p>
+  <h1>Глосарій three.js</h1>
+  <p class="lede">Терміни, які зустрічаються у 3D-гонці pool-spy
+  (<code>pool_spy.py → standings.html</code>). Канонічне джерело — three.js manual.</p>
+
+  <dl class="gloss">
+    <dt>Scene (сцена)</dt>
+    <dd>Корінь «графа сцени» — контейнер усього, що малюється. У коді:
+    <code>const scene = new THREE.Scene()</code>.
+    <span class="src">three.js: Scene — root of the scene graph.</span></dd>
+
+    <dt>Geometry (геометрія)</dt>
+    <dd>Лише <em>форма</em>: набір вершин. Сама по собі невидима. Напр.
+    <code>CapsuleGeometry</code> (капсула — циліндр з півсферами), <code>SphereGeometry</code> (куля).</dd>
+
+    <dt>Material (матеріал)</dt>
+    <dd>Лише <em>вигляд</em> поверхні: колір, блиск, текстура. У гонці —
+    <code>MeshBasicMaterial</code>: плаский колір, що <strong>ігнорує світло</strong>
+    (свічення дає не світло, а bloom-постобробка).</dd>
+
+    <dt><code>Mesh = Geometry + Material</code></dt>
+    <dd>Видимий об'єкт = форма + вигляд, плюс позиція/поворот/масштаб у сцені.
+    Це базова одиниця, з якої складено все: торс, голова, кінцівки, м'яч.</dd>
+
+    <dt>Group / Object3D (група)</dt>
+    <dd>Контейнер без власної форми. Діти позиціонуються <strong>відносно
+    батька</strong> — рухаєш групу, рухаються всі діти разом (як колеса разом з машиною).
+    Один футболіст — це одна <code>Group</code>.</dd>
+
+    <dt>Scene graph (граф сцени)</dt>
+    <dd>Дерево батько→дитина з груп і мешів. Трансформації успадковуються вниз по дереву.</dd>
+
+    <dt>Pivot (вісь обертання)</dt>
+    <dd>Прийом: кінцівку роблять дочірнім мешем у групі, зміщеним <em>вниз</em>, а групу
+    ставлять на стегно/плече. Тоді поворот групи обертає кінцівку навколо суглоба, а не
+    центру. <span class="src">Деталі — урок 2.</span></dd>
+
+    <dt>Render loop (цикл рендера)</dt>
+    <dd><code>requestAnimationFrame</code> викликає твою функцію щокадру (~60/с): ти
+    оновлюєш позиції/повороти, потім <code>renderer.render(scene, camera)</code> малює кадр.
+    У коді — функція <code>tick(dt)</code>.</dd>
+
+    <dt>Camera (камера)</dt>
+    <dd><code>PerspectiveCamera</code> визначає, яку частину сцени видно (frustum: fov,
+    aspect, near/far). У гонці дивиться збоку, біжуни рухаються зліва направо.</dd>
+
+    <dt>Bloom</dt>
+    <dd>Постобробка (<code>UnrealBloomPass</code>): яскраві пікселі «розливаються»
+    свіченням. Саме звідси неоновий вигляд біжунів, а не зі світла.</dd>
+
+    <dt>Координати</dt>
+    <dd>Y — вгору, тому <code>position.y = 1.25</code> підіймає торс. X — вздовж доріжки
+    (дистанція = бали). Z — розводить гравців по «лейнах».</dd>
+  </dl>
+
+  <p class="ask">Щось незрозуміле в терміні? Спитай мене — я твій викладач.</p>
+  <footer>Глосарій · three.js / pool-spy · джерело: threejs.org/manual</footer>
+</main>
+</body>
+</html>

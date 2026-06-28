@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#070b18">
+<title>Гонка пулу — хто кого обганяв</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#070b18; --bg-1:#0d1326;
+    --glass:rgba(22,30,55,.55); --glass-border:rgba(125,160,255,.18);
+    --text:#eaf0ff; --text-dim:#8a96bf; --cyan:#34e1ff; --magenta:#ff4ed5;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:"Space Grotesk",system-ui,-apple-system,sans-serif;
+    color:var(--text); background-color:var(--bg-0);
+    background:
+      radial-gradient(120% 80% at 15% 0%, rgba(52,225,255,.18), transparent 60%),
+      radial-gradient(120% 80% at 100% 100%, rgba(255,78,213,.16), transparent 55%),
+      linear-gradient(160deg,var(--bg-1),var(--bg-0));
+    background-color:var(--bg-0);
+    overflow:hidden;
+  }
+  #scene{position:fixed; inset:0; z-index:0}
+  .hud{position:fixed; z-index:2; pointer-events:none}
+  .hud a,.hud button,.hud input{pointer-events:auto}
+  /* top bar */
+  #top{top:0; left:0; right:0; padding:14px 18px;
+       display:flex; align-items:flex-start; justify-content:space-between; gap:12px}
+  .back{font-size:12px; color:var(--text-dim); text-decoration:none}
+  .back:hover{color:var(--text)}
+  .title{
+    font-weight:700; font-size:clamp(15px,2.3vw,20px); letter-spacing:.02em;
+    background:linear-gradient(120deg,var(--cyan),#9b8cff 55%,var(--magenta));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 0 14px rgba(52,225,255,.35));
+  }
+  .sub{font-size:11px; color:var(--text-dim); margin-top:2px}
+  /* now-playing match banner (centered, updates as the race steps) */
+  #nowplaying{
+    top:56px; left:50%; transform:translateX(-50%);
+    display:flex; align-items:baseline; gap:9px; justify-content:center; white-space:nowrap;
+    max-width:94vw; padding:8px 18px; border-radius:999px;
+    background:var(--glass); border:1px solid var(--glass-border); backdrop-filter:blur(8px);
+  }
+  #nowplaying.flash{animation:npflash .6s ease}
+  @keyframes npflash{
+    0%{box-shadow:0 0 0 rgba(52,225,255,0); border-color:var(--glass-border)}
+    30%{box-shadow:0 0 26px rgba(52,225,255,.55); border-color:var(--cyan)}
+    100%{box-shadow:0 0 0 rgba(52,225,255,0); border-color:var(--glass-border)}
+  }
+  .np-step{font-size:10.5px; color:var(--text-dim); letter-spacing:.10em; text-transform:uppercase}
+  .np-sep{color:var(--text-dim); opacity:.5}
+  .np-label{font-weight:700; font-size:clamp(15px,2.4vw,20px); letter-spacing:.03em}
+  .np-score{font-variant-numeric:tabular-nums; font-weight:700; color:var(--cyan)}
+  .np-teams{font-size:12px; color:var(--text-dim)}
+  .np-date{font-size:12px; color:var(--text-dim)}
+  /* leaderboard */
+  #board{
+    left:18px; top:104px; width:min(40vw,300px);
+    background:var(--glass); border:1px solid var(--glass-border);
+    border-radius:14px; padding:10px 12px; backdrop-filter:blur(8px);
+  }
+  #board h2{margin:0 0 8px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-dim); font-weight:600;
+            display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; user-select:none}
+  #board h2 .chev{font-size:10px; opacity:.8}
+  #board.collapsed{padding-bottom:10px; width:auto; max-height:none; overflow:visible}
+  #board.collapsed #rows{display:none}
+  #board.collapsed h2{margin-bottom:0}
+  .row{display:flex; align-items:center; gap:8px; padding:4px 2px; font-size:14px}
+  .row .pos{width:18px; text-align:right; color:var(--text-dim); font-variant-numeric:tabular-nums}
+  .row .dot{width:10px; height:10px; border-radius:50%; flex:0 0 auto; box-shadow:0 0 8px currentColor}
+  .row .nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .row .pts{font-variant-numeric:tabular-nums; font-weight:700}
+  .row .arr{width:14px; text-align:center; font-size:11px}
+  .arr.up{color:#4ade80} .arr.down{color:#f87171} .arr.same{color:var(--text-dim)}
+  .row.lead .nm{font-weight:700}
+  /* controls */
+  #ctl{
+    left:50%; transform:translateX(-50%); bottom:18px; width:min(92vw,640px);
+    background:var(--glass); border:1px solid var(--glass-border);
+    border-radius:16px; padding:12px 16px; backdrop-filter:blur(8px);
+    display:flex; align-items:center; gap:12px;
+  }
+  #play{
+    width:42px; height:42px; flex:0 0 auto; border-radius:50%; cursor:pointer;
+    border:1px solid var(--glass-border); background:rgba(52,225,255,.12);
+    color:var(--text); font-size:16px; display:flex; align-items:center; justify-content:center;
+  }
+  #play:hover{background:rgba(52,225,255,.22)}
+  #scrub{flex:1; accent-color:var(--cyan); cursor:pointer}
+  #speed{
+    flex:0 0 auto; cursor:pointer; font:inherit; font-size:12px; color:var(--text);
+    background:rgba(125,160,255,.10); border:1px solid var(--glass-border);
+    border-radius:10px; padding:6px 10px;
+  }
+  #stepno{flex:0 0 auto; font-size:12px; color:var(--text-dim); font-variant-numeric:tabular-nums; min-width:54px; text-align:right}
+  /* empty / error overlay */
+  #msg{
+    position:fixed; inset:0; z-index:3; display:none; align-items:center; justify-content:center;
+    text-align:center; padding:24px;
+  }
+  #msg div{max-width:420px; color:var(--text-dim); font-size:15px; line-height:1.5}
+  #msg b{color:var(--text)}
+  .note{position:fixed; z-index:2; bottom:74px; left:50%; transform:translateX(-50%);
+        font-size:10.5px; color:var(--text-dim); opacity:.8; text-align:center; width:90vw}
+  @media (max-width:640px){
+    #board{width:min(56vw,220px); top:120px; max-height:54vh; overflow:auto; padding:8px 10px}
+    #board h2{margin-bottom:5px}
+    #board .row{font-size:12.5px; padding:2px 2px; gap:6px}
+    #board .row .pos{width:14px}
+    .np-teams{display:none}
+  }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div class="hud" id="top">
+  <div>
+    <a class="back" href="index.html">&larr; усі матчі</a>
+    <div class="title">Гонка пулу — хто кого обганяв</div>
+    <div class="sub">кумулятивні бали за матчі · оновлено 29.06.2026 00:00 · час за Прагою</div>
+  </div>
+</div>
+
+<div class="hud" id="nowplaying">
+  <span class="np-step" id="np-step"></span>
+  <span class="np-sep">·</span>
+  <span class="np-label" id="np-label">—</span>
+  <span class="np-score" id="np-score"></span>
+  <span class="np-teams" id="np-teams"></span>
+  <span class="np-date" id="np-date"></span>
+</div>
+
+<div class="hud" id="board">
+  <h2 id="boardToggle">Таблиця <span class="chev" id="boardChev">▾</span></h2>
+  <div id="rows"></div>
+</div>
+
+<div class="note">бали за матчі без бонус-питань (+10 кожне) — підсумок може відрізнятись від офіційного рейтингу пулу</div>
+
+<div class="hud" id="ctl">
+  <button id="play" title="Програти">▶</button>
+  <input id="scrub" type="range" min="0" max="0" step="0.001" value="0">
+  <button id="speed" title="Швидкість">4×</button>
+  <div id="stepno">0/0</div>
+</div>
+
+<div id="msg"><div></div></div>
+
+<script type="application/json" id="data">{"players": [{"id": "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "name": "Oleksandr", "full": "Oleksandr Mostovenko", "color": "#34e1ff"}, {"id": "50b980c8-2a1b-4765-8955-449a9a3901c1", "name": "Artem", "full": "Artem", "color": "#ff4ed5"}, {"id": "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "name": "Yevhen", "full": "Yevhen Volchak", "color": "#9b8cff"}, {"id": "ec179646-b5ca-47ef-9131-ffb95811c9f5", "name": "SANDER", "full": "SANDER", "color": "#4ade80"}, {"id": "deb9e18e-519d-4a63-a28a-669ca99d3631", "name": "Oleg", "full": "Oleg Stus", "color": "#fbbf24"}, {"id": "d240e81e-3357-444a-9003-7d8471940f57", "name": "Макс", "full": "Макс Довгий", "color": "#f87171"}, {"id": "a0225766-682a-47ae-8487-90e7d6bf82c0", "name": "Nicolas", "full": "Nicolas Cherminov", "color": "#22d3ee"}, {"id": "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "name": "Step4ik", "full": "Step4ik", "color": "#a3e635"}, {"id": "ed536a15-cf36-4169-ad18-2bb832473694", "name": "Andrew", "full": "Andrew Shtanko", "color": "#fb923c"}, {"id": "5a6912f9-6030-47d0-a01f-ec30fe6c2e03", "name": "Yura", "full": "Yura", "color": "#e879f9"}], "steps": [{"label": "MEX – SOU", "home": "Mexico", "away": "South Africa", "date": "11.06 23:00", "score": "2:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 5, "50b980c8-2a1b-4765-8955-449a9a3901c1": 5, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 8, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 8, "deb9e18e-519d-4a63-a28a-669ca99d3631": 5, "d240e81e-3357-444a-9003-7d8471940f57": 5, "a0225766-682a-47ae-8487-90e7d6bf82c0": 5, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 8, "ed536a15-cf36-4169-ad18-2bb832473694": 0, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 0}, "ranks": ["8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "50b980c8-2a1b-4765-8955-449a9a3901c1", "deb9e18e-519d-4a63-a28a-669ca99d3631", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "SOU – CZE", "home": "South Korea", "away": "Czech Republic", "date": "12.06 06:00", "score": "2:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 10, "50b980c8-2a1b-4765-8955-449a9a3901c1": 5, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 8, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 13, "deb9e18e-519d-4a63-a28a-669ca99d3631": 5, "d240e81e-3357-444a-9003-7d8471940f57": 5, "a0225766-682a-47ae-8487-90e7d6bf82c0": 5, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 16, "ed536a15-cf36-4169-ad18-2bb832473694": 0, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 0}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "50b980c8-2a1b-4765-8955-449a9a3901c1", "deb9e18e-519d-4a63-a28a-669ca99d3631", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "CAN – BOS", "home": "Canada", "away": "Bosnia & Herzegovina", "date": "12.06 23:00", "score": "1:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 10, "50b980c8-2a1b-4765-8955-449a9a3901c1": 5, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 8, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 13, "deb9e18e-519d-4a63-a28a-669ca99d3631": 5, "d240e81e-3357-444a-9003-7d8471940f57": 5, "a0225766-682a-47ae-8487-90e7d6bf82c0": 5, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 16, "ed536a15-cf36-4169-ad18-2bb832473694": 0, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 0}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "50b980c8-2a1b-4765-8955-449a9a3901c1", "deb9e18e-519d-4a63-a28a-669ca99d3631", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "USA – PAR", "home": "USA", "away": "Paraguay", "date": "13.06 05:00", "score": "4:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 15, "50b980c8-2a1b-4765-8955-449a9a3901c1": 10, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 13, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 18, "deb9e18e-519d-4a63-a28a-669ca99d3631": 10, "d240e81e-3357-444a-9003-7d8471940f57": 5, "a0225766-682a-47ae-8487-90e7d6bf82c0": 10, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 21, "ed536a15-cf36-4169-ad18-2bb832473694": 0, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 0}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "50b980c8-2a1b-4765-8955-449a9a3901c1", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "QAT – SWI", "home": "Qatar", "away": "Switzerland", "date": "13.06 23:00", "score": "1:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 15, "50b980c8-2a1b-4765-8955-449a9a3901c1": 10, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 13, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 18, "deb9e18e-519d-4a63-a28a-669ca99d3631": 10, "d240e81e-3357-444a-9003-7d8471940f57": 5, "a0225766-682a-47ae-8487-90e7d6bf82c0": 10, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 21, "ed536a15-cf36-4169-ad18-2bb832473694": 0, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 0}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "50b980c8-2a1b-4765-8955-449a9a3901c1", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "BRA – MOR", "home": "Brazil", "away": "Morocco", "date": "14.06 02:00", "score": "1:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 15, "50b980c8-2a1b-4765-8955-449a9a3901c1": 10, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 13, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 18, "deb9e18e-519d-4a63-a28a-669ca99d3631": 18, "d240e81e-3357-444a-9003-7d8471940f57": 5, "a0225766-682a-47ae-8487-90e7d6bf82c0": 15, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 21, "ed536a15-cf36-4169-ad18-2bb832473694": 0, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 0}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "a0225766-682a-47ae-8487-90e7d6bf82c0", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "HAI – SCO", "home": "Haiti", "away": "Scotland", "date": "14.06 05:00", "score": "0:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 23, "50b980c8-2a1b-4765-8955-449a9a3901c1": 15, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 18, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 23, "deb9e18e-519d-4a63-a28a-669ca99d3631": 23, "d240e81e-3357-444a-9003-7d8471940f57": 10, "a0225766-682a-47ae-8487-90e7d6bf82c0": 20, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 26, "ed536a15-cf36-4169-ad18-2bb832473694": 0, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 5}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03", "ed536a15-cf36-4169-ad18-2bb832473694"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "AUS – TÜR", "home": "Australia", "away": "Türkiye", "date": "14.06 08:00", "score": "2:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 23, "50b980c8-2a1b-4765-8955-449a9a3901c1": 15, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 18, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 23, "deb9e18e-519d-4a63-a28a-669ca99d3631": 23, "d240e81e-3357-444a-9003-7d8471940f57": 10, "a0225766-682a-47ae-8487-90e7d6bf82c0": 20, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 26, "ed536a15-cf36-4169-ad18-2bb832473694": 0, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 5}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03", "ed536a15-cf36-4169-ad18-2bb832473694"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "GER – CUR", "home": "Germany", "away": "Curaçao", "date": "14.06 21:00", "score": "7:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 28, "50b980c8-2a1b-4765-8955-449a9a3901c1": 20, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 23, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 28, "deb9e18e-519d-4a63-a28a-669ca99d3631": 28, "d240e81e-3357-444a-9003-7d8471940f57": 15, "a0225766-682a-47ae-8487-90e7d6bf82c0": 25, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 31, "ed536a15-cf36-4169-ad18-2bb832473694": 0, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 10}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03", "ed536a15-cf36-4169-ad18-2bb832473694"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "NET – JAP", "home": "Netherlands", "away": "Japan", "date": "15.06 00:00", "score": "2:2", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 28, "50b980c8-2a1b-4765-8955-449a9a3901c1": 25, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 23, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 28, "deb9e18e-519d-4a63-a28a-669ca99d3631": 28, "d240e81e-3357-444a-9003-7d8471940f57": 15, "a0225766-682a-47ae-8487-90e7d6bf82c0": 33, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 36, "ed536a15-cf36-4169-ad18-2bb832473694": 0, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "IVO – ECU", "home": "Ivory Coast", "away": "Ecuador", "date": "15.06 03:00", "score": "1:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 28, "50b980c8-2a1b-4765-8955-449a9a3901c1": 25, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 23, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 28, "deb9e18e-519d-4a63-a28a-669ca99d3631": 28, "d240e81e-3357-444a-9003-7d8471940f57": 15, "a0225766-682a-47ae-8487-90e7d6bf82c0": 33, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 44, "ed536a15-cf36-4169-ad18-2bb832473694": 0, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "SWE – TUN", "home": "Sweden", "away": "Tunisia", "date": "15.06 06:00", "score": "5:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 33, "50b980c8-2a1b-4765-8955-449a9a3901c1": 30, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 28, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 33, "deb9e18e-519d-4a63-a28a-669ca99d3631": 33, "d240e81e-3357-444a-9003-7d8471940f57": 20, "a0225766-682a-47ae-8487-90e7d6bf82c0": 38, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 49, "ed536a15-cf36-4169-ad18-2bb832473694": 0, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "d240e81e-3357-444a-9003-7d8471940f57", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03", "ed536a15-cf36-4169-ad18-2bb832473694"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "SPA – CAP", "home": "Spain", "away": "Cape Verde Islands", "date": "15.06 20:00", "score": "0:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 33, "50b980c8-2a1b-4765-8955-449a9a3901c1": 30, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 28, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 33, "deb9e18e-519d-4a63-a28a-669ca99d3631": 33, "d240e81e-3357-444a-9003-7d8471940f57": 20, "a0225766-682a-47ae-8487-90e7d6bf82c0": 38, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 49, "ed536a15-cf36-4169-ad18-2bb832473694": 0, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "d240e81e-3357-444a-9003-7d8471940f57", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03", "ed536a15-cf36-4169-ad18-2bb832473694"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "BEL – EGY", "home": "Belgium", "away": "Egypt", "date": "15.06 23:00", "score": "1:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 33, "50b980c8-2a1b-4765-8955-449a9a3901c1": 30, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 28, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 33, "deb9e18e-519d-4a63-a28a-669ca99d3631": 33, "d240e81e-3357-444a-9003-7d8471940f57": 20, "a0225766-682a-47ae-8487-90e7d6bf82c0": 38, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 49, "ed536a15-cf36-4169-ad18-2bb832473694": 0, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "d240e81e-3357-444a-9003-7d8471940f57", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03", "ed536a15-cf36-4169-ad18-2bb832473694"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "SAU – URU", "home": "Saudi Arabia", "away": "Uruguay", "date": "16.06 02:00", "score": "1:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 33, "50b980c8-2a1b-4765-8955-449a9a3901c1": 30, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 28, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 33, "deb9e18e-519d-4a63-a28a-669ca99d3631": 41, "d240e81e-3357-444a-9003-7d8471940f57": 20, "a0225766-682a-47ae-8487-90e7d6bf82c0": 38, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 49, "ed536a15-cf36-4169-ad18-2bb832473694": 0, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "50b980c8-2a1b-4765-8955-449a9a3901c1", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "d240e81e-3357-444a-9003-7d8471940f57", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03", "ed536a15-cf36-4169-ad18-2bb832473694"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "IRA – NEW", "home": "Iran", "away": "New Zealand", "date": "16.06 05:00", "score": "2:2", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 33, "50b980c8-2a1b-4765-8955-449a9a3901c1": 30, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 28, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 38, "deb9e18e-519d-4a63-a28a-669ca99d3631": 46, "d240e81e-3357-444a-9003-7d8471940f57": 20, "a0225766-682a-47ae-8487-90e7d6bf82c0": 43, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 54, "ed536a15-cf36-4169-ad18-2bb832473694": 0, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "50b980c8-2a1b-4765-8955-449a9a3901c1", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "d240e81e-3357-444a-9003-7d8471940f57", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03", "ed536a15-cf36-4169-ad18-2bb832473694"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "FRA – SEN", "home": "France", "away": "Senegal", "date": "16.06 23:00", "score": "3:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 38, "50b980c8-2a1b-4765-8955-449a9a3901c1": 35, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 33, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 43, "deb9e18e-519d-4a63-a28a-669ca99d3631": 54, "d240e81e-3357-444a-9003-7d8471940f57": 25, "a0225766-682a-47ae-8487-90e7d6bf82c0": 48, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 59, "ed536a15-cf36-4169-ad18-2bb832473694": 8, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "50b980c8-2a1b-4765-8955-449a9a3901c1", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "d240e81e-3357-444a-9003-7d8471940f57", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03", "ed536a15-cf36-4169-ad18-2bb832473694"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "IRA – NOR", "home": "Iraq", "away": "Norway", "date": "17.06 02:00", "score": "1:4", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 43, "50b980c8-2a1b-4765-8955-449a9a3901c1": 40, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 38, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 48, "deb9e18e-519d-4a63-a28a-669ca99d3631": 59, "d240e81e-3357-444a-9003-7d8471940f57": 30, "a0225766-682a-47ae-8487-90e7d6bf82c0": 53, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 64, "ed536a15-cf36-4169-ad18-2bb832473694": 13, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "50b980c8-2a1b-4765-8955-449a9a3901c1", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "d240e81e-3357-444a-9003-7d8471940f57", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03", "ed536a15-cf36-4169-ad18-2bb832473694"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "ARG – ALG", "home": "Argentina", "away": "Algeria", "date": "17.06 05:00", "score": "3:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 48, "50b980c8-2a1b-4765-8955-449a9a3901c1": 45, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 46, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 53, "deb9e18e-519d-4a63-a28a-669ca99d3631": 64, "d240e81e-3357-444a-9003-7d8471940f57": 35, "a0225766-682a-47ae-8487-90e7d6bf82c0": 58, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 69, "ed536a15-cf36-4169-ad18-2bb832473694": 18, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "AUS – JOR", "home": "Austria", "away": "Jordan", "date": "17.06 08:00", "score": "3:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 53, "50b980c8-2a1b-4765-8955-449a9a3901c1": 50, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 51, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 53, "deb9e18e-519d-4a63-a28a-669ca99d3631": 69, "d240e81e-3357-444a-9003-7d8471940f57": 40, "a0225766-682a-47ae-8487-90e7d6bf82c0": 63, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 74, "ed536a15-cf36-4169-ad18-2bb832473694": 18, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "POR – CON", "home": "Portugal", "away": "Congo DR", "date": "17.06 21:00", "score": "1:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 53, "50b980c8-2a1b-4765-8955-449a9a3901c1": 50, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 51, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 53, "deb9e18e-519d-4a63-a28a-669ca99d3631": 69, "d240e81e-3357-444a-9003-7d8471940f57": 40, "a0225766-682a-47ae-8487-90e7d6bf82c0": 63, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 74, "ed536a15-cf36-4169-ad18-2bb832473694": 18, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "ENG – CRO", "home": "England", "away": "Croatia", "date": "18.06 00:00", "score": "4:2", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 58, "50b980c8-2a1b-4765-8955-449a9a3901c1": 55, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 56, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 53, "deb9e18e-519d-4a63-a28a-669ca99d3631": 69, "d240e81e-3357-444a-9003-7d8471940f57": 45, "a0225766-682a-47ae-8487-90e7d6bf82c0": 63, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 79, "ed536a15-cf36-4169-ad18-2bb832473694": 23, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "50b980c8-2a1b-4765-8955-449a9a3901c1", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "GHA – PAN", "home": "Ghana", "away": "Panama", "date": "18.06 03:00", "score": "1:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 66, "50b980c8-2a1b-4765-8955-449a9a3901c1": 55, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 64, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 58, "deb9e18e-519d-4a63-a28a-669ca99d3631": 69, "d240e81e-3357-444a-9003-7d8471940f57": 45, "a0225766-682a-47ae-8487-90e7d6bf82c0": 63, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 79, "ed536a15-cf36-4169-ad18-2bb832473694": 31, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "deb9e18e-519d-4a63-a28a-669ca99d3631", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "UZB – COL", "home": "Uzbekistan", "away": "Colombia", "date": "18.06 06:00", "score": "1:3", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 71, "50b980c8-2a1b-4765-8955-449a9a3901c1": 60, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 69, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 66, "deb9e18e-519d-4a63-a28a-669ca99d3631": 74, "d240e81e-3357-444a-9003-7d8471940f57": 50, "a0225766-682a-47ae-8487-90e7d6bf82c0": 68, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 79, "ed536a15-cf36-4169-ad18-2bb832473694": 36, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "deb9e18e-519d-4a63-a28a-669ca99d3631", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "c4b4db8c-d66b-4184-34ac-08deab77e7c2"}, {"label": "CZE – SOU", "home": "Czech Republic", "away": "South Africa", "date": "18.06 20:00", "score": "1:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 71, "50b980c8-2a1b-4765-8955-449a9a3901c1": 60, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 69, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 66, "deb9e18e-519d-4a63-a28a-669ca99d3631": 74, "d240e81e-3357-444a-9003-7d8471940f57": 50, "a0225766-682a-47ae-8487-90e7d6bf82c0": 68, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 79, "ed536a15-cf36-4169-ad18-2bb832473694": 36, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "deb9e18e-519d-4a63-a28a-669ca99d3631", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "SWI – BOS", "home": "Switzerland", "away": "Bosnia & Herzegovina", "date": "18.06 23:00", "score": "4:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 76, "50b980c8-2a1b-4765-8955-449a9a3901c1": 65, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 74, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 71, "deb9e18e-519d-4a63-a28a-669ca99d3631": 74, "d240e81e-3357-444a-9003-7d8471940f57": 50, "a0225766-682a-47ae-8487-90e7d6bf82c0": 73, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 79, "ed536a15-cf36-4169-ad18-2bb832473694": 41, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "CAN – QAT", "home": "Canada", "away": "Qatar", "date": "19.06 02:00", "score": "6:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 81, "50b980c8-2a1b-4765-8955-449a9a3901c1": 70, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 79, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 76, "deb9e18e-519d-4a63-a28a-669ca99d3631": 79, "d240e81e-3357-444a-9003-7d8471940f57": 55, "a0225766-682a-47ae-8487-90e7d6bf82c0": 78, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 84, "ed536a15-cf36-4169-ad18-2bb832473694": 46, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "MEX – SOU", "home": "Mexico", "away": "South Korea", "date": "19.06 05:00", "score": "1:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 89, "50b980c8-2a1b-4765-8955-449a9a3901c1": 70, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 84, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 76, "deb9e18e-519d-4a63-a28a-669ca99d3631": 79, "d240e81e-3357-444a-9003-7d8471940f57": 63, "a0225766-682a-47ae-8487-90e7d6bf82c0": 78, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 84, "ed536a15-cf36-4169-ad18-2bb832473694": 46, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "USA – AUS", "home": "USA", "away": "Australia", "date": "19.06 23:00", "score": "2:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 94, "50b980c8-2a1b-4765-8955-449a9a3901c1": 75, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 89, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 84, "deb9e18e-519d-4a63-a28a-669ca99d3631": 84, "d240e81e-3357-444a-9003-7d8471940f57": 71, "a0225766-682a-47ae-8487-90e7d6bf82c0": 83, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 89, "ed536a15-cf36-4169-ad18-2bb832473694": 51, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "SCO – MOR", "home": "Scotland", "away": "Morocco", "date": "20.06 02:00", "score": "0:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 102, "50b980c8-2a1b-4765-8955-449a9a3901c1": 83, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 94, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 89, "deb9e18e-519d-4a63-a28a-669ca99d3631": 89, "d240e81e-3357-444a-9003-7d8471940f57": 79, "a0225766-682a-47ae-8487-90e7d6bf82c0": 88, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 89, "ed536a15-cf36-4169-ad18-2bb832473694": 59, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "BRA – HAI", "home": "Brazil", "away": "Haiti", "date": "20.06 04:30", "score": "3:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 110, "50b980c8-2a1b-4765-8955-449a9a3901c1": 88, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 99, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 94, "deb9e18e-519d-4a63-a28a-669ca99d3631": 94, "d240e81e-3357-444a-9003-7d8471940f57": 87, "a0225766-682a-47ae-8487-90e7d6bf82c0": 93, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 97, "ed536a15-cf36-4169-ad18-2bb832473694": 64, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "TÜR – PAR", "home": "Türkiye", "away": "Paraguay", "date": "20.06 07:00", "score": "0:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 110, "50b980c8-2a1b-4765-8955-449a9a3901c1": 88, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 99, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 94, "deb9e18e-519d-4a63-a28a-669ca99d3631": 94, "d240e81e-3357-444a-9003-7d8471940f57": 87, "a0225766-682a-47ae-8487-90e7d6bf82c0": 93, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 97, "ed536a15-cf36-4169-ad18-2bb832473694": 64, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "NET – SWE", "home": "Netherlands", "away": "Sweden", "date": "20.06 21:00", "score": "5:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 115, "50b980c8-2a1b-4765-8955-449a9a3901c1": 93, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 104, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 99, "deb9e18e-519d-4a63-a28a-669ca99d3631": 99, "d240e81e-3357-444a-9003-7d8471940f57": 92, "a0225766-682a-47ae-8487-90e7d6bf82c0": 98, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 97, "ed536a15-cf36-4169-ad18-2bb832473694": 64, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "a0225766-682a-47ae-8487-90e7d6bf82c0", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "GER – IVO", "home": "Germany", "away": "Ivory Coast", "date": "21.06 00:00", "score": "2:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 120, "50b980c8-2a1b-4765-8955-449a9a3901c1": 101, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 109, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 104, "deb9e18e-519d-4a63-a28a-669ca99d3631": 107, "d240e81e-3357-444a-9003-7d8471940f57": 100, "a0225766-682a-47ae-8487-90e7d6bf82c0": 98, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 102, "ed536a15-cf36-4169-ad18-2bb832473694": 69, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "deb9e18e-519d-4a63-a28a-669ca99d3631", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "ECU – CUR", "home": "Ecuador", "away": "Curaçao", "date": "21.06 04:00", "score": "0:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 120, "50b980c8-2a1b-4765-8955-449a9a3901c1": 101, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 109, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 104, "deb9e18e-519d-4a63-a28a-669ca99d3631": 107, "d240e81e-3357-444a-9003-7d8471940f57": 100, "a0225766-682a-47ae-8487-90e7d6bf82c0": 98, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 102, "ed536a15-cf36-4169-ad18-2bb832473694": 69, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "deb9e18e-519d-4a63-a28a-669ca99d3631", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "TUN – JAP", "home": "Tunisia", "away": "Japan", "date": "21.06 08:00", "score": "0:4", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 125, "50b980c8-2a1b-4765-8955-449a9a3901c1": 106, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 114, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 109, "deb9e18e-519d-4a63-a28a-669ca99d3631": 112, "d240e81e-3357-444a-9003-7d8471940f57": 105, "a0225766-682a-47ae-8487-90e7d6bf82c0": 103, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 107, "ed536a15-cf36-4169-ad18-2bb832473694": 74, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "deb9e18e-519d-4a63-a28a-669ca99d3631", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "SPA – SAU", "home": "Spain", "away": "Saudi Arabia", "date": "21.06 20:00", "score": "4:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 130, "50b980c8-2a1b-4765-8955-449a9a3901c1": 114, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 122, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 114, "deb9e18e-519d-4a63-a28a-669ca99d3631": 117, "d240e81e-3357-444a-9003-7d8471940f57": 110, "a0225766-682a-47ae-8487-90e7d6bf82c0": 108, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 112, "ed536a15-cf36-4169-ad18-2bb832473694": 79, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "BEL – IRA", "home": "Belgium", "away": "Iran", "date": "21.06 23:00", "score": "0:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 130, "50b980c8-2a1b-4765-8955-449a9a3901c1": 114, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 122, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 114, "deb9e18e-519d-4a63-a28a-669ca99d3631": 117, "d240e81e-3357-444a-9003-7d8471940f57": 110, "a0225766-682a-47ae-8487-90e7d6bf82c0": 108, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 112, "ed536a15-cf36-4169-ad18-2bb832473694": 79, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "URU – CAP", "home": "Uruguay", "away": "Cape Verde Islands", "date": "22.06 02:00", "score": "2:2", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 130, "50b980c8-2a1b-4765-8955-449a9a3901c1": 114, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 122, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 114, "deb9e18e-519d-4a63-a28a-669ca99d3631": 122, "d240e81e-3357-444a-9003-7d8471940f57": 115, "a0225766-682a-47ae-8487-90e7d6bf82c0": 108, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 112, "ed536a15-cf36-4169-ad18-2bb832473694": 79, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "deb9e18e-519d-4a63-a28a-669ca99d3631", "d240e81e-3357-444a-9003-7d8471940f57", "50b980c8-2a1b-4765-8955-449a9a3901c1", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "NEW – EGY", "home": "New Zealand", "away": "Egypt", "date": "22.06 05:00", "score": "1:3", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 135, "50b980c8-2a1b-4765-8955-449a9a3901c1": 119, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 127, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 119, "deb9e18e-519d-4a63-a28a-669ca99d3631": 127, "d240e81e-3357-444a-9003-7d8471940f57": 120, "a0225766-682a-47ae-8487-90e7d6bf82c0": 113, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 117, "ed536a15-cf36-4169-ad18-2bb832473694": 84, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "deb9e18e-519d-4a63-a28a-669ca99d3631", "d240e81e-3357-444a-9003-7d8471940f57", "50b980c8-2a1b-4765-8955-449a9a3901c1", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "ARG – AUS", "home": "Argentina", "away": "Austria", "date": "22.06 21:00", "score": "2:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 143, "50b980c8-2a1b-4765-8955-449a9a3901c1": 124, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 135, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 127, "deb9e18e-519d-4a63-a28a-669ca99d3631": 132, "d240e81e-3357-444a-9003-7d8471940f57": 125, "a0225766-682a-47ae-8487-90e7d6bf82c0": 118, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 122, "ed536a15-cf36-4169-ad18-2bb832473694": 89, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "deb9e18e-519d-4a63-a28a-669ca99d3631", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "d240e81e-3357-444a-9003-7d8471940f57", "50b980c8-2a1b-4765-8955-449a9a3901c1", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "FRA – IRA", "home": "France", "away": "Iraq", "date": "23.06 01:00", "score": "3:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 151, "50b980c8-2a1b-4765-8955-449a9a3901c1": 132, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 143, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 132, "deb9e18e-519d-4a63-a28a-669ca99d3631": 140, "d240e81e-3357-444a-9003-7d8471940f57": 130, "a0225766-682a-47ae-8487-90e7d6bf82c0": 123, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 127, "ed536a15-cf36-4169-ad18-2bb832473694": 94, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "NOR – SEN", "home": "Norway", "away": "Senegal", "date": "23.06 04:00", "score": "3:2", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 156, "50b980c8-2a1b-4765-8955-449a9a3901c1": 137, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 148, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 140, "deb9e18e-519d-4a63-a28a-669ca99d3631": 140, "d240e81e-3357-444a-9003-7d8471940f57": 130, "a0225766-682a-47ae-8487-90e7d6bf82c0": 123, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 132, "ed536a15-cf36-4169-ad18-2bb832473694": 99, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "JOR – ALG", "home": "Jordan", "away": "Algeria", "date": "23.06 07:00", "score": "1:2", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 161, "50b980c8-2a1b-4765-8955-449a9a3901c1": 142, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 156, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 148, "deb9e18e-519d-4a63-a28a-669ca99d3631": 148, "d240e81e-3357-444a-9003-7d8471940f57": 138, "a0225766-682a-47ae-8487-90e7d6bf82c0": 131, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 132, "ed536a15-cf36-4169-ad18-2bb832473694": 99, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "POR – UZB", "home": "Portugal", "away": "Uzbekistan", "date": "23.06 21:00", "score": "5:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 166, "50b980c8-2a1b-4765-8955-449a9a3901c1": 147, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 161, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 153, "deb9e18e-519d-4a63-a28a-669ca99d3631": 153, "d240e81e-3357-444a-9003-7d8471940f57": 143, "a0225766-682a-47ae-8487-90e7d6bf82c0": 136, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 137, "ed536a15-cf36-4169-ad18-2bb832473694": 104, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "ENG – GHA", "home": "England", "away": "Ghana", "date": "24.06 00:00", "score": "0:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 166, "50b980c8-2a1b-4765-8955-449a9a3901c1": 147, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 161, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 153, "deb9e18e-519d-4a63-a28a-669ca99d3631": 153, "d240e81e-3357-444a-9003-7d8471940f57": 143, "a0225766-682a-47ae-8487-90e7d6bf82c0": 136, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 137, "ed536a15-cf36-4169-ad18-2bb832473694": 104, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "PAN – CRO", "home": "Panama", "away": "Croatia", "date": "24.06 03:00", "score": "0:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 174, "50b980c8-2a1b-4765-8955-449a9a3901c1": 152, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 169, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 158, "deb9e18e-519d-4a63-a28a-669ca99d3631": 158, "d240e81e-3357-444a-9003-7d8471940f57": 143, "a0225766-682a-47ae-8487-90e7d6bf82c0": 141, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 142, "ed536a15-cf36-4169-ad18-2bb832473694": 104, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "COL – CON", "home": "Colombia", "away": "Congo DR", "date": "24.06 06:00", "score": "1:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 182, "50b980c8-2a1b-4765-8955-449a9a3901c1": 157, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 174, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 163, "deb9e18e-519d-4a63-a28a-669ca99d3631": 158, "d240e81e-3357-444a-9003-7d8471940f57": 148, "a0225766-682a-47ae-8487-90e7d6bf82c0": 146, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 147, "ed536a15-cf36-4169-ad18-2bb832473694": 109, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "b3fca7f9-a01e-4099-34ad-08deab77e7c2"}, {"label": "SWI – CAN", "home": "Switzerland", "away": "Canada", "date": "24.06 23:00", "score": "2:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 187, "50b980c8-2a1b-4765-8955-449a9a3901c1": 157, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 174, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 168, "deb9e18e-519d-4a63-a28a-669ca99d3631": 158, "d240e81e-3357-444a-9003-7d8471940f57": 153, "a0225766-682a-47ae-8487-90e7d6bf82c0": 146, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 147, "ed536a15-cf36-4169-ad18-2bb832473694": 109, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "BOS – QAT", "home": "Bosnia & Herzegovina", "away": "Qatar", "date": "24.06 23:00", "score": "3:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 192, "50b980c8-2a1b-4765-8955-449a9a3901c1": 162, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 179, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 176, "deb9e18e-519d-4a63-a28a-669ca99d3631": 163, "d240e81e-3357-444a-9003-7d8471940f57": 158, "a0225766-682a-47ae-8487-90e7d6bf82c0": 151, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 147, "ed536a15-cf36-4169-ad18-2bb832473694": 114, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "SCO – BRA", "home": "Scotland", "away": "Brazil", "date": "25.06 02:00", "score": "0:3", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 197, "50b980c8-2a1b-4765-8955-449a9a3901c1": 167, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 184, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 184, "deb9e18e-519d-4a63-a28a-669ca99d3631": 168, "d240e81e-3357-444a-9003-7d8471940f57": 163, "a0225766-682a-47ae-8487-90e7d6bf82c0": 156, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 155, "ed536a15-cf36-4169-ad18-2bb832473694": 119, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "MOR – HAI", "home": "Morocco", "away": "Haiti", "date": "25.06 02:00", "score": "4:2", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 202, "50b980c8-2a1b-4765-8955-449a9a3901c1": 172, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 189, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 189, "deb9e18e-519d-4a63-a28a-669ca99d3631": 173, "d240e81e-3357-444a-9003-7d8471940f57": 168, "a0225766-682a-47ae-8487-90e7d6bf82c0": 161, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 160, "ed536a15-cf36-4169-ad18-2bb832473694": 124, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "SOU – SOU", "home": "South Africa", "away": "South Korea", "date": "25.06 05:00", "score": "1:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 202, "50b980c8-2a1b-4765-8955-449a9a3901c1": 172, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 189, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 189, "deb9e18e-519d-4a63-a28a-669ca99d3631": 173, "d240e81e-3357-444a-9003-7d8471940f57": 168, "a0225766-682a-47ae-8487-90e7d6bf82c0": 161, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 160, "ed536a15-cf36-4169-ad18-2bb832473694": 124, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "CZE – MEX", "home": "Czech Republic", "away": "Mexico", "date": "25.06 05:00", "score": "0:3", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 207, "50b980c8-2a1b-4765-8955-449a9a3901c1": 172, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 194, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 189, "deb9e18e-519d-4a63-a28a-669ca99d3631": 178, "d240e81e-3357-444a-9003-7d8471940f57": 173, "a0225766-682a-47ae-8487-90e7d6bf82c0": 166, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 165, "ed536a15-cf36-4169-ad18-2bb832473694": 129, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "d240e81e-3357-444a-9003-7d8471940f57", "50b980c8-2a1b-4765-8955-449a9a3901c1", "a0225766-682a-47ae-8487-90e7d6bf82c0", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "CUR – IVO", "home": "Curaçao", "away": "Ivory Coast", "date": "26.06 00:00", "score": "0:2", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 215, "50b980c8-2a1b-4765-8955-449a9a3901c1": 180, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 199, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 197, "deb9e18e-519d-4a63-a28a-669ca99d3631": 183, "d240e81e-3357-444a-9003-7d8471940f57": 178, "a0225766-682a-47ae-8487-90e7d6bf82c0": 174, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 173, "ed536a15-cf36-4169-ad18-2bb832473694": 137, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "ECU – GER", "home": "Ecuador", "away": "Germany", "date": "26.06 00:00", "score": "2:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 215, "50b980c8-2a1b-4765-8955-449a9a3901c1": 180, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 199, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 197, "deb9e18e-519d-4a63-a28a-669ca99d3631": 183, "d240e81e-3357-444a-9003-7d8471940f57": 178, "a0225766-682a-47ae-8487-90e7d6bf82c0": 174, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 173, "ed536a15-cf36-4169-ad18-2bb832473694": 137, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "TUN – NET", "home": "Tunisia", "away": "Netherlands", "date": "26.06 03:00", "score": "1:3", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 220, "50b980c8-2a1b-4765-8955-449a9a3901c1": 185, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 204, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 202, "deb9e18e-519d-4a63-a28a-669ca99d3631": 188, "d240e81e-3357-444a-9003-7d8471940f57": 183, "a0225766-682a-47ae-8487-90e7d6bf82c0": 179, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 178, "ed536a15-cf36-4169-ad18-2bb832473694": 142, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "JAP – SWE", "home": "Japan", "away": "Sweden", "date": "26.06 03:00", "score": "1:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 220, "50b980c8-2a1b-4765-8955-449a9a3901c1": 185, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 204, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 202, "deb9e18e-519d-4a63-a28a-669ca99d3631": 188, "d240e81e-3357-444a-9003-7d8471940f57": 183, "a0225766-682a-47ae-8487-90e7d6bf82c0": 179, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 186, "ed536a15-cf36-4169-ad18-2bb832473694": 150, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "PAR – AUS", "home": "Paraguay", "away": "Australia", "date": "26.06 06:00", "score": "0:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 228, "50b980c8-2a1b-4765-8955-449a9a3901c1": 190, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 204, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 202, "deb9e18e-519d-4a63-a28a-669ca99d3631": 193, "d240e81e-3357-444a-9003-7d8471940f57": 183, "a0225766-682a-47ae-8487-90e7d6bf82c0": 179, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 186, "ed536a15-cf36-4169-ad18-2bb832473694": 155, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "TÜR – USA", "home": "Türkiye", "away": "USA", "date": "26.06 06:00", "score": "3:2", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 228, "50b980c8-2a1b-4765-8955-449a9a3901c1": 190, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 204, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 202, "deb9e18e-519d-4a63-a28a-669ca99d3631": 193, "d240e81e-3357-444a-9003-7d8471940f57": 188, "a0225766-682a-47ae-8487-90e7d6bf82c0": 179, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 186, "ed536a15-cf36-4169-ad18-2bb832473694": 155, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "SEN – IRA", "home": "Senegal", "away": "Iraq", "date": "26.06 23:00", "score": "5:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 233, "50b980c8-2a1b-4765-8955-449a9a3901c1": 195, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 209, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 207, "deb9e18e-519d-4a63-a28a-669ca99d3631": 198, "d240e81e-3357-444a-9003-7d8471940f57": 193, "a0225766-682a-47ae-8487-90e7d6bf82c0": 184, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 186, "ed536a15-cf36-4169-ad18-2bb832473694": 155, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "NOR – FRA", "home": "Norway", "away": "France", "date": "26.06 23:00", "score": "1:4", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 238, "50b980c8-2a1b-4765-8955-449a9a3901c1": 200, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 214, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 212, "deb9e18e-519d-4a63-a28a-669ca99d3631": 203, "d240e81e-3357-444a-9003-7d8471940f57": 198, "a0225766-682a-47ae-8487-90e7d6bf82c0": 189, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 191, "ed536a15-cf36-4169-ad18-2bb832473694": 160, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "URU – SPA", "home": "Uruguay", "away": "Spain", "date": "27.06 04:00", "score": "0:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 243, "50b980c8-2a1b-4765-8955-449a9a3901c1": 205, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 219, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 217, "deb9e18e-519d-4a63-a28a-669ca99d3631": 208, "d240e81e-3357-444a-9003-7d8471940f57": 198, "a0225766-682a-47ae-8487-90e7d6bf82c0": 189, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 196, "ed536a15-cf36-4169-ad18-2bb832473694": 165, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "50b980c8-2a1b-4765-8955-449a9a3901c1", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "CAP – SAU", "home": "Cape Verde Islands", "away": "Saudi Arabia", "date": "27.06 04:00", "score": "0:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 243, "50b980c8-2a1b-4765-8955-449a9a3901c1": 210, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 219, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 217, "deb9e18e-519d-4a63-a28a-669ca99d3631": 208, "d240e81e-3357-444a-9003-7d8471940f57": 198, "a0225766-682a-47ae-8487-90e7d6bf82c0": 189, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 196, "ed536a15-cf36-4169-ad18-2bb832473694": 165, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "50b980c8-2a1b-4765-8955-449a9a3901c1", "deb9e18e-519d-4a63-a28a-669ca99d3631", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "EGY – IRA", "home": "Egypt", "away": "Iran", "date": "27.06 07:00", "score": "1:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 243, "50b980c8-2a1b-4765-8955-449a9a3901c1": 210, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 219, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 217, "deb9e18e-519d-4a63-a28a-669ca99d3631": 208, "d240e81e-3357-444a-9003-7d8471940f57": 198, "a0225766-682a-47ae-8487-90e7d6bf82c0": 189, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 196, "ed536a15-cf36-4169-ad18-2bb832473694": 165, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "50b980c8-2a1b-4765-8955-449a9a3901c1", "deb9e18e-519d-4a63-a28a-669ca99d3631", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "NEW – BEL", "home": "New Zealand", "away": "Belgium", "date": "27.06 07:00", "score": "1:5", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 248, "50b980c8-2a1b-4765-8955-449a9a3901c1": 215, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 224, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 222, "deb9e18e-519d-4a63-a28a-669ca99d3631": 213, "d240e81e-3357-444a-9003-7d8471940f57": 203, "a0225766-682a-47ae-8487-90e7d6bf82c0": 194, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 201, "ed536a15-cf36-4169-ad18-2bb832473694": 170, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "50b980c8-2a1b-4765-8955-449a9a3901c1", "deb9e18e-519d-4a63-a28a-669ca99d3631", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "PAN – ENG", "home": "Panama", "away": "England", "date": "28.06 01:00", "score": "0:2", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 253, "50b980c8-2a1b-4765-8955-449a9a3901c1": 220, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 232, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 230, "deb9e18e-519d-4a63-a28a-669ca99d3631": 218, "d240e81e-3357-444a-9003-7d8471940f57": 211, "a0225766-682a-47ae-8487-90e7d6bf82c0": 199, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 209, "ed536a15-cf36-4169-ad18-2bb832473694": 175, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "50b980c8-2a1b-4765-8955-449a9a3901c1", "deb9e18e-519d-4a63-a28a-669ca99d3631", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "CRO – GHA", "home": "Croatia", "away": "Ghana", "date": "28.06 01:00", "score": "2:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 258, "50b980c8-2a1b-4765-8955-449a9a3901c1": 228, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 232, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 238, "deb9e18e-519d-4a63-a28a-669ca99d3631": 226, "d240e81e-3357-444a-9003-7d8471940f57": 219, "a0225766-682a-47ae-8487-90e7d6bf82c0": 199, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 217, "ed536a15-cf36-4169-ad18-2bb832473694": 183, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "50b980c8-2a1b-4765-8955-449a9a3901c1", "deb9e18e-519d-4a63-a28a-669ca99d3631", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "CON – UZB", "home": "Congo DR", "away": "Uzbekistan", "date": "28.06 03:30", "score": "3:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 263, "50b980c8-2a1b-4765-8955-449a9a3901c1": 233, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 237, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 243, "deb9e18e-519d-4a63-a28a-669ca99d3631": 231, "d240e81e-3357-444a-9003-7d8471940f57": 224, "a0225766-682a-47ae-8487-90e7d6bf82c0": 204, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 217, "ed536a15-cf36-4169-ad18-2bb832473694": 183, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "50b980c8-2a1b-4765-8955-449a9a3901c1", "deb9e18e-519d-4a63-a28a-669ca99d3631", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "COL – POR", "home": "Colombia", "away": "Portugal", "date": "28.06 03:30", "score": "0:0", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 263, "50b980c8-2a1b-4765-8955-449a9a3901c1": 233, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 237, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 243, "deb9e18e-519d-4a63-a28a-669ca99d3631": 231, "d240e81e-3357-444a-9003-7d8471940f57": 229, "a0225766-682a-47ae-8487-90e7d6bf82c0": 204, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 217, "ed536a15-cf36-4169-ad18-2bb832473694": 183, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "50b980c8-2a1b-4765-8955-449a9a3901c1", "deb9e18e-519d-4a63-a28a-669ca99d3631", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "JOR – ARG", "home": "Jordan", "away": "Argentina", "date": "28.06 06:00", "score": "1:3", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 268, "50b980c8-2a1b-4765-8955-449a9a3901c1": 238, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 242, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 248, "deb9e18e-519d-4a63-a28a-669ca99d3631": 236, "d240e81e-3357-444a-9003-7d8471940f57": 234, "a0225766-682a-47ae-8487-90e7d6bf82c0": 209, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 222, "ed536a15-cf36-4169-ad18-2bb832473694": 188, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "50b980c8-2a1b-4765-8955-449a9a3901c1", "deb9e18e-519d-4a63-a28a-669ca99d3631", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "ALG – AUS", "home": "Algeria", "away": "Austria", "date": "28.06 06:00", "score": "3:3", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 273, "50b980c8-2a1b-4765-8955-449a9a3901c1": 243, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 242, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 248, "deb9e18e-519d-4a63-a28a-669ca99d3631": 236, "d240e81e-3357-444a-9003-7d8471940f57": 234, "a0225766-682a-47ae-8487-90e7d6bf82c0": 214, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 222, "ed536a15-cf36-4169-ad18-2bb832473694": 188, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "50b980c8-2a1b-4765-8955-449a9a3901c1", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "deb9e18e-519d-4a63-a28a-669ca99d3631", "d240e81e-3357-444a-9003-7d8471940f57", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "a0225766-682a-47ae-8487-90e7d6bf82c0", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "03a51f30-2129-4db7-34ae-08deab77e7c2"}, {"label": "SOU – CAN", "home": "South Africa", "away": "Canada", "date": "28.06 23:00", "score": "0:1", "totals": {"9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe": 289, "50b980c8-2a1b-4765-8955-449a9a3901c1": 253, "8a4dcbc2-bf39-4882-a7cc-a0274939170b": 252, "ec179646-b5ca-47ef-9131-ffb95811c9f5": 248, "deb9e18e-519d-4a63-a28a-669ca99d3631": 246, "d240e81e-3357-444a-9003-7d8471940f57": 234, "a0225766-682a-47ae-8487-90e7d6bf82c0": 224, "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e": 222, "ed536a15-cf36-4169-ad18-2bb832473694": 188, "5a6912f9-6030-47d0-a01f-ec30fe6c2e03": 18}, "ranks": ["9ca2e3b9-6cbf-453a-95b8-8b3b71a4fcfe", "50b980c8-2a1b-4765-8955-449a9a3901c1", "8a4dcbc2-bf39-4882-a7cc-a0274939170b", "ec179646-b5ca-47ef-9131-ffb95811c9f5", "deb9e18e-519d-4a63-a28a-669ca99d3631", "d240e81e-3357-444a-9003-7d8471940f57", "a0225766-682a-47ae-8487-90e7d6bf82c0", "7b2477f8-b546-4f11-b7e2-64a7c6ca5d5e", "ed536a15-cf36-4169-ad18-2bb832473694", "5a6912f9-6030-47d0-a01f-ec30fe6c2e03"], "phaseId": "23255365-d708-427c-a9d9-44c6c2f73a96"}], "maxTotal": 289, "bands": [{"label": "GROUP 1", "color": "#34e1ff", "from": 0.0, "to": 79}, {"label": "GROUP 2", "color": "#ff4ed5", "from": 79, "to": 182}, {"label": "GROUP 3", "color": "#fbbf24", "from": 182, "to": 273}, {"label": "R32", "color": "#9b8cff", "from": 273, "to": 289}]}</script>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+
+<script>
+// ---- shared state + 2D HUD (works even if WebGL/three fails to load) --------
+const DATA = JSON.parse(document.getElementById('data').textContent);
+const PLAYERS = DATA.players, STEPS = DATA.steps, MAXT = Math.max(DATA.maxTotal, 1);
+const NSTEP = STEPS.length;
+const byId = Object.fromEntries(PLAYERS.map(p => [p.id, p]));
+
+const TRACK_LEN = 60, LANE_GAP = 3.2;
+const laneZ = i => (i - (PLAYERS.length - 1) / 2) * LANE_GAP;
+// random lane layout, shuffled once per page load, fixed for the whole run
+const _laneOrder = PLAYERS.map((_, i) => i);
+for (let i = _laneOrder.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [_laneOrder[i], _laneOrder[j]] = [_laneOrder[j], _laneOrder[i]];
+}
+const laneIndex = Object.fromEntries(PLAYERS.map((p, i) => [p.id, _laneOrder[i]])); // fixed lane per player
+const xOf = pts => (pts / MAXT) * TRACK_LEN;
+
+let cur = 0;        // integer step index we are heading toward
+let prog = 1;       // 0..1 interpolation from step cur-1 to cur
+let playing = false;
+const SPEEDS = [4, 2, 1, 0.5];
+let speedIdx = 0;
+const STEP_MS = 1400; // base duration per match at 1×
+
+const totalsAt = i => (i < 0 ? Object.fromEntries(PLAYERS.map(p => [p.id, 0])) : STEPS[i].totals);
+function interpTotals(){
+  const a = totalsAt(cur - 1), b = totalsAt(cur);
+  const o = {};
+  for (const p of PLAYERS) o[p.id] = (a[p.id] || 0) + ((b[p.id] || 0) - (a[p.id] || 0)) * prog;
+  return o;
+}
+
+const rowsEl = document.getElementById('rows');
+const npStep = document.getElementById('np-step'), npLabel = document.getElementById('np-label'),
+      npScore = document.getElementById('np-score'), npTeams = document.getElementById('np-teams'),
+      npDate = document.getElementById('np-date'), npBanner = document.getElementById('nowplaying');
+const elStep = document.getElementById('stepno');
+const playBtn = document.getElementById('play'), scrub = document.getElementById('scrub'),
+      speedBtn = document.getElementById('speed');
+let shownStep = -1;  // drives the banner flash when the match changes
+
+function renderHUD(){
+  if (!NSTEP) return;
+  const t = interpTotals();
+  const order = PLAYERS.slice().sort((p,q)=> (t[q.id]-t[p.id]) || p.name.localeCompare(q.name));
+  // rank change vs the previous settled step
+  const prevRanks = (cur>0 ? STEPS[cur-1].ranks : STEPS[0].ranks);
+  const prevPos = Object.fromEntries(prevRanks.map((id,i)=>[id,i]));
+  rowsEl.innerHTML = order.map((p,i)=>{
+    const d = (prevPos[p.id] ?? i) - i;
+    const arr = d>0 ? ['up','▲'] : d<0 ? ['down','▼'] : ['same','—'];
+    return `<div class="row${i===0?' lead':''}">
+      <span class="pos">${i+1}</span>
+      <span class="dot" style="color:${p.color}"></span>
+      <span class="nm" title="${p.full||p.name}">${p.name}</span>
+      <span class="pts" style="color:${p.color}">${Math.round(t[p.id])}</span>
+      <span class="arr ${arr[0]}">${arr[1]}</span>
+    </div>`;
+  }).join('');
+  const s = STEPS[cur];
+  npStep.textContent = `матч ${cur+1}/${NSTEP}`;
+  npLabel.textContent = s.label;
+  npScore.textContent = s.score;
+  npTeams.textContent = (s.home && s.away) ? `${s.home} — ${s.away}` : '';
+  npDate.textContent = s.date;
+  elStep.textContent = `${cur+1}/${NSTEP}`;
+  if (cur !== shownStep){            // flash the banner each time a new match comes up
+    shownStep = cur;
+    npBanner.classList.remove('flash'); void npBanner.offsetWidth; npBanner.classList.add('flash');
+  }
+}
+
+function goTo(i, snap){
+  cur = Math.max(0, Math.min(NSTEP-1, i|0));
+  prog = 1; scrub.value = String(cur); renderHUD();
+}
+function setPlaying(v){
+  playing = v && NSTEP>1;
+  playBtn.textContent = playing ? '❚❚' : '▶';
+  if (playing && cur>=NSTEP-1 && prog>=1){ cur=0; prog=0; } // restart from the top
+}
+const boardEl = document.getElementById('board');
+function setBoardCollapsed(v){
+  boardEl.classList.toggle('collapsed', v);
+  document.getElementById('boardChev').textContent = v ? '▸' : '▾';
+}
+document.getElementById('boardToggle').onclick = ()=> setBoardCollapsed(!boardEl.classList.contains('collapsed'));
+// on phones the full table would cover the runners — start collapsed, tap to peek
+if (matchMedia('(max-width:640px)').matches) setBoardCollapsed(true);
+playBtn.onclick = ()=> setPlaying(!playing);
+speedBtn.onclick = ()=>{ speedIdx=(speedIdx+1)%SPEEDS.length; speedBtn.textContent = SPEEDS[speedIdx]+'×'; };
+scrub.oninput = ()=>{ setPlaying(false); const v=parseFloat(scrub.value); cur=Math.round(v); prog=1; renderHUD(); };
+
+function showMsg(html){ const m=document.getElementById('msg'); m.querySelector('div').innerHTML=html; m.style.display='flex'; }
+
+if (!NSTEP){
+  showMsg('<b>Гонка почнеться після перших зіграних матчів.</b><br>Коли матчі завершаться, тут зʼявиться 3D-таблиця руху всіх учасників.');
+  document.getElementById('ctl').style.display='none';
+  document.getElementById('board').style.display='none';
+} else {
+  scrub.max = String(NSTEP-1);
+  goTo(0);
+}
+
+// ---- 3D scene (three.js) ---------------------------------------------------
+let tick = ()=>{}; // replaced on success; HUD clock still drives via rAF below
+let lastT = null;
+function frame(now){
+  requestAnimationFrame(frame);
+  if (lastT==null) lastT = now;
+  const dt = Math.min(now - lastT, 60); lastT = now;
+  if (playing && NSTEP){
+    prog += dt / (STEP_MS / SPEEDS[speedIdx]);
+    while (prog >= 1){
+      if (cur >= NSTEP-1){ prog=1; setPlaying(false); break; }
+      cur += 1; prog -= 1;
+    }
+    renderHUD();
+  }
+  tick(dt);
+}
+requestAnimationFrame(frame);
+
+(async function init3D(){
+  if (!NSTEP) return;
+  let THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass;
+  try {
+    THREE = await import('three');
+    ({ OrbitControls } = await import('three/addons/controls/OrbitControls.js'));
+    ({ EffectComposer } = await import('three/addons/postprocessing/EffectComposer.js'));
+    ({ RenderPass } = await import('three/addons/postprocessing/RenderPass.js'));
+    ({ UnrealBloomPass } = await import('three/addons/postprocessing/UnrealBloomPass.js'));
+  } catch (e){
+    // No WebGL / offline: the 2D leaderboard + scrubber already work. Hint at canvas.
+    document.getElementById('scene').style.background =
+      'radial-gradient(80% 60% at 50% 30%, rgba(52,225,255,.10), transparent 70%)';
+    return;
+  }
+  const canvas = document.getElementById('scene');
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 500);
+  // side view from -Z: start on the left, finish on the right, runners run rightwards.
+  // (fixed side, no auto-spin, so floor phase labels never read mirrored)
+  const portrait = innerHeight > innerWidth;
+  const CAM = portrait ? {dx:-6, y:30, z:40} : {dx:-12, y:18, z:50};
+  camera.position.set(TRACK_LEN*0.5 + CAM.dx, CAM.y, CAM.z);
+
+  const controls = new OrbitControls(camera, canvas);
+  controls.target.set(TRACK_LEN*0.42, 1.2, 0);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.autoRotate = false;
+  controls.minDistance = 18; controls.maxDistance = 140;
+
+  scene.add(new THREE.AmbientLight(0x9fb6d8, 1.6)); // floodlit-evening fill so the grass reads green
+  const key = new THREE.PointLight(0x66ccff, 0.6, 0, 2); key.position.set(20,40,30); scene.add(key);
+
+  // stadium pitch (XZ plane: X = points/track, Z = lanes) — green turf instead of an abstract grid
+  const FIELD_HALF = PLAYERS.length*LANE_GAP/2 + 3; // half-depth of the playing surface in Z
+  const FIELD_X0 = -6, FIELD_X1 = TRACK_LEN + 6;
+  const turf = new THREE.Mesh(
+    new THREE.PlaneGeometry(FIELD_X1 - FIELD_X0, FIELD_HALF*2),
+    new THREE.MeshBasicMaterial({color:0x0f7a37}));
+  turf.rotation.x = -Math.PI/2; turf.position.set((FIELD_X0+FIELD_X1)/2, -0.01, 0); scene.add(turf);
+  // mowing stripes along X — alternating shades read as a manicured pitch (no white line markings)
+  function pitchStripe(x0, x1, shade){
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(x1-x0, FIELD_HALF*2),
+      new THREE.MeshBasicMaterial({color:shade, transparent:true, opacity:0.18, depthWrite:false}));
+    m.rotation.x = -Math.PI/2; m.position.set((x0+x1)/2, 0.0, 0); scene.add(m);
+  }
+  const STRIPES = 16, sw0 = (FIELD_X1-FIELD_X0)/STRIPES;
+  for (let i=0;i<STRIPES;i++){ pitchStripe(FIELD_X0+i*sw0, FIELD_X0+(i+1)*sw0, i%2 ? 0x1c9a4a : 0x0a5f2a); }
+
+  // raked seating tiers — boxes stepping up and outward. The camera is fixed on the +Z
+  // touchline, so the far side (-Z) gets the tall main grandstand and the near side only
+  // low boards, otherwise the near stand would wall off the runners.
+  function stand(side, tiers, hScale){ // side = +1 / -1 along Z
+    const baseZ = FIELD_HALF + 2.5;
+    for (let i=0;i<tiers;i++){
+      const h = (2 + i*1.6)*hScale;
+      const t = new THREE.Mesh(
+        new THREE.BoxGeometry(TRACK_LEN*1.15, h, 3),
+        new THREE.MeshBasicMaterial({color: i%2 ? 0x1a2748 : 0x223255}));
+      t.position.set(TRACK_LEN/2, h/2 + i*1.2*hScale, side*(baseZ + i*2.6));
+      scene.add(t);
+    }
+  }
+  stand(-1, 4, 1.0);  // main grandstand across the pitch (far side only — the near side is
+                      // left open so the camera's view of the runners is never walled off)
+
+  // floodlight pylons at the four corners — glowing heads + point lights for a night-match feel
+  function pylon(x, z){
+    const mast = new THREE.Mesh(new THREE.BoxGeometry(0.5, 26, 0.5),
+      new THREE.MeshBasicMaterial({color:0x2a3a6a}));
+    mast.position.set(x, 13, z); scene.add(mast);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.0, 0.5),
+      new THREE.MeshBasicMaterial({color:0xcfe8ff})); // bright -> caught by bloom
+    head.position.set(x, 26.2, z); scene.add(head);
+    const lamp = new THREE.PointLight(0xfff2d8, 0.45, 140, 2); lamp.position.set(x, 24, z*0.7); scene.add(lamp);
+  }
+  const PZ = FIELD_HALF + 9;
+  pylon(2, PZ); pylon(2, -PZ); pylon(TRACK_LEN-2, PZ); pylon(TRACK_LEN-2, -PZ);
+
+  // small football goals at the start and finish lines — just the white frame (posts + crossbar),
+  // centred on the track. The leader curls the ball into the finish frame at the end of the race.
+  const GOAL_HALF = 4.0, GOAL_H = 3.4, POST_R = 0.13, GOAL_OFF = 6.0; // sit beyond the group zones, with room for the shot to read
+  function goal(gx){
+    const white = new THREE.MeshBasicMaterial({color:0xffffff}); // bright -> bloom glow
+    function post(z){ const m = new THREE.Mesh(new THREE.CylinderGeometry(POST_R, POST_R, GOAL_H, 10), white); m.position.set(gx, GOAL_H/2, z); scene.add(m); }
+    post(GOAL_HALF); post(-GOAL_HALF);
+    const cross = new THREE.Mesh(new THREE.CylinderGeometry(POST_R, POST_R, GOAL_HALF*2, 10), white);
+    cross.rotation.x = Math.PI/2; cross.position.set(gx, GOAL_H, 0); scene.add(cross);
+  }
+  goal(-GOAL_OFF); goal(TRACK_LEN + GOAL_OFF);
+
+  function labelSprite(text, color){
+    const c = document.createElement('canvas'); c.width=256; c.height=64;
+    const x = c.getContext('2d');
+    x.font='600 34px "Space Grotesk", sans-serif'; x.textAlign='center'; x.textBaseline='middle';
+    x.lineWidth=5; x.strokeStyle='rgba(5,8,18,0.92)'; x.strokeText(text,128,34);
+    x.fillStyle=color; x.fillText(text,128,34);
+    const tex = new THREE.CanvasTexture(c); tex.anisotropy=4;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true, depthWrite:false}));
+    sp.scale.set(5.5,1.375,1); return sp; // keep 4:1 aspect; smaller so names don't cover the ball
+  }
+
+  // phase caption painted flat on the floor (runners run over it), reads along the track
+  function floorText(text, color, maxW){
+    const font='600 34px "Space Grotesk", sans-serif';
+    const meas=document.createElement('canvas').getContext('2d'); meas.font=font;
+    const tw=Math.ceil(meas.measureText(text).width)+44;
+    const c=document.createElement('canvas'); c.width=tw; c.height=64;
+    const x=c.getContext('2d');
+    x.font=font; x.textAlign='center'; x.textBaseline='middle';
+    x.lineWidth=5; x.strokeStyle='rgba(5,8,18,0.92)'; x.strokeText(text, tw/2, 34);
+    x.fillStyle=color; x.fillText(text, tw/2, 34);
+    const tex=new THREE.CanvasTexture(c); tex.anisotropy=4;
+    let Wm=tw/22; if(maxW) Wm=Math.min(Wm, maxW);
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(Wm, Wm*64/tw),
+      new THREE.MeshBasicMaterial({map:tex, transparent:true, opacity:0.5, depthWrite:false}));
+    m.rotation.x=-Math.PI/2; // lay flat on the ground (XZ plane)
+    return m;
+  }
+
+  // coloured track zones — one per phase (Група 1/2/3 …), drawn along the runners' path
+  const LANE_SPAN = PLAYERS.length*LANE_GAP + 2;
+  (DATA.bands||[]).forEach(b=>{
+    const x0=xOf(b.from), x1=xOf(b.to), w=Math.max(x1-x0, 0.2), col=new THREE.Color(b.color);
+    const zone=new THREE.Mesh(new THREE.PlaneGeometry(w, LANE_SPAN),
+      new THREE.MeshBasicMaterial({color:col, transparent:true, opacity:0.14, depthWrite:false}));
+    zone.rotation.x=-Math.PI/2; zone.position.set((x0+x1)/2, 0.02, 0); scene.add(zone);
+    const line=new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.05, LANE_SPAN),
+      new THREE.MeshBasicMaterial({color:col, transparent:true, opacity:0.55}));
+    line.position.set(x1, 0.06, 0); scene.add(line);
+    const lbl=floorText(b.label, b.color, w*0.92);
+    lbl.position.set((x0+x1)/2, 0.08, LANE_SPAN/2 - 1.6); scene.add(lbl);
+  });
+
+  // a neon stick-runner built from primitives — faces +X (down the track);
+  // limbs hang from hip/shoulder pivots and swing around Z for the run cycle.
+  function makeRunner(color){
+    const mat = new THREE.MeshBasicMaterial({color:new THREE.Color(color)});
+    const g = new THREE.Group();
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.26, 0.7, 4, 8), mat);
+    torso.position.y = 1.25; g.add(torso);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.30, 16, 16), mat);
+    head.position.y = 1.95; g.add(head);
+    function limb(py, len, r, z){
+      const pivot = new THREE.Group(); pivot.position.set(0, py, z);
+      const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 4, 6), mat);
+      m.position.y = -(len/2 + r); pivot.add(m); g.add(pivot); return pivot;
+    }
+    const legL = limb(0.95, 0.7, 0.12,  0.15), legR = limb(0.95, 0.7, 0.12, -0.15);
+    const armL = limb(1.6,  0.55, 0.09,  0.30), armR = limb(1.6,  0.55, 0.09, -0.30);
+    g.rotation.z = -0.08; // slight forward lean into the run
+    g.scale.setScalar(1.3);
+    return {g, legL, legR, armL, armR};
+  }
+
+  const TRAIL = 90;
+  const runners = PLAYERS.map((p,i)=>{
+    const col = new THREE.Color(p.color);
+    const rn = makeRunner(p.color);
+    const label = labelSprite(p.name, p.color); label.position.set(0,2.9,0); rn.g.add(label);
+    scene.add(rn.g);
+    const positions = new Float32Array(TRAIL*3);
+    const tgeo = new THREE.BufferGeometry();
+    tgeo.setAttribute('position', new THREE.BufferAttribute(positions,3));
+    const trail = new THREE.Line(tgeo, new THREE.LineBasicMaterial({color:col, transparent:true, opacity:0.5}));
+    trail.frustumCulled = false; scene.add(trail);
+    return {p, rn, trail, positions, filled:0, phase:i*0.7};
+  });
+
+  // football dribbled in front of whoever currently leads the race — a white sphere with
+  // black pentagon patches at the 12 icosahedron vertices (the classic Telstar look).
+  const BALL_R = 0.45, BALL_AHEAD = 1.4;
+  function makeBall(){
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 24, 24),
+      new THREE.MeshBasicMaterial({color:0xffffff})));
+    const PHI = 1.618033988749895;
+    const verts = [[0,1,PHI],[0,1,-PHI],[0,-1,PHI],[0,-1,-PHI],
+      [1,PHI,0],[1,-PHI,0],[-1,PHI,0],[-1,-PHI,0],
+      [PHI,0,1],[PHI,0,-1],[-PHI,0,1],[-PHI,0,-1]];
+    const black = new THREE.MeshBasicMaterial({color:0x10131a, side:THREE.DoubleSide});
+    for (const v of verts){
+      const dir = new THREE.Vector3(v[0],v[1],v[2]).normalize();
+      const patch = new THREE.Mesh(new THREE.CircleGeometry(BALL_R*0.46, 5), black);
+      patch.position.copy(dir.clone().multiplyScalar(BALL_R*0.999));
+      patch.lookAt(dir.clone().multiplyScalar(BALL_R*4)); // lie tangent, facing outward
+      g.add(patch);
+    }
+    return g;
+  }
+  const ball = makeBall(); ball.visible = false; scene.add(ball);
+  let ballX = null, ballZ = 0;      // ball's own glided position (lags the leader -> reads as a pass)
+  let lastBX = 0, lastBZ = 0;       // previous frame position, for roll
+  let shotProg = 0, shotFromX = 0, shotFromZ = 0; // finish-line shot into the net (0..1)
+  let celebrate = 0;                // 0..1 ramp: crowd goes wild once the ball is through the goal
+
+  const composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.55, 0.45, 0.2);
+  composer.addPass(bloom);
+
+  let runPhase = 0;
+  tick = function(dt){
+    runPhase += (dt||16) * (playing ? 0.02*SPEEDS[speedIdx] : 0.007);
+    const t = interpTotals();
+    let sumX = 0;
+    for (const r of runners){
+      const id = r.p.id;
+      const x = xOf(t[id]||0); sumX += x;
+      const z = laneZ(laneIndex[id]); // fixed lane — overtakes show as forward distance only
+      const ph = runPhase + r.phase;
+      const sw = Math.sin(ph);
+      // run cycle blends into a springy two-footed jump with arms thrown overhead as `celebrate` ramps up
+      const run = 1 - celebrate;
+      const jump = Math.abs(Math.sin(runPhase*0.9 + r.phase)) * 0.9;
+      const bob = Math.abs(sw)*0.10*run + jump*celebrate;
+      r.rn.g.position.set(x, bob, z);
+      r.rn.legL.rotation.z =  sw*0.7*run; r.rn.legR.rotation.z = -sw*0.7*run;
+      r.rn.armL.rotation.z = (-sw*0.5)*run + ( 2.7)*celebrate;
+      r.rn.armR.rotation.z = ( sw*0.5)*run + (-2.7)*celebrate;
+      // push torso point into trail ring buffer
+      const arr = r.positions, yy = 1.05 + bob;
+      if (r.filled < TRAIL) { const k=r.filled*3; arr[k]=x; arr[k+1]=yy; arr[k+2]=z; r.filled++; }
+      else { arr.copyWithin(0, 3); const k=(TRAIL-1)*3; arr[k]=x; arr[k+1]=yy; arr[k+2]=z; }
+      r.trail.geometry.setDrawRange(0, r.filled);
+      r.trail.geometry.attributes.position.needsUpdate = true;
+    }
+    // football glides to a spot just ahead of the current leader; on a lead change the target
+    // jumps to the new lane and the ball rolls across to it — reads as a pass between players.
+    // Once the race settles on its final step, the leader buries the ball in the finish net.
+    if (runners.length){
+      let leadId = null, leadX = -Infinity;
+      for (const r of runners){ const x = xOf(t[r.p.id]||0); if (x > leadX){ leadX = x; leadId = r.p.id; } }
+      const tx = leadX + BALL_AHEAD, tz = laneZ(laneIndex[leadId]);
+      if (ballX === null){ ballX = tx; ballZ = tz; lastBX = tx; lastBZ = tz; } // first frame
+      const atEnd = (cur >= NSTEP-1) && (prog >= 1);
+      if (atEnd){ if (shotProg === 0){ shotFromX = ballX; shotFromZ = ballZ; } shotProg = Math.min(1, shotProg + (dt||16)/650); }
+      else shotProg = Math.max(0, shotProg - (dt||16)/250);
+
+      let bx, by, bz;
+      if (shotProg <= 0){
+        ballX += (tx - ballX) * 0.08; ballZ += (tz - ballZ) * 0.08; // dribble toward the leader
+        bx = ballX; bz = ballZ; by = BALL_R + Math.abs(Math.sin(runPhase*1.4)) * 0.10;
+      } else {
+        // two-phase strike: curl into the dead centre of the goal mouth, then blast straight through it.
+        // (the leader's lane Z can be far wider than the posts, so the ball MUST converge before the line
+        // or it sails wide — phase 1 guarantees bz=0 exactly at the goal line.)
+        const goalX = TRACK_LEN + GOAL_OFF, endX = goalX + 16;
+        const eg = 0.45; // share of the shot spent reaching the line; the rest is the fly-through
+        if (shotProg <= eg){
+          const k = shotProg / eg;
+          bx = shotFromX + (goalX - shotFromX) * k;
+          bz = shotFromZ * (1 - k);                       // converge to centre exactly at the line
+          by = BALL_R + Math.sin(Math.PI*0.5*k) * 1.3;    // ~1.75 high at the line, well under the crossbar
+        } else {
+          const k = (shotProg - eg) / (1 - eg);
+          bx = goalX + (endX - goalX) * k;
+          bz = 0;
+          by = (BALL_R + 1.3) + k * 4.0;                  // rise and sail off past the net
+        }
+        ballX = bx; ballZ = bz;
+      }
+      // crowd erupts the instant the ball crosses the goal line; smooth ramp so the jump kicks in cleanly
+      const scored = shotProg > 0 && bx >= (TRACK_LEN + GOAL_OFF - 0.3) ? 1 : 0;
+      celebrate += (scored - celebrate) * 0.06;
+      ball.visible = true;
+      ball.position.set(bx, by, bz);
+      const dx = bx - lastBX, dz = bz - lastBZ, dist = Math.hypot(dx, dz);
+      if (dist > 1e-4) ball.rotateOnWorldAxis(new THREE.Vector3(dz,0,-dx).normalize(), dist/BALL_R); // roll
+      lastBX = bx; lastBZ = bz;
+    }
+    // keep the camera framing the moving pack
+    const meanX = runners.length ? sumX/runners.length : TRACK_LEN/2;
+    controls.target.x += (meanX - controls.target.x)*0.05;
+    controls.target.y += (1.2 - controls.target.y)*0.05;
+    controls.target.z += (0 - controls.target.z)*0.05;
+    camera.position.x += (controls.target.x + CAM.dx - camera.position.x)*0.05; // pan with the pack
+    controls.update();
+    composer.render();
+  };
+
+  function resize(){
+    camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
+  }
+  addEventListener('resize', resize); resize();
+})();
+</script>
+</body>
+</html>

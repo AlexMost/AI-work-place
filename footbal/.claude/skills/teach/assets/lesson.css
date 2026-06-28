@@ -1,0 +1,146 @@
+/* Shared stylesheet for all three.js lessons. Tufte-ish: calm, readable, prints well. */
+:root {
+  --ink: #1a1c20;
+  --paper: #fbfaf7;
+  --muted: #6b6f76;
+  --rule: #e3e0d8;
+  --accent: #0a7d4d;        /* pitch green */
+  --neon: #19b6ff;          /* the race's cyan, used sparingly */
+  --code-bg: #0f131c;
+  --code-ink: #e7edf6;
+  --mark: #fff3bf;
+  --maxw: 46rem;
+}
+
+* { box-sizing: border-box; }
+
+html { font-size: 18px; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+main { max-width: var(--maxw); margin: 0 auto; padding: 3.2rem 1.4rem 5rem; }
+
+.eyebrow {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 0.6rem;
+}
+
+h1 { font-size: 2.1rem; line-height: 1.12; margin: 0 0 0.4rem; font-weight: 600; }
+h2 { font-size: 1.32rem; margin: 2.6rem 0 0.6rem; font-weight: 600; }
+h3 { font-size: 1.05rem; margin: 1.8rem 0 0.4rem; font-weight: 600; }
+
+.lede { font-size: 1.12rem; color: #34373d; margin: 0.4rem 0 1.4rem; }
+
+p { margin: 0.8rem 0; }
+
+a { color: var(--accent); text-underline-offset: 2px; }
+
+hr { border: 0; border-top: 1px solid var(--rule); margin: 2.4rem 0; }
+
+code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.86em;
+  background: #efece4;
+  padding: 0.08em 0.34em;
+  border-radius: 4px;
+}
+
+pre {
+  background: var(--code-bg);
+  color: var(--code-ink);
+  padding: 1.05rem 1.2rem;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+.c-key { color: #ff8fd0; }   /* keywords */
+.c-fn  { color: #7ad0ff; }   /* functions / types */
+.c-num { color: #ffd479; }   /* numbers */
+.c-com { color: #7f8aa3; font-style: italic; } /* comments */
+.c-str { color: #9ff0c0; }
+
+mark { background: var(--mark); padding: 0 0.15em; border-radius: 3px; }
+
+.callout {
+  border-left: 3px solid var(--neon);
+  background: #f1f8fd;
+  padding: 0.7rem 1.1rem;
+  border-radius: 0 8px 8px 0;
+  margin: 1.4rem 0;
+}
+.callout.pitch { border-color: var(--accent); background: #f0f8f3; }
+
+figure { margin: 1.6rem 0; text-align: center; }
+figcaption { font-size: 0.82rem; color: var(--muted); margin-top: 0.5rem; }
+
+.diagram {
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+
+/* citation superscripts */
+.cite { font-size: 0.7em; vertical-align: super; line-height: 0; }
+.cite a { text-decoration: none; }
+
+/* ---- quiz widget ---- */
+.quiz {
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 1.2rem 1.3rem;
+  margin: 1.6rem 0;
+  background: #fff;
+}
+.quiz .q { font-weight: 600; margin: 0 0 0.9rem; }
+.quiz .opt {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 0.95rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  margin: 0.4rem 0;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.quiz .opt:hover { border-color: var(--neon); }
+.quiz .opt.correct { background: #e4f7ec; border-color: var(--accent); }
+.quiz .opt.wrong   { background: #fdeaea; border-color: #d9534f; }
+.quiz .fb { margin-top: 0.8rem; font-size: 0.92rem; color: #34373d; min-height: 1.2em; }
+.quiz .fb.show { animation: fade 0.25s ease; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+.nav { display: flex; justify-content: space-between; margin-top: 3rem; font-size: 0.9rem; }
+
+.ask {
+  margin-top: 2.4rem;
+  font-size: 0.92rem;
+  color: var(--muted);
+  border-top: 1px solid var(--rule);
+  padding-top: 1rem;
+}
+
+footer { margin-top: 3rem; font-size: 0.78rem; color: var(--muted); }
+
+@media print {
+  .quiz .opt { cursor: default; }
+  pre { white-space: pre-wrap; }
+  a { color: var(--ink); }
+}
