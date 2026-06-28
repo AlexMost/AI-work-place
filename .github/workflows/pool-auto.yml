@@ -39,6 +39,9 @@ jobs:
         working-directory: footbal
         env:
           POOL_API_TOKEN: ${{ secrets.POOL_API_TOKEN }}
+          # gh-pages clones afresh with no creds — push via a token-authenticated URL
+          # (GITHUB_TOKEN is auto-masked in logs; permissions: contents: write covers it)
+          GH_PAGES_REPO: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           # POOL_ID: ${{ vars.POOL_ID }}   # only if the default pool ever needs overriding
         run: |
           npm run pool-auto -- ${{ (github.event_name == 'workflow_dispatch' && inputs.force) && '--force' || '' }}

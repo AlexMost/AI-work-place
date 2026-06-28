@@ -57,6 +57,10 @@ if [ "$DEPLOY" != "1" ]; then
 fi
 
 echo "pool-auto: changes detected — deploying footbal/pool to gh-pages…"
+# GH_PAGES_REPO lets CI pass an authenticated https URL (gh-pages clones afresh and would
+# otherwise have no credentials). Local runs leave it unset and push over the SSH origin.
+# A git URL has no spaces, so the unquoted ${VAR:+…} expansion is safe under `set -u`.
 npx -y gh-pages@6 -d pool -e footbal/pool --add --dotfiles \
+  ${GH_PAGES_REPO:+-r $GH_PAGES_REPO} \
   -m "auto: update pool $(date -u +%FT%TZ)"
 echo "pool-auto: deployed → https://alexmost.github.io/AI-work-place/footbal/pool/"
