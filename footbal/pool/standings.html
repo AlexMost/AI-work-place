@@ -125,7 +125,7 @@
   <div>
     <a class="back" href="index.html">&larr; усі матчі</a>
     <div class="title">Гонка пулу — хто кого обганяв</div>
-    <div class="sub">кумулятивні бали за матчі · оновлено 28.06.2026 02:54</div>
+    <div class="sub">кумулятивні бали за матчі · оновлено 28.06.2026 03:02</div>
   </div>
 </div>
 
@@ -364,7 +364,7 @@ requestAnimationFrame(frame);
 
   // small football goals at the start and finish lines — just the white frame (posts + crossbar),
   // centred on the track. The leader curls the ball into the finish frame at the end of the race.
-  const GOAL_HALF = 4.0, GOAL_H = 3.4, POST_R = 0.13;
+  const GOAL_HALF = 4.0, GOAL_H = 3.4, POST_R = 0.13, GOAL_OFF = 3.0; // sit just beyond the group zones
   function goal(gx){
     const white = new THREE.MeshBasicMaterial({color:0xffffff}); // bright -> bloom glow
     function post(z){ const m = new THREE.Mesh(new THREE.CylinderGeometry(POST_R, POST_R, GOAL_H, 10), white); m.position.set(gx, GOAL_H/2, z); scene.add(m); }
@@ -372,7 +372,7 @@ requestAnimationFrame(frame);
     const cross = new THREE.Mesh(new THREE.CylinderGeometry(POST_R, POST_R, GOAL_HALF*2, 10), white);
     cross.rotation.x = Math.PI/2; cross.position.set(gx, GOAL_H, 0); scene.add(cross);
   }
-  goal(0); goal(TRACK_LEN);
+  goal(-GOAL_OFF); goal(TRACK_LEN + GOAL_OFF);
 
   function labelSprite(text, color){
     const c = document.createElement('canvas'); c.width=256; c.height=64;
@@ -523,7 +523,7 @@ requestAnimationFrame(frame);
         bx = ballX; bz = ballZ; by = BALL_R + Math.abs(Math.sin(runPhase*1.4)) * 0.10;
       } else {
         const e = 1 - Math.pow(1 - shotProg, 3); // ease-out
-        const netX = TRACK_LEN + 1.0, netY = 1.2, netZ = 0; // curl into the centre of the finish goal
+        const netX = TRACK_LEN + GOAL_OFF - 0.3, netY = 1.2, netZ = 0; // rest on the goal line, not past it
         bx = shotFromX + (netX - shotFromX) * e;
         bz = shotFromZ + (netZ - shotFromZ) * e;
         by = BALL_R + (netY - BALL_R) * e + Math.sin(Math.PI * e) * 1.5; // arc over the line
