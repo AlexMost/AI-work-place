@@ -125,7 +125,7 @@
   <div>
     <a class="back" href="index.html">&larr; усі матчі</a>
     <div class="title">Гонка пулу — хто кого обганяв</div>
-    <div class="sub">кумулятивні бали за матчі · оновлено 28.06.2026 23:13 · час за Прагою</div>
+    <div class="sub">кумулятивні бали за матчі · оновлено 28.06.2026 23:51 · час за Прагою</div>
   </div>
 </div>
 
@@ -172,7 +172,13 @@ const byId = Object.fromEntries(PLAYERS.map(p => [p.id, p]));
 
 const TRACK_LEN = 60, LANE_GAP = 3.2;
 const laneZ = i => (i - (PLAYERS.length - 1) / 2) * LANE_GAP;
-const laneIndex = Object.fromEntries(PLAYERS.map((p, i) => [p.id, i])); // fixed lane per player
+// random lane layout, shuffled once per page load, fixed for the whole run
+const _laneOrder = PLAYERS.map((_, i) => i);
+for (let i = _laneOrder.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [_laneOrder[i], _laneOrder[j]] = [_laneOrder[j], _laneOrder[i]];
+}
+const laneIndex = Object.fromEntries(PLAYERS.map((p, i) => [p.id, _laneOrder[i]])); // fixed lane per player
 const xOf = pts => (pts / MAXT) * TRACK_LEN;
 
 let cur = 0;        // integer step index we are heading toward
