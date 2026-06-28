@@ -6,8 +6,9 @@
   "type": "commonjs",
   "private": true,
   "scripts": {
-    "build-site": "rm -rf dist && mkdir -p dist && cp index.html dist/ && cp methodology.html dist/ && cp -r reports dist/ && touch dist/.nojekyll",
-    "publish-gh-pages": "npm run build-site && gh-pages -d dist -e footbal --add --dotfiles -m \"deploy footbal\""
+    "build-site": "rm -rf dist && mkdir -p dist && cp index.html dist/ && cp methodology.html dist/ && cp -r reports dist/ && cp -r pool dist/ && touch dist/.nojekyll",
+    "publish-gh-pages": "npm run build-site && gh-pages -d dist -e footbal --add --dotfiles -m \"deploy footbal\"",
+    "pool-auto": "bash .claude/skills/pool-spy/scripts/pool_auto.sh"
   },
   "devDependencies": {
     "gh-pages": "^6.3.0"

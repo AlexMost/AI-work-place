@@ -1,0 +1,44 @@
+name: pool-auto
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"      # GitHub cron min 5 min; runs may be delayed/skipped — fine
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "force full re-render"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write               # needed to push to gh-pages
+
+concurrency:
+  group: pool-auto              # never overlap two runs
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4          # persist-credentials=true → token in remote
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # gh-pages commits in its own cache clone, so the identity must be global
+      - name: Configure git identity
+        run: |
+          git config --global user.name  "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      # whole flow (prev-state gate -> render -> deploy on change) lives in one script,
+      # the same one runnable locally via `npm run pool-auto`
+      - name: Update pool
+        working-directory: footbal
+        env:
+          POOL_API_TOKEN: ${{ secrets.POOL_API_TOKEN }}
+          # POOL_ID: ${{ vars.POOL_ID }}   # only if the default pool ever needs overriding
+        run: |
+          npm run pool-auto -- ${{ (github.event_name == 'workflow_dispatch' && inputs.force) && '--force' || '' }}
