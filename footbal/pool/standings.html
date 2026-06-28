@@ -125,7 +125,7 @@
   <div>
     <a class="back" href="index.html">&larr; усі матчі</a>
     <div class="title">Гонка пулу — хто кого обганяв</div>
-    <div class="sub">кумулятивні бали за матчі · оновлено 28.06.2026 02:43</div>
+    <div class="sub">кумулятивні бали за матчі · оновлено 28.06.2026 02:50</div>
   </div>
 </div>
 
@@ -362,14 +362,27 @@ requestAnimationFrame(frame);
   const PZ = FIELD_HALF + 9;
   pylon(2, PZ); pylon(2, -PZ); pylon(TRACK_LEN-2, PZ); pylon(TRACK_LEN-2, -PZ);
 
-  // start + finish gates
-  function gate(x, color){
-    const g = new THREE.Mesh(
-      new THREE.BoxGeometry(0.15, 6, PLAYERS.length*LANE_GAP+2),
-      new THREE.MeshBasicMaterial({color, transparent:true, opacity:0.25}));
-    g.position.set(x, 3, 0); scene.add(g);
+  // football goals at the start and finish lines — white posts/crossbar + a wireframe net.
+  // dir = +1 -> net extends in +X (finish, mouth faces the incoming runners); -1 -> start.
+  const GOAL_HALF = PLAYERS.length*LANE_GAP/2 + 1.0, GOAL_H = 4.4, GOAL_DEPTH = 3.4, POST_R = 0.16;
+  function goal(gx, dir){
+    const white = new THREE.MeshBasicMaterial({color:0xffffff}); // bright -> bloom glow
+    function bar(len, axis){ return new THREE.Mesh(new THREE.CylinderGeometry(POST_R, POST_R, len, 10), white); }
+    function post(z){ const m = bar(GOAL_H); m.position.set(gx, GOAL_H/2, z); scene.add(m); }
+    post(GOAL_HALF); post(-GOAL_HALF);
+    const cross = bar(GOAL_HALF*2); cross.rotation.x = Math.PI/2; cross.position.set(gx, GOAL_H, 0); scene.add(cross);
+    const bx = gx + dir*GOAL_DEPTH;
+    const net = new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.16, wireframe:true, side:THREE.DoubleSide});
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(GOAL_HALF*2, GOAL_H, 16, 6), net);
+    back.position.set(bx, GOAL_H/2, 0); scene.add(back);                       // back of the net
+    const roof = new THREE.Mesh(new THREE.PlaneGeometry(GOAL_HALF*2, GOAL_DEPTH, 16, 4), net);
+    roof.rotation.x = -Math.PI/2; roof.position.set((gx+bx)/2, GOAL_H, 0); scene.add(roof); // net roof
+    for (const s of [1,-1]){                                                    // side nets
+      const side = new THREE.Mesh(new THREE.PlaneGeometry(GOAL_DEPTH, GOAL_H, 4, 6), net);
+      side.rotation.y = Math.PI/2; side.position.set((gx+bx)/2, GOAL_H/2, s*GOAL_HALF); scene.add(side);
+    }
   }
-  gate(0, 0x8a96bf); gate(TRACK_LEN, 0x34e1ff);
+  goal(0, -1); goal(TRACK_LEN, 1);
 
   function labelSprite(text, color){
     const c = document.createElement('canvas'); c.width=256; c.height=64;
@@ -471,7 +484,9 @@ requestAnimationFrame(frame);
     return g;
   }
   const ball = makeBall(); ball.visible = false; scene.add(ball);
-  let ballX = null, ballZ = 0; // ball's own glided position (lags the leader -> reads as a pass)
+  let ballX = null, ballZ = 0;      // ball's own glided position (lags the leader -> reads as a pass)
+  let lastBX = 0, lastBZ = 0;       // previous frame position, for roll
+  let shotProg = 0, shotFromX = 0, shotFromZ = 0; // finish-line shot into the net (0..1)
 
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
@@ -502,18 +517,33 @@ requestAnimationFrame(frame);
     }
     // football glides to a spot just ahead of the current leader; on a lead change the target
     // jumps to the new lane and the ball rolls across to it — reads as a pass between players.
+    // Once the race settles on its final step, the leader buries the ball in the finish net.
     if (runners.length){
       let leadId = null, leadX = -Infinity;
       for (const r of runners){ const x = xOf(t[r.p.id]||0); if (x > leadX){ leadX = x; leadId = r.p.id; } }
       const tx = leadX + BALL_AHEAD, tz = laneZ(laneIndex[leadId]);
-      if (ballX === null){ ballX = tx; ballZ = tz; } // first frame: no roll-in
-      const px = ballX, pz = ballZ;
-      ballX += (tx - ballX) * 0.08; ballZ += (tz - ballZ) * 0.08; // glide toward the leader
-      const bbob = Math.abs(Math.sin(runPhase*1.4)) * 0.10;
+      if (ballX === null){ ballX = tx; ballZ = tz; lastBX = tx; lastBZ = tz; } // first frame
+      const atEnd = (cur >= NSTEP-1) && (prog >= 1);
+      if (atEnd){ if (shotProg === 0){ shotFromX = ballX; shotFromZ = ballZ; } shotProg = Math.min(1, shotProg + (dt||16)/650); }
+      else shotProg = Math.max(0, shotProg - (dt||16)/250);
+
+      let bx, by, bz;
+      if (shotProg <= 0){
+        ballX += (tx - ballX) * 0.08; ballZ += (tz - ballZ) * 0.08; // dribble toward the leader
+        bx = ballX; bz = ballZ; by = BALL_R + Math.abs(Math.sin(runPhase*1.4)) * 0.10;
+      } else {
+        const e = 1 - Math.pow(1 - shotProg, 3); // ease-out
+        const netX = TRACK_LEN + GOAL_DEPTH*0.65, netY = 1.3, netZ = shotFromZ * 0.55;
+        bx = shotFromX + (netX - shotFromX) * e;
+        bz = shotFromZ + (netZ - shotFromZ) * e;
+        by = BALL_R + (netY - BALL_R) * e + Math.sin(Math.PI * e) * 1.5; // arc over the line
+        ballX = bx; ballZ = bz;
+      }
       ball.visible = true;
-      ball.position.set(ballX, BALL_R + bbob, ballZ);
-      const dx = ballX - px, dz = ballZ - pz, dist = Math.hypot(dx, dz);
+      ball.position.set(bx, by, bz);
+      const dx = bx - lastBX, dz = bz - lastBZ, dist = Math.hypot(dx, dz);
       if (dist > 1e-4) ball.rotateOnWorldAxis(new THREE.Vector3(dz,0,-dx).normalize(), dist/BALL_R); // roll
+      lastBX = bx; lastBZ = bz;
     }
     // keep the camera framing the moving pack
     const meanX = runners.length ? sumX/runners.length : TRACK_LEN/2;
