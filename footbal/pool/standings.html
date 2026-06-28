@@ -125,7 +125,7 @@
   <div>
     <a class="back" href="index.html">&larr; усі матчі</a>
     <div class="title">Гонка пулу — хто кого обганяв</div>
-    <div class="sub">кумулятивні бали за матчі · оновлено 28.06.2026 02:50</div>
+    <div class="sub">кумулятивні бали за матчі · оновлено 28.06.2026 02:54</div>
   </div>
 </div>
 
@@ -362,27 +362,17 @@ requestAnimationFrame(frame);
   const PZ = FIELD_HALF + 9;
   pylon(2, PZ); pylon(2, -PZ); pylon(TRACK_LEN-2, PZ); pylon(TRACK_LEN-2, -PZ);
 
-  // football goals at the start and finish lines — white posts/crossbar + a wireframe net.
-  // dir = +1 -> net extends in +X (finish, mouth faces the incoming runners); -1 -> start.
-  const GOAL_HALF = PLAYERS.length*LANE_GAP/2 + 1.0, GOAL_H = 4.4, GOAL_DEPTH = 3.4, POST_R = 0.16;
-  function goal(gx, dir){
+  // small football goals at the start and finish lines — just the white frame (posts + crossbar),
+  // centred on the track. The leader curls the ball into the finish frame at the end of the race.
+  const GOAL_HALF = 4.0, GOAL_H = 3.4, POST_R = 0.13;
+  function goal(gx){
     const white = new THREE.MeshBasicMaterial({color:0xffffff}); // bright -> bloom glow
-    function bar(len, axis){ return new THREE.Mesh(new THREE.CylinderGeometry(POST_R, POST_R, len, 10), white); }
-    function post(z){ const m = bar(GOAL_H); m.position.set(gx, GOAL_H/2, z); scene.add(m); }
+    function post(z){ const m = new THREE.Mesh(new THREE.CylinderGeometry(POST_R, POST_R, GOAL_H, 10), white); m.position.set(gx, GOAL_H/2, z); scene.add(m); }
     post(GOAL_HALF); post(-GOAL_HALF);
-    const cross = bar(GOAL_HALF*2); cross.rotation.x = Math.PI/2; cross.position.set(gx, GOAL_H, 0); scene.add(cross);
-    const bx = gx + dir*GOAL_DEPTH;
-    const net = new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.16, wireframe:true, side:THREE.DoubleSide});
-    const back = new THREE.Mesh(new THREE.PlaneGeometry(GOAL_HALF*2, GOAL_H, 16, 6), net);
-    back.position.set(bx, GOAL_H/2, 0); scene.add(back);                       // back of the net
-    const roof = new THREE.Mesh(new THREE.PlaneGeometry(GOAL_HALF*2, GOAL_DEPTH, 16, 4), net);
-    roof.rotation.x = -Math.PI/2; roof.position.set((gx+bx)/2, GOAL_H, 0); scene.add(roof); // net roof
-    for (const s of [1,-1]){                                                    // side nets
-      const side = new THREE.Mesh(new THREE.PlaneGeometry(GOAL_DEPTH, GOAL_H, 4, 6), net);
-      side.rotation.y = Math.PI/2; side.position.set((gx+bx)/2, GOAL_H/2, s*GOAL_HALF); scene.add(side);
-    }
+    const cross = new THREE.Mesh(new THREE.CylinderGeometry(POST_R, POST_R, GOAL_HALF*2, 10), white);
+    cross.rotation.x = Math.PI/2; cross.position.set(gx, GOAL_H, 0); scene.add(cross);
   }
-  goal(0, -1); goal(TRACK_LEN, 1);
+  goal(0); goal(TRACK_LEN);
 
   function labelSprite(text, color){
     const c = document.createElement('canvas'); c.width=256; c.height=64;
@@ -533,7 +523,7 @@ requestAnimationFrame(frame);
         bx = ballX; bz = ballZ; by = BALL_R + Math.abs(Math.sin(runPhase*1.4)) * 0.10;
       } else {
         const e = 1 - Math.pow(1 - shotProg, 3); // ease-out
-        const netX = TRACK_LEN + GOAL_DEPTH*0.65, netY = 1.3, netZ = shotFromZ * 0.55;
+        const netX = TRACK_LEN + 1.0, netY = 1.2, netZ = 0; // curl into the centre of the finish goal
         bx = shotFromX + (netX - shotFromX) * e;
         bz = shotFromZ + (netZ - shotFromZ) * e;
         by = BALL_R + (netY - BALL_R) * e + Math.sin(Math.PI * e) * 1.5; // arc over the line
