@@ -125,7 +125,7 @@
   <div>
     <a class="back" href="index.html">&larr; усі матчі</a>
     <div class="title">Гонка пулу — хто кого обганяв</div>
-    <div class="sub">кумулятивні бали за матчі · оновлено 28.06.2026 02:39</div>
+    <div class="sub">кумулятивні бали за матчі · оновлено 28.06.2026 02:43</div>
   </div>
 </div>
 
@@ -379,7 +379,7 @@ requestAnimationFrame(frame);
     x.fillStyle=color; x.fillText(text,128,34);
     const tex = new THREE.CanvasTexture(c); tex.anisotropy=4;
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true, depthWrite:false}));
-    sp.scale.set(8,2,1); return sp;
+    sp.scale.set(5.5,1.375,1); return sp; // keep 4:1 aspect; smaller so names don't cover the ball
   }
 
   // phase caption painted flat on the floor (runners run over it), reads along the track
