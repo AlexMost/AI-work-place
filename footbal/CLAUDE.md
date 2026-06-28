@@ -36,10 +36,13 @@ site). The prediction pipeline lives in the `wc-predict` skill
 ## Pool auto-update (CI + local)
 
 The pool site is refreshed unattended by `.claude/skills/pool-spy/scripts/pool_auto.sh`
-(prev-state gate → render via `pool_auto.py`, which reuses the skill's `pool_spy.py` →
-deploy `footbal/pool` to `gh-pages`). Each run first does a cheap snapshot and only does
-the full fetch + render + push when match state actually moved since the last deploy
-(avoids API spam and empty commits).
+(gate → render via `pool_auto.py`, which reuses the skill's `pool_spy.py` → deploy
+`footbal/pool` to `gh-pages`). The gate is two-tier: a cheap pre-check skips runs only
+when no match started in the last 24h AND match metadata is unchanged; otherwise it does
+the full fetch and compares a **full signature** (every member's picks + points, not just
+scores) and deploys only on a real change. The full signature is required because the
+things that change during a match — other members' picks being revealed after kickoff,
+and points being (re)computed — are invisible from your own predictions alone.
 
 **CI** — a `pool-auto` GitHub Actions workflow (`.github/workflows/pool-auto.yml`, repo
 root) calls that script every ~15 min, reading the `POOL_API_TOKEN` **repo secret**. The
