@@ -37,18 +37,21 @@ site). The prediction pipeline lives in the `wc-predict` skill
 
 The pool site is refreshed unattended by `.claude/skills/pool-spy/scripts/pool_auto.sh`
 (gate → render via `pool_auto.py`, which reuses the skill's `pool_spy.py` → deploy
-`footbal/pool` to `gh-pages`). The gate is two-tier: a cheap pre-check skips runs only
-when no match started in the last 24h AND match metadata is unchanged; otherwise it does
-the full fetch and compares a **full signature** (every member's picks + points, not just
-scores) and deploys only on a real change. The full signature is required because the
-things that change during a match — other members' picks being revealed after kickoff,
-and points being (re)computed — are invisible from your own predictions alone.
+`footbal/pool` to `gh-pages`). The gate is a single cheap **probe**: it samples a few
+members' picks/points across phases (`SAMPLE_N` in `pool_auto.py`) plus match state and
+hashes them; the full all-members collect + render runs only when that probe hash moved.
+Sampling *other* members (not just the token owner, whose own picks are always
+self-visible) is essential — the things that change mid-match (other members' picks
+revealed after kickoff, points (re)computed) are global events any sampled member
+reflects, but are invisible from your own predictions alone.
 
 **CI** — a `pool-auto` GitHub Actions workflow (`.github/workflows/pool-auto.yml`, repo
-root) calls that script every ~15 min, reading the `POOL_API_TOKEN` **repo secret**. The
-token is short-lived (~10h): when it expires the run **fails** (GitHub emails) — that's
-the signal to refresh it. Force a one-off run with
-`gh workflow run pool-auto.yml -f force=true`.
+root) calls that script on a Prague-aware schedule (cron is UTC): every 10 min during
+match hours (16:00–02:00 Prague) and hourly otherwise. It reads the `POOL_API_TOKEN`
+**repo secret**; the token is short-lived (~10h), so when it expires the run **fails**
+(GitHub emails) — the signal to refresh it. Force a one-off run with
+`gh workflow run pool-auto.yml -f force=true`. All times on the pool pages are rendered in
+Europe/Prague (`pool_spy.py`).
 
 ```bash
 gh secret set POOL_API_TOKEN --repo AlexMost/AI-work-place   # paste a fresh Bearer

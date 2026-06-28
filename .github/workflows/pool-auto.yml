@@ -2,7 +2,11 @@ name: pool-auto
 
 on:
   schedule:
-    - cron: "*/15 * * * *"      # GitHub cron min 5 min; runs may be delayed/skipped — fine
+    # cron is UTC; Prague is UTC+2 in summer (CEST — the WC window). Matches mostly start
+    # 18–19 Prague, so go dense in the evening/night and hourly the rest of the day.
+    # GitHub may delay/skip scheduled runs under load — these are best-effort.
+    - cron: "*/10 14-23 * * *"   # every 10 min, 16:00–01:59 Prague — match hours
+    - cron: "0 0-13 * * *"       # hourly, 02:00–15:59 Prague — quiet hours
   workflow_dispatch:
     inputs:
       force:

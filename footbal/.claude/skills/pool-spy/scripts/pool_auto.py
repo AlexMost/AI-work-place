@@ -2,23 +2,23 @@
 """Unattended pool-page updater for GitHub Actions — the automatic counterpart of
 `pool_spy.py`.
 
-The gate has two tiers so it is both cheap when idle and correct when matches are in play:
+Gate: a single cheap *probe* decides whether anything changed, and only then is the full
+fetch + render done. The probe samples a handful of participants (SAMPLE_N) across phases
+and hashes, per match, the match state (status/score/started) plus those members' visible
+picks and points. That is enough to catch everything that actually changes while a match
+plays — live score, other members' picks being revealed after kickoff, and points being
+(re)computed — without paying for the full ~all-members fetch on every run. The full
+collect (`pool_spy.collect` → `build_site`, reusing pool_spy.py) runs only when the probe
+signature moved.
 
-  * A cheap pre-check (one participant's predictions across phases, ~10 API calls) reads
-    match metadata. If NO match has started in the last 24h AND that metadata is identical
-    to the last deploy, the run skips — nothing can have changed.
-  * Otherwise it does the full fetch + render (`pool_spy.collect` / `build_site`, reusing
-    `pool_spy.py`) and compares a FULL signature that includes every member's predictions
-    and points. It deploys only when that signature actually moved.
+Sampling several members (not just the token owner, whose own picks are always
+self-visible) is what makes the probe able to see a reveal: those events are global —
+every member's picks for a match appear at once and all are scored together — so any
+sampled member reflects them.
 
-The full signature matters because the cheap metadata cannot see what does change during a
-match: other members' picks are revealed only after kickoff, and points are (re)computed
-later — both are invisible from your own predictions alone.
-
-It writes `changed=true|false` to the file given by --github-output (GitHub Actions reads
-$GITHUB_OUTPUT) so the workflow can gate the deploy step. On a stale token the underlying
-api_get exits non-zero, which fails the run — the intended signal to refresh the
-POOL_API_TOKEN secret. Pure stdlib; reuses pool_spy.py from the same directory.
+Writes `changed=true|false` to --github-output ($GITHUB_OUTPUT) so the workflow can gate
+the deploy. On a stale token the underlying api_get exits non-zero, failing the run — the
+signal to refresh the POOL_API_TOKEN secret. Pure stdlib; reuses pool_spy.py alongside it.
 """
 
 import argparse
@@ -26,12 +26,11 @@ import hashlib
 import json
 import os
 import sys
-import time
 from datetime import datetime
 
 import pool_spy
 
-ACTIVE_WINDOW_S = 24 * 3600   # a match started within this window may still be settling
+SAMPLE_N = 4   # participants sampled by the probe; >1 non-self is enough to see a reveal
 
 
 def _hash(obj):
@@ -40,57 +39,44 @@ def _hash(obj):
     ).hexdigest()
 
 
-def cheap_match_meta(token, pool_id):
-    """Match metadata only, fetched cheaply (one participant across phases, ~10 calls).
+def probe(token, pool_id, sample_n=SAMPLE_N):
+    """Cheap change-detection fetch: match metadata + a few members' picks/points.
 
-    Match metadata is identical regardless of whose predictions we read, so a single
-    participant is enough to learn each match's status/score/kickoff.
+    Returns (matches_meta, samples) where samples[uid][matchId] = [goals, points].
+    Cost ~ sample_n * phases calls, far below the full all-members collect.
     """
     phase_objs = pool_spy.fetch_phases(token)
     phase_ids = [ph.get("id") for ph in phase_objs
                  if ph.get("id") and (ph.get("matchCount") or 0) > 0] or [None]
     participants = pool_spy.fetch_participants(token, pool_id)
+    sharers = [p for p in participants if p.get("allowPredictionSharing", True)]
+    sampled = sharers[:sample_n]
+
     matches = {}
-    if participants:
-        uid = participants[0]["id"]
+    samples = {}
+    for p in sampled:
+        uid = p["id"]
         for phase_id in phase_ids:
             for entry in pool_spy.fetch_user_predictions(token, uid, pool_id, phase_id):
                 m = entry.get("match") or {}
                 mid = m.get("matchId")
-                if mid:
-                    matches[mid] = m
-    return matches
+                if not mid:
+                    continue
+                matches[mid] = m
+                pred = entry.get("prediction") or {}
+                h, a = pred.get("homeGoals"), pred.get("awayGoals")
+                goals = [h, a] if h is not None and a is not None else None
+                samples.setdefault(uid, {})[mid] = [goals, pred.get("pointsEarned")]
+    return matches, samples
 
 
-def meta_signature(matches):
-    payload = {mid: [m.get("status"), m.get("homeGoals"), m.get("awayGoals"),
-                     pool_spy.has_started(m)]
-               for mid, m in matches.items()}
-    return _hash(payload)
-
-
-def has_active_match(matches):
-    now = time.time()
-    for m in matches.values():
-        ts = m.get("timeStamp")
-        if ts and ts <= now and (now - ts) < ACTIVE_WINDOW_S:
-            return True
-    return False
-
-
-def full_signature(matches, preds):
-    """Everything that affects the rendered pages: match state + every member's pick and
-    points. Excludes volatile fields (timestamps) so a no-op run hashes identically."""
-    payload = {}
-    for mid, m in matches.items():
-        payload[mid] = {
-            "s": m.get("status"),
-            "h": m.get("homeGoals"),
-            "a": m.get("awayGoals"),
-            "st": pool_spy.has_started(m),
-            "p": {uid: [v.get("goals"), v.get("points")]
-                  for uid, v in preds.get(mid, {}).items()},
-        }
+def probe_signature(matches, samples):
+    payload = {
+        "m": {mid: [m.get("status"), m.get("homeGoals"), m.get("awayGoals"),
+                    pool_spy.has_started(m)]
+              for mid, m in matches.items()},
+        "s": samples,
+    }
     return _hash(payload)
 
 
@@ -132,37 +118,27 @@ def main():
         sys.exit("error: no token. Set POOL_API_TOKEN (env / .env) or pass --token.")
 
     prev = read_prev_state(args.prev_state)
+    matches, samples = probe(token, pool_id)
+    sig = probe_signature(matches, samples)
 
-    meta = cheap_match_meta(token, pool_id)
-    meta_sig = meta_signature(meta)
-    active = has_active_match(meta)
-
-    # cheap skip: nothing in play and match metadata identical to the last deploy
-    if not args.force and not active and meta_sig == prev.get("meta_signature"):
+    if not args.force and sig == prev.get("probe_signature"):
         write_output(args.github_output, False)
-        print(f"UNCHANGED (idle) · matches: {len(meta)} · no match started in the last 24h")
+        print(f"UNCHANGED · matches: {len(matches)} · probe {sig[:12]}")
         return
 
-    participants, matches, preds, phases = pool_spy.collect(token, pool_id)
-    full_sig = full_signature(matches, preds)
-
-    if not args.force and full_sig == prev.get("full_signature"):
-        write_output(args.github_output, False)
-        print(f"UNCHANGED · participants: {len(participants)} · signature {full_sig[:12]}")
-        return
-
-    rendered = pool_spy.build_site(participants, matches, preds, args.out,
+    participants, full_matches, preds, phases = pool_spy.collect(token, pool_id)
+    rendered = pool_spy.build_site(participants, full_matches, preds, args.out,
                                    show_all=False, only_match=None, phases=phases)
 
     os.makedirs(args.out, exist_ok=True)
     with open(os.path.join(args.out, ".state.json"), "w", encoding="utf-8") as f:
-        json.dump({"full_signature": full_sig, "meta_signature": meta_sig,
+        json.dump({"probe_signature": sig,
                    "generated_at": datetime.now().isoformat(timespec="seconds")},
                   f, ensure_ascii=False, indent=2)
 
     write_output(args.github_output, True)
     print(f"CHANGED · participants: {len(participants)} · matches rendered: {len(rendered)}"
-          f" · signature {full_sig[:12]}")
+          f" · probe {sig[:12]}")
 
 
 if __name__ == "__main__":

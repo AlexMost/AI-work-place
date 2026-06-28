@@ -24,7 +24,14 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+try:
+    from zoneinfo import ZoneInfo
+    PRAGUE = ZoneInfo("Europe/Prague")
+except Exception:
+    # tzdata unavailable: fall back to CEST (UTC+2), correct for the summer WC window
+    PRAGUE = timezone(timedelta(hours=2))
 
 API_BASE = "https://footballpool-api-prd.azurewebsites.net"
 DEFAULT_POOL_ID = "5211d7bd-4040-4826-8157-647bd5c99a6a"
@@ -198,8 +205,10 @@ def fmt_date(m):
     if not sd:
         return ""
     try:
-        dt = datetime.fromisoformat(sd.replace("Z", ""))
-        return dt.strftime("%d.%m %H:%M")
+        dt = datetime.fromisoformat(sd.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(PRAGUE).strftime("%d.%m %H:%M")
     except ValueError:
         return sd
 
@@ -414,7 +423,7 @@ def render_index(groups, generated_at):
        матч, щоб побачити прогнози всіх учасників.</p>
   </header>
 {body}
-  <p class="text-xs text-slate-400 mt-8">оновлено {esc(generated_at)}</p>
+  <p class="text-xs text-slate-400 mt-8">оновлено {esc(generated_at)} · час за Прагою</p>
 """ + FOOT
 
 
@@ -598,7 +607,7 @@ STANDINGS_TEMPLATE = r"""<!doctype html>
   <div>
     <a class="back" href="index.html">&larr; усі матчі</a>
     <div class="title">Гонка пулу — хто кого обганяв</div>
-    <div class="sub">кумулятивні бали за матчі · оновлено __GENERATED__</div>
+    <div class="sub">кумулятивні бали за матчі · оновлено __GENERATED__ · час за Прагою</div>
   </div>
 </div>
 
@@ -1074,7 +1083,7 @@ def build_site(participants, matches, preds, out_dir, show_all, only_match, phas
             f.write(render_match(m, participants, pfm))
         rendered.append((m, len(pfm), fname))
 
-    generated_at = datetime.now().strftime("%d.%m.%Y %H:%M")
+    generated_at = datetime.now(PRAGUE).strftime("%d.%m.%Y %H:%M")
     with open(os.path.join(out_dir, "index.html"), "w", encoding="utf-8") as f:
         f.write(render_index(group_by_phase(rendered, phases), generated_at))
 
