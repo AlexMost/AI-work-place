@@ -800,6 +800,11 @@ requestAnimationFrame(frame);
   controls.enableDamping = true; controls.dampingFactor = 0.08;
   controls.autoRotate = false;
   controls.minDistance = 18; controls.maxDistance = 140;
+  // while the user is actively dragging (rotate/zoom/pan, incl. touch) we freeze the auto-follow
+  // below so it never fights the gesture — that fight is what made the view snap/zoom on mobile.
+  let userInteracting = false;
+  controls.addEventListener('start', () => { userInteracting = true; });
+  controls.addEventListener('end',   () => { userInteracting = false; });
 
   scene.add(new THREE.AmbientLight(0x9fb6d8, 1.6)); // floodlit-evening fill so the grass reads green
   const key = new THREE.PointLight(0x66ccff, 0.6, 0, 2); key.position.set(20,40,30); scene.add(key);
@@ -1044,10 +1049,13 @@ requestAnimationFrame(frame);
     }
     // keep the camera framing the moving pack
     const meanX = runners.length ? sumX/runners.length : TRACK_LEN/2;
-    controls.target.x += (meanX - controls.target.x)*0.05;
-    controls.target.y += (1.2 - controls.target.y)*0.05;
-    controls.target.z += (0 - controls.target.z)*0.05;
-    camera.position.x += (controls.target.x + CAM.dx - camera.position.x)*0.05; // pan with the pack
+    // follow the pack by PANNING — shift target and camera by the same delta — so the user's own
+    // rotation/zoom is preserved; skip entirely while they're dragging so the gesture isn't fought.
+    if (!userInteracting){
+      const dxPan = (meanX - controls.target.x) * 0.05;
+      controls.target.x += dxPan;
+      camera.position.x += dxPan;
+    }
     controls.update();
     composer.render();
   };
