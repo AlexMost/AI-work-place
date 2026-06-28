@@ -125,7 +125,7 @@
   <div>
     <a class="back" href="index.html">&larr; усі матчі</a>
     <div class="title">Гонка пулу — хто кого обганяв</div>
-    <div class="sub">кумулятивні бали за матчі · оновлено 28.06.2026 02:16</div>
+    <div class="sub">кумулятивні бали за матчі · оновлено 28.06.2026 02:39</div>
   </div>
 </div>
 
@@ -148,7 +148,7 @@
 <div class="hud" id="ctl">
   <button id="play" title="Програти">▶</button>
   <input id="scrub" type="range" min="0" max="0" step="0.001" value="0">
-  <button id="speed" title="Швидкість">1×</button>
+  <button id="speed" title="Швидкість">4×</button>
   <div id="stepno">0/0</div>
 </div>
 
@@ -178,7 +178,7 @@ const xOf = pts => (pts / MAXT) * TRACK_LEN;
 let cur = 0;        // integer step index we are heading toward
 let prog = 1;       // 0..1 interpolation from step cur-1 to cur
 let playing = false;
-const SPEEDS = [1, 2, 4, 0.5];
+const SPEEDS = [4, 2, 1, 0.5];
 let speedIdx = 0;
 const STEP_MS = 1400; // base duration per match at 1×
 
@@ -313,12 +313,55 @@ requestAnimationFrame(frame);
   controls.autoRotate = false;
   controls.minDistance = 18; controls.maxDistance = 140;
 
-  scene.add(new THREE.AmbientLight(0x335588, 1.2));
-  const key = new THREE.PointLight(0x66ccff, 0.8, 0, 2); key.position.set(20,40,30); scene.add(key);
+  scene.add(new THREE.AmbientLight(0x9fb6d8, 1.6)); // floodlit-evening fill so the grass reads green
+  const key = new THREE.PointLight(0x66ccff, 0.6, 0, 2); key.position.set(20,40,30); scene.add(key);
 
-  // track grid (XZ plane: X = points, Z = lanes)
-  const grid = new THREE.GridHelper(TRACK_LEN*2, 40, 0x2a3a6a, 0x16204a);
-  grid.position.set(TRACK_LEN/2, 0, 0); scene.add(grid);
+  // stadium pitch (XZ plane: X = points/track, Z = lanes) — green turf instead of an abstract grid
+  const FIELD_HALF = PLAYERS.length*LANE_GAP/2 + 3; // half-depth of the playing surface in Z
+  const FIELD_X0 = -6, FIELD_X1 = TRACK_LEN + 6;
+  const turf = new THREE.Mesh(
+    new THREE.PlaneGeometry(FIELD_X1 - FIELD_X0, FIELD_HALF*2),
+    new THREE.MeshBasicMaterial({color:0x0f7a37}));
+  turf.rotation.x = -Math.PI/2; turf.position.set((FIELD_X0+FIELD_X1)/2, -0.01, 0); scene.add(turf);
+  // mowing stripes along X — alternating shades read as a manicured pitch (no white line markings)
+  function pitchStripe(x0, x1, shade){
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(x1-x0, FIELD_HALF*2),
+      new THREE.MeshBasicMaterial({color:shade, transparent:true, opacity:0.18, depthWrite:false}));
+    m.rotation.x = -Math.PI/2; m.position.set((x0+x1)/2, 0.0, 0); scene.add(m);
+  }
+  const STRIPES = 16, sw0 = (FIELD_X1-FIELD_X0)/STRIPES;
+  for (let i=0;i<STRIPES;i++){ pitchStripe(FIELD_X0+i*sw0, FIELD_X0+(i+1)*sw0, i%2 ? 0x1c9a4a : 0x0a5f2a); }
+
+  // raked seating tiers — boxes stepping up and outward. The camera is fixed on the +Z
+  // touchline, so the far side (-Z) gets the tall main grandstand and the near side only
+  // low boards, otherwise the near stand would wall off the runners.
+  function stand(side, tiers, hScale){ // side = +1 / -1 along Z
+    const baseZ = FIELD_HALF + 2.5;
+    for (let i=0;i<tiers;i++){
+      const h = (2 + i*1.6)*hScale;
+      const t = new THREE.Mesh(
+        new THREE.BoxGeometry(TRACK_LEN*1.15, h, 3),
+        new THREE.MeshBasicMaterial({color: i%2 ? 0x1a2748 : 0x223255}));
+      t.position.set(TRACK_LEN/2, h/2 + i*1.2*hScale, side*(baseZ + i*2.6));
+      scene.add(t);
+    }
+  }
+  stand(-1, 4, 1.0);  // main grandstand across the pitch (far side only — the near side is
+                      // left open so the camera's view of the runners is never walled off)
+
+  // floodlight pylons at the four corners — glowing heads + point lights for a night-match feel
+  function pylon(x, z){
+    const mast = new THREE.Mesh(new THREE.BoxGeometry(0.5, 26, 0.5),
+      new THREE.MeshBasicMaterial({color:0x2a3a6a}));
+    mast.position.set(x, 13, z); scene.add(mast);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.0, 0.5),
+      new THREE.MeshBasicMaterial({color:0xcfe8ff})); // bright -> caught by bloom
+    head.position.set(x, 26.2, z); scene.add(head);
+    const lamp = new THREE.PointLight(0xfff2d8, 0.45, 140, 2); lamp.position.set(x, 24, z*0.7); scene.add(lamp);
+  }
+  const PZ = FIELD_HALF + 9;
+  pylon(2, PZ); pylon(2, -PZ); pylon(TRACK_LEN-2, PZ); pylon(TRACK_LEN-2, -PZ);
+
   // start + finish gates
   function gate(x, color){
     const g = new THREE.Mesh(
@@ -406,6 +449,30 @@ requestAnimationFrame(frame);
     return {p, rn, trail, positions, filled:0, phase:i*0.7};
   });
 
+  // football dribbled in front of whoever currently leads the race — a white sphere with
+  // black pentagon patches at the 12 icosahedron vertices (the classic Telstar look).
+  const BALL_R = 0.45, BALL_AHEAD = 1.4;
+  function makeBall(){
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 24, 24),
+      new THREE.MeshBasicMaterial({color:0xffffff})));
+    const PHI = 1.618033988749895;
+    const verts = [[0,1,PHI],[0,1,-PHI],[0,-1,PHI],[0,-1,-PHI],
+      [1,PHI,0],[1,-PHI,0],[-1,PHI,0],[-1,-PHI,0],
+      [PHI,0,1],[PHI,0,-1],[-PHI,0,1],[-PHI,0,-1]];
+    const black = new THREE.MeshBasicMaterial({color:0x10131a, side:THREE.DoubleSide});
+    for (const v of verts){
+      const dir = new THREE.Vector3(v[0],v[1],v[2]).normalize();
+      const patch = new THREE.Mesh(new THREE.CircleGeometry(BALL_R*0.46, 5), black);
+      patch.position.copy(dir.clone().multiplyScalar(BALL_R*0.999));
+      patch.lookAt(dir.clone().multiplyScalar(BALL_R*4)); // lie tangent, facing outward
+      g.add(patch);
+    }
+    return g;
+  }
+  const ball = makeBall(); ball.visible = false; scene.add(ball);
+  let ballX = null, ballZ = 0; // ball's own glided position (lags the leader -> reads as a pass)
+
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.55, 0.45, 0.2);
@@ -432,6 +499,21 @@ requestAnimationFrame(frame);
       else { arr.copyWithin(0, 3); const k=(TRAIL-1)*3; arr[k]=x; arr[k+1]=yy; arr[k+2]=z; }
       r.trail.geometry.setDrawRange(0, r.filled);
       r.trail.geometry.attributes.position.needsUpdate = true;
+    }
+    // football glides to a spot just ahead of the current leader; on a lead change the target
+    // jumps to the new lane and the ball rolls across to it — reads as a pass between players.
+    if (runners.length){
+      let leadId = null, leadX = -Infinity;
+      for (const r of runners){ const x = xOf(t[r.p.id]||0); if (x > leadX){ leadX = x; leadId = r.p.id; } }
+      const tx = leadX + BALL_AHEAD, tz = laneZ(laneIndex[leadId]);
+      if (ballX === null){ ballX = tx; ballZ = tz; } // first frame: no roll-in
+      const px = ballX, pz = ballZ;
+      ballX += (tx - ballX) * 0.08; ballZ += (tz - ballZ) * 0.08; // glide toward the leader
+      const bbob = Math.abs(Math.sin(runPhase*1.4)) * 0.10;
+      ball.visible = true;
+      ball.position.set(ballX, BALL_R + bbob, ballZ);
+      const dx = ballX - px, dz = ballZ - pz, dist = Math.hypot(dx, dz);
+      if (dist > 1e-4) ball.rotateOnWorldAxis(new THREE.Vector3(dz,0,-dx).normalize(), dist/BALL_R); // roll
     }
     // keep the camera framing the moving pack
     const meanX = runners.length ? sumX/runners.length : TRACK_LEN/2;
