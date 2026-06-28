@@ -21,11 +21,11 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4          # persist-credentials=true → token in remote
+      - uses: actions/checkout@v5          # persist-credentials=true → token in remote
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
 
       # gh-pages commits in its own cache clone, so the identity must be global
       - name: Configure git identity
