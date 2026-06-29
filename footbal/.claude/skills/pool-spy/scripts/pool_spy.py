@@ -384,18 +384,26 @@ def _index_row(m, n_pred, fname):
     label, label_cls = status_badge(m)
     act = actual_score(m)
     score_txt = f'{act[0]}:{act[1]}' if act else "—"
+    date_part, _, time_part = fmt_date(m).partition(" ")
     return f"""
   <a href="{esc(fname)}" class="block bg-white rounded-xl shadow-sm hover:shadow-md
-     ring-1 ring-slate-200 transition px-5 py-4 flex items-center gap-4">
-    <div class="text-xs text-slate-400 w-20 shrink-0">{esc(fmt_date(m))}</div>
+     ring-1 ring-slate-200 transition px-4 py-3 flex items-center gap-3">
+    <div class="w-11 shrink-0 leading-tight">
+      <div class="text-xs text-slate-400">{esc(date_part)}</div>
+      <div class="text-sm font-semibold text-slate-600 tabular-nums">{esc(time_part)}</div>
+    </div>
     <div class="flex-1 min-w-0">
-      <div class="font-semibold tracking-wide">{esc(match_label(m))}</div>
+      <div class="font-semibold tracking-wide whitespace-nowrap">{esc(match_label(m))}</div>
       <div class="text-sm text-slate-500 truncate">{esc(m.get('homeTeamName',''))} —
         {esc(m.get('awayTeamName',''))}</div>
     </div>
-    <div class="text-lg font-bold tabular-nums w-12 text-center">{esc(score_txt)}</div>
-    <span class="text-[11px] px-2 py-0.5 rounded-full {label_cls}">{esc(label)}</span>
-    <div class="text-xs text-slate-400 w-16 text-right shrink-0">{n_pred} прог.</div>
+    <div class="shrink-0 text-right leading-tight">
+      <div class="text-lg font-bold tabular-nums">{esc(score_txt)}</div>
+      <div class="flex items-center justify-end gap-1.5 mt-0.5">
+        <span class="text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap {label_cls}">{esc(label)}</span>
+        <span class="text-[11px] text-slate-400 whitespace-nowrap">{n_pred} прог.</span>
+      </div>
+    </div>
   </a>"""
 
 
