@@ -2,19 +2,20 @@
 """Unattended pool-page updater for GitHub Actions — the automatic counterpart of
 `pool_spy.py`.
 
-Gate: a single cheap *probe* decides whether anything changed, and only then is the full
-fetch + render done. The probe samples a handful of participants (SAMPLE_N) across phases
-and hashes, per match, the match state (status/score/started) plus those members' visible
-picks and points. That is enough to catch everything that actually changes while a match
-plays — live score, other members' picks being revealed after kickoff, and points being
-(re)computed — without paying for the full ~all-members fetch on every run. The full
-collect (`pool_spy.collect` → `build_site`, reusing pool_spy.py) runs only when the probe
-signature moved.
+Gate: one full `pool_spy.collect` per run produces a signature of the entire visible pool
+state — per match (status / score / started) and per (match, member) the visible pick and
+points. The expensive part (build_site writing every match page + the gh-pages deploy)
+runs only when that signature moved since the last deploy (`.state.json`).
 
-Sampling several members (not just the token owner, whose own picks are always
-self-visible) is what makes the probe able to see a reveal: those events are global —
-every member's picks for a match appear at once and all are scored together — so any
-sampled member reflects them.
+Why hash the *full* collected state rather than a cheap sample of a few members: the pool
+has only a handful of members, so the per-member fetch a sample would skip is nearly free,
+while sampling a fixed subset is blind to changes that land on matches those members did
+not drive — exactly the "scores appeared mid-match but the gate stayed UNCHANGED" failure.
+The events that must trigger a redeploy are global but land per match/member: other
+members' picks revealed after kickoff (a pick goes from absent → present in `preds`),
+points (re)computed, and the final score landing. Hashing the whole collected state catches
+all of them with no blind spot, and the collect we hash is the same one we render from —
+no second fetch.
 
 Writes `changed=true|false` to --github-output ($GITHUB_OUTPUT) so the workflow can gate
 the deploy. On a stale token the underlying api_get exits non-zero, failing the run — the
@@ -30,8 +31,6 @@ from datetime import datetime
 
 import pool_spy
 
-SAMPLE_N = 4   # participants sampled by the probe; >1 non-self is enough to see a reveal
-
 
 def _hash(obj):
     return hashlib.sha256(
@@ -39,43 +38,19 @@ def _hash(obj):
     ).hexdigest()
 
 
-def probe(token, pool_id, sample_n=SAMPLE_N):
-    """Cheap change-detection fetch: match metadata + a few members' picks/points.
+def state_signature(matches, preds):
+    """Hash of the full visible pool state — moves on any change that should redeploy.
 
-    Returns (matches_meta, samples) where samples[uid][matchId] = [goals, points].
-    Cost ~ sample_n * phases calls, far below the full all-members collect.
+    `preds[mid][uid] = {"goals": (h, a), "points": int|None}` only holds *visible* picks,
+    so a reveal grows the per-match dict; `matches` carries status/score/started.
     """
-    phase_objs = pool_spy.fetch_phases(token)
-    phase_ids = [ph.get("id") for ph in phase_objs
-                 if ph.get("id") and (ph.get("matchCount") or 0) > 0] or [None]
-    participants = pool_spy.fetch_participants(token, pool_id)
-    sharers = [p for p in participants if p.get("allowPredictionSharing", True)]
-    sampled = sharers[:sample_n]
-
-    matches = {}
-    samples = {}
-    for p in sampled:
-        uid = p["id"]
-        for phase_id in phase_ids:
-            for entry in pool_spy.fetch_user_predictions(token, uid, pool_id, phase_id):
-                m = entry.get("match") or {}
-                mid = m.get("matchId")
-                if not mid:
-                    continue
-                matches[mid] = m
-                pred = entry.get("prediction") or {}
-                h, a = pred.get("homeGoals"), pred.get("awayGoals")
-                goals = [h, a] if h is not None and a is not None else None
-                samples.setdefault(uid, {})[mid] = [goals, pred.get("pointsEarned")]
-    return matches, samples
-
-
-def probe_signature(matches, samples):
     payload = {
         "m": {mid: [m.get("status"), m.get("homeGoals"), m.get("awayGoals"),
                     pool_spy.has_started(m)]
-              for mid, m in matches.items()},
-        "s": samples,
+              for mid, m in sorted(matches.items())},
+        "p": {mid: {uid: [e["goals"][0], e["goals"][1], e["points"]]
+                    for uid, e in sorted(users.items())}
+              for mid, users in sorted(preds.items())},
     }
     return _hash(payload)
 
@@ -118,16 +93,15 @@ def main():
         sys.exit("error: no token. Set POOL_API_TOKEN (env / .env) or pass --token.")
 
     prev = read_prev_state(args.prev_state)
-    matches, samples = probe(token, pool_id)
-    sig = probe_signature(matches, samples)
+    participants, matches, preds, phases = pool_spy.collect(token, pool_id)
+    sig = state_signature(matches, preds)
 
     if not args.force and sig == prev.get("probe_signature"):
         write_output(args.github_output, False)
-        print(f"UNCHANGED · matches: {len(matches)} · probe {sig[:12]}")
+        print(f"UNCHANGED · matches: {len(matches)} · sig {sig[:12]}")
         return
 
-    participants, full_matches, preds, phases = pool_spy.collect(token, pool_id)
-    rendered = pool_spy.build_site(participants, full_matches, preds, args.out,
+    rendered = pool_spy.build_site(participants, matches, preds, args.out,
                                    show_all=False, only_match=None, phases=phases)
 
     os.makedirs(args.out, exist_ok=True)
@@ -138,7 +112,7 @@ def main():
 
     write_output(args.github_output, True)
     print(f"CHANGED · participants: {len(participants)} · matches rendered: {len(rendered)}"
-          f" · probe {sig[:12]}")
+          f" · sig {sig[:12]}")
 
 
 if __name__ == "__main__":

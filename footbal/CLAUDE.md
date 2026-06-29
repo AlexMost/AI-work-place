@@ -37,13 +37,16 @@ site). The prediction pipeline lives in the `wc-predict` skill
 
 The pool site is refreshed unattended by `.claude/skills/pool-spy/scripts/pool_auto.sh`
 (gate → render via `pool_auto.py`, which reuses the skill's `pool_spy.py` → deploy
-`footbal/pool` to `gh-pages`). The gate is a single cheap **probe**: it samples a few
-members' picks/points across phases (`SAMPLE_N` in `pool_auto.py`) plus match state and
-hashes them; the full all-members collect + render runs only when that probe hash moved.
-Sampling *other* members (not just the token owner, whose own picks are always
-self-visible) is essential — the things that change mid-match (other members' picks
-revealed after kickoff, points (re)computed) are global events any sampled member
-reflects, but are invisible from your own predictions alone.
+`footbal/pool` to `gh-pages`). The gate hashes the **full collected state** once per run
+(`state_signature` in `pool_auto.py`: every match's status/score/started plus every
+visible pick and its points) and deploys only when that hash moved since the last deploy
+(`.state.json`). The expensive part it gates is `build_site` + the gh-pages push, not the
+fetch — with only ~11 members the collect is cheap, and hashing the whole state has no
+blind spot. This matters because the mid-match events that must trigger a redeploy land
+per match/member — other members' picks revealed after kickoff (a pick appears in the
+state), points (re)computed, the final score landing — and an earlier design that sampled
+only a fixed few members missed any such change on a match those members did not drive
+(the "scores appeared mid-match but the gate stayed UNCHANGED" bug).
 
 **CI** — a `pool-auto` GitHub Actions workflow (`.github/workflows/pool-auto.yml`, repo
 root) calls that script on a Prague-aware schedule (cron is UTC): every 10 min during
