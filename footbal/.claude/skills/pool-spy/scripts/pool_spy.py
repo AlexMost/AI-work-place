@@ -201,13 +201,18 @@ def match_label(m):
 
 
 def fmt_date(m):
+    # timeStamp is the authoritative UTC epoch (same field has_started/sorting use);
+    # startDate is naive *Prague-local* — parsing it as UTC double-shifts by +2h.
+    ts = m.get("timeStamp")
+    if ts:
+        return datetime.fromtimestamp(ts, tz=timezone.utc).astimezone(PRAGUE).strftime("%d.%m %H:%M")
     sd = m.get("startDate")
     if not sd:
         return ""
     try:
         dt = datetime.fromisoformat(sd.replace("Z", "+00:00"))
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
+            dt = dt.replace(tzinfo=PRAGUE)
         return dt.astimezone(PRAGUE).strftime("%d.%m %H:%M")
     except ValueError:
         return sd
