@@ -243,6 +243,61 @@ def esc(s):
     return html.escape(str(s))
 
 
+# --- country flags (flagcdn PNGs) ------------------------------------------
+
+# Full team name (as the API returns it) -> ISO 3166-1 alpha-2 (lowercase), the
+# code flagcdn expects. England/Scotland use flagcdn's GB-subdivision flags.
+# Keys are matched case-insensitively with "&"<->"and" normalised (see flag_iso).
+TEAM_ISO = {
+    "algeria": "dz", "argentina": "ar", "australia": "au", "austria": "at",
+    "belgium": "be", "bosnia & herzegovina": "ba", "brazil": "br", "canada": "ca",
+    "cape verde islands": "cv", "colombia": "co", "congo dr": "cd", "croatia": "hr",
+    "curacao": "cw", "czech republic": "cz", "ecuador": "ec", "egypt": "eg",
+    "england": "gb-eng", "france": "fr", "germany": "de", "ghana": "gh",
+    "haiti": "ht", "iran": "ir", "iraq": "iq", "ivory coast": "ci", "japan": "jp",
+    "jordan": "jo", "mexico": "mx", "morocco": "ma", "netherlands": "nl",
+    "new zealand": "nz", "norway": "no", "panama": "pa", "paraguay": "py",
+    "portugal": "pt", "qatar": "qa", "saudi arabia": "sa", "scotland": "gb-sct",
+    "senegal": "sn", "south africa": "za", "south korea": "kr", "spain": "es",
+    "sweden": "se", "switzerland": "ch", "tunisia": "tn", "turkiye": "tr",
+    "usa": "us", "uruguay": "uy", "uzbekistan": "uz",
+    # alias spellings the API/sources sometimes use
+    "bosnia and herzegovina": "ba", "bosnia-herzegovina": "ba", "turkey": "tr",
+    "united states": "us", "korea republic": "kr", "republic of korea": "kr",
+    "cape verde": "cv", "dr congo": "cd", "congo dr.": "cd", "cote d'ivoire": "ci",
+    "wales": "gb-wls", "northern ireland": "gb-nir", "czechia": "cz",
+}
+
+_FLAG_WARNED = set()
+
+
+def _flag_key(name):
+    # Lower-case and drop the two accents that appear in the field (Türkiye, Curaçao).
+    return (name or "").strip().lower().replace("ü", "u").replace("ç", "c")
+
+
+def flag_iso(name):
+    if not name:
+        return None
+    k = _flag_key(name)
+    iso = TEAM_ISO.get(k) or TEAM_ISO.get(k.replace(" and ", " & "))
+    if iso is None and k not in _FLAG_WARNED:
+        _FLAG_WARNED.add(k)
+        print(f"[pool-spy] no flag mapping for team {name!r}", file=sys.stderr)
+    return iso
+
+
+def flag_img(name, cls=""):
+    """flagcdn <img> for a team, or '' when the name isn't mapped (graceful)."""
+    iso = flag_iso(name)
+    if not iso:
+        return ""
+    return (f'<img src="https://flagcdn.com/w40/{iso}.png" '
+            f'srcset="https://flagcdn.com/w80/{iso}.png 2x" '
+            f'width="40" height="30" loading="lazy" alt="" '
+            f'class="{cls}">')
+
+
 # --- standings timeline ----------------------------------------------------
 
 # Neon palette for the 3D race runners (cyan/magenta family, like the 2048 game).
@@ -294,6 +349,8 @@ def build_timeline(participants, matches, preds, phases=None):
             "label": match_label(m),
             "home": m.get("homeTeamName", ""),
             "away": m.get("awayTeamName", ""),
+            "homeIso": flag_iso(m.get("homeTeamName", "")) or "",
+            "awayIso": flag_iso(m.get("awayTeamName", "")) or "",
             "date": fmt_date(m),
             "score": f"{act[0]}:{act[1]}" if act else "",
             "totals": totals,
@@ -393,9 +450,18 @@ def _index_row(m, n_pred, fname):
       <div class="text-sm font-semibold text-slate-600 tabular-nums">{esc(time_part)}</div>
     </div>
     <div class="flex-1 min-w-0">
-      <div class="font-semibold tracking-wide whitespace-nowrap">{esc(match_label(m))}</div>
-      <div class="text-sm text-slate-500 truncate">{esc(m.get('homeTeamName',''))} —
-        {esc(m.get('awayTeamName',''))}</div>
+      <div class="hidden sm:block">
+        <div class="font-semibold tracking-wide whitespace-nowrap">{esc(match_label(m))}</div>
+        <div class="text-sm text-slate-500 truncate">{flag_img(m.get('homeTeamName',''), 'inline-block w-5 h-auto rounded-sm align-[-2px] mr-1')}{esc(m.get('homeTeamName',''))} — {flag_img(m.get('awayTeamName',''), 'inline-block w-5 h-auto rounded-sm align-[-2px] mr-1')}{esc(m.get('awayTeamName',''))}</div>
+      </div>
+      <div class="sm:hidden inline-grid grid-cols-[1fr_auto_1fr] gap-x-2 text-center items-center">
+        <div class="font-semibold tracking-wide">{esc(code(m, 'home'))}</div>
+        <div class="font-semibold tracking-wide text-slate-400">–</div>
+        <div class="font-semibold tracking-wide">{esc(code(m, 'away'))}</div>
+        <div class="mt-0.5">{flag_img(m.get('homeTeamName',''), 'inline-block w-5 h-auto rounded-sm')}</div>
+        <div class="text-slate-400">–</div>
+        <div class="mt-0.5">{flag_img(m.get('awayTeamName',''), 'inline-block w-5 h-auto rounded-sm')}</div>
+      </div>
     </div>
     <div class="shrink-0 text-right leading-tight">
       <div class="text-lg font-bold tabular-nums">{esc(score_txt)}</div>
@@ -473,8 +539,10 @@ def render_match(m, participants, preds_for_match):
   <header class="mt-3 mb-5 text-center">
     <div class="text-xs text-slate-400">{esc(fmt_date(m))} ·
        <span class="px-2 py-0.5 rounded-full {label_cls}">{esc(label)}</span></div>
-    <h1 class="text-2xl font-bold mt-2">{esc(m.get('homeTeamName',''))} —
-       {esc(m.get('awayTeamName',''))}</h1>
+    <h1 class="text-2xl font-bold mt-2 flex items-center justify-center gap-2 flex-wrap">
+       {flag_img(m.get('homeTeamName',''), 'inline-block w-7 h-auto rounded-sm shadow-sm')}{esc(m.get('homeTeamName',''))}
+       <span class="text-slate-400">—</span>
+       {flag_img(m.get('awayTeamName',''), 'inline-block w-7 h-auto rounded-sm shadow-sm')}{esc(m.get('awayTeamName',''))}</h1>
     {score_block}
   </header>
   <div class="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden">
@@ -554,6 +622,7 @@ STANDINGS_TEMPLATE = r"""<!doctype html>
   .np-label{font-weight:700; font-size:clamp(15px,2.4vw,20px); letter-spacing:.03em}
   .np-score{font-variant-numeric:tabular-nums; font-weight:700; color:var(--cyan)}
   .np-teams{font-size:12px; color:var(--text-dim)}
+  .np-flag{display:inline-block; width:16px; height:auto; border-radius:2px; vertical-align:-2px; margin-right:4px; box-shadow:0 0 0 1px rgba(255,255,255,.15)}
   .np-date{font-size:12px; color:var(--text-dim)}
   /* leaderboard */
   #board{
@@ -722,7 +791,12 @@ function renderHUD(){
   npStep.textContent = `матч ${cur+1}/${NSTEP}`;
   npLabel.textContent = s.label;
   npScore.textContent = s.score;
-  npTeams.textContent = (s.home && s.away) ? `${s.home} — ${s.away}` : '';
+  if (s.home && s.away){
+    const fl = (iso) => iso ? `<img class="np-flag" src="https://flagcdn.com/w40/${iso}.png" srcset="https://flagcdn.com/w80/${iso}.png 2x" alt="" loading="lazy">` : '';
+    npTeams.innerHTML = `${fl(s.homeIso)}${s.home} — ${fl(s.awayIso)}${s.away}`;
+  } else {
+    npTeams.textContent = '';
+  }
   npDate.textContent = s.date;
   elStep.textContent = `${cur+1}/${NSTEP}`;
   if (cur !== shownStep){            // flash the banner each time a new match comes up
