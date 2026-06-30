@@ -49,8 +49,8 @@ only a fixed few members missed any such change on a match those members did not
 (the "scores appeared mid-match but the gate stayed UNCHANGED" bug).
 
 **CI** — a `pool-auto` GitHub Actions workflow (`.github/workflows/pool-auto.yml`, repo
-root) calls that script on a Prague-aware schedule (cron is UTC): every 10 min during
-match hours (18:00–05:00 Prague) and hourly otherwise. It reads the `POOL_API_TOKEN`
+root) calls that script every 15 minutes around the clock (cron `5,20,35,50 * * * *` —
+offset to minute 5 to dodge the top-of-hour runner load spike). It reads the `POOL_API_TOKEN`
 **repo secret**; the token is short-lived (~10h), so when it expires the run **fails**
 (GitHub emails) — the signal to refresh it. Force a one-off run with
 `gh workflow run pool-auto.yml -f force=true`. All times on the pool pages are rendered in
