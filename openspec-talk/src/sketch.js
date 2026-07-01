@@ -109,9 +109,22 @@ function decorateOne(el) {
   el.insertBefore(svg, el.firstChild);
   el.__skSvg = svg;
   if (kind === 'highlight') { svg.style.zIndex = '0'; el.style.zIndex = '1'; }
-  // lift real content above the overlay
-  Array.prototype.forEach.call(el.children, (c) => {
-    if (c !== svg && getComputedStyle(c).position === 'static') { c.style.position = 'relative'; c.style.zIndex = '1'; }
+  // lift real content above the overlay — wrap bare text nodes (e.g. chip labels),
+  // position element children; otherwise the fill/strike paints over the text.
+  Array.prototype.slice.call(el.childNodes).forEach((c) => {
+    if (c === svg) return;
+    if (c.nodeType === 3) {
+      if (!c.textContent.trim()) return;
+      const span = document.createElement('span');
+      span.className = 'sk-text';
+      span.style.position = 'relative';
+      span.style.zIndex = '1';
+      el.replaceChild(span, c);
+      span.appendChild(c);
+    } else if (getComputedStyle(c).position === 'static') {
+      c.style.position = 'relative';
+      c.style.zIndex = '1';
+    }
   });
 }
 

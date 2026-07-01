@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Шпаргалка — OpenSpec internals</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<span class="kicker">OpenSpec internals · Шпаргалка</span>
+<h1>OpenSpec CLI під капотом</h1>
+<p class="subtitle">Сирці: <a href="https://github.com/Fission-AI/OpenSpec">Fission-AI/OpenSpec</a> v1.5.0 · оновлено 2026-07-01</p>
+
+<h2>Глосарій</h2>
+<table>
+<tr><th>Термін</th><th>Значення</th></tr>
+<tr><td><strong>схема (schema)</strong></td><td>YAML-визначення workflow: артефакти + DAG залежностей + інструкції + templates + блок <code>apply</code>. Built-in: <code>spec-driven</code>.</td></tr>
+<tr><td><strong>артефакт</strong></td><td>Вузол DAG: <code>{id, generates, description, template, instruction, requires}</code>. Завершеність = існування файлів за патерном <code>generates</code>.</td></tr>
+<tr><td><strong>зміна (change)</strong></td><td>Тека <code>openspec/changes/&lt;name&gt;/</code> з артефактами + метадатою <code>.openspec.yaml</code>.</td></tr>
+<tr><td><strong>apply</strong></td><td>Фаза імплементації. НЕ артефакт: окремий блок схеми <code>{requires, tracks, instruction}</code>.</td></tr>
+<tr><td><strong>tracks</strong></td><td>Файл прогресу apply (зазвичай <code>tasks.md</code>), парситься чекбокс-regex-ом.</td></tr>
+<tr><td><strong>prompt compiler</strong></td><td>Неформальна назва <code>openspec instructions</code>: детермінована склейка schema + template + config у промпт.</td></tr>
+</table>
+
+<h2>Дві YAML-и</h2>
+<table>
+<tr><th>Файл</th><th>Роль</th><th>Ключі</th></tr>
+<tr><td><code>openspec/config.yaml</code></td><td>проєктний конфіг</td><td><code>schema</code> (default для нових змін), <code>context</code> (глобальний, ≤50KB, → <code>&lt;project_context&gt;</code>), <code>rules</code> (map artifact→[], → <code>&lt;rules&gt;</code>), <code>references</code>, <code>store</code></td></tr>
+<tr><td><code>changes/&lt;n&gt;/.openspec.yaml</code></td><td>метадата зміни</td><td>schema (пін per-change), created, goal, affected_areas</td></tr>
+</table>
+
+<h2>Резолвінг схеми (перший збіг перемагає)</h2>
+<pre><code>1. &lt;repo&gt;/openspec/schemas/&lt;name&gt;/     <span class="c">project — так ставиться superpowers-bridge (cp -r)</span>
+2. $XDG_DATA_HOME/openspec/schemas/     <span class="c">user override</span>
+3. &lt;npm-пакет&gt;/schemas/&lt;name&gt;/          <span class="c">built-in</span>
+<span class="c">→ діагностика: openspec schema which &lt;name&gt; · openspec templates · openspec schemas --json</span></code></pre>
+
+<h2>Пайплайн instructions</h2>
+<pre><code>instructionsCommand()      <span class="c">commands/workflow/instructions.ts:100</span>
+→ loadChangeContext()      <span class="c">instruction-loader.ts:221 (схема з .openspec.yaml, fallback spec-driven)</span>
+→ generateInstructions()   <span class="c">instruction-loader.ts:273 (loadTemplate :173, readProjectConfig)</span>
+→ printInstructionsText()  <span class="c">instructions.ts:172 (порядок секцій нижче)</span></code></pre>
+
+<h2>Секції промпта — порядок і джерела</h2>
+<table>
+<tr><th>#</th><th>Секція</th><th>Джерело</th></tr>
+<tr><td>1</td><td><code>&lt;artifact id change schema&gt;</code></td><td>CLI-аргументи + метадата</td></tr>
+<tr><td>2</td><td><code>&lt;warning&gt;</code> <span class="muted">(якщо blocked)</span></td><td>граф</td></tr>
+<tr><td>3</td><td><code>&lt;task&gt;</code></td><td>schema: description</td></tr>
+<tr><td>4</td><td><code>&lt;project_context&gt;</code></td><td>config: context</td></tr>
+<tr><td>5</td><td>referenced stores</td><td>config: references</td></tr>
+<tr><td>6</td><td><code>&lt;rules&gt;</code></td><td>config: rules[artifactId]</td></tr>
+<tr><td>7</td><td><code>&lt;dependencies&gt;</code></td><td>граф + fs (done/missing)</td></tr>
+<tr><td>8</td><td><code>&lt;output&gt;</code></td><td>schema: generates → шлях</td></tr>
+<tr><td>9</td><td><code>&lt;instruction&gt;</code></td><td>schema: instruction</td></tr>
+<tr><td>10</td><td><code>&lt;template&gt;</code></td><td>файл templates/… зі схеми</td></tr>
+<tr><td>11</td><td><code>&lt;success_criteria&gt;</code></td><td>плейсхолдер (захардкоджено)</td></tr>
+<tr><td>12</td><td><code>&lt;unlocks&gt;</code></td><td>граф</td></tr>
+</table>
+
+<h2>Стан</h2>
+<ul>
+<li>Стан = файлова система. <span class="src">detectCompleted (state.ts:14)</span> → <span class="src">artifactOutputExists (outputs.ts:40)</span> → fast-glob по <code>generates</code>.</li>
+<li>blocked = будь-який <code>requires</code> не завершений.</li>
+<li>Прогрес apply: regex <code>/^[-*]\s*\[([ xX])\]\s*(.+)\s*$/</code> <span class="src">(instructions.ts:305)</span> — тому тільки строгий формат <code>- [ ]</code>.</li>
+</ul>
+
+<h2>Apply: правда про інжекцію</h2>
+<div class="callout key">
+<p><span class="src">generateApplyInstructions (instructions.ts:331-433)</span> читає <strong>лише</strong> <code>schema.apply</code>.
+<code>readProjectConfig()</code> НЕ викликається → <code>context:</code>/<code>rules:</code> з config.yaml в apply-промпт не потрапляють.
+Прямий вхід у apply один — <code>apply.instruction</code> схеми. Непрямий — через контент артефактів
+(напр. <code>rules.tasks</code> формує tasks.md, який apply читає).</p>
+</div>
+
+<h2>Куди класти зміну поведінки (drill)</h2>
+<table>
+<tr><th>Хочу…</th><th>Шар</th></tr>
+<tr><td>додати проєктний факт у всі артефакти</td><td>config.yaml → <code>context</code></td></tr>
+<tr><td>додати правило в один артефакт</td><td>config.yaml → <code>rules.&lt;artifact&gt;</code></td></tr>
+<tr><td>змінити структуру вихідного файлу</td><td><code>openspec/schemas/&lt;s&gt;/templates/&lt;a&gt;.md</code></td></tr>
+<tr><td>змінити поведінку apply (TDD, worktrees…)</td><td>schema.yaml → <code>apply.instruction</code> (форк: <code>openspec schema fork</code>)</td></tr>
+<tr><td>додати/прибрати артефакт чи ребро DAG</td><td>schema.yaml → <code>artifacts</code></td></tr>
+</table>
+
+<h2>CLI-команди для «подивитись»</h2>
+<pre><code>openspec status --change &lt;n&gt; [--json]     <span class="c">DAG: done/ready/blocked</span>
+openspec instructions &lt;a&gt; --change &lt;n&gt;    <span class="c">скомпільований промпт (є --json)</span>
+openspec instructions apply --change &lt;n&gt;  <span class="c">apply-промпт + прогрес tasks</span>
+openspec schema which &lt;name&gt; [--all]      <span class="c">звідки резолвиться + shadowing</span>
+openspec schema fork &lt;src&gt; [name]         <span class="c">копія built-in у openspec/schemas/</span>
+openspec schema validate &lt;name&gt;           <span class="c">структура + існування templates</span>
+openspec templates · openspec schemas     <span class="c">шляхи темплейтів · список схем</span></code></pre>
+
+<p class="muted">Пов'язане: <a href="../lessons/0001-prompt-compiler.html">Урок 1 — Prompt compiler</a></p>
+
+</body>
+</html>

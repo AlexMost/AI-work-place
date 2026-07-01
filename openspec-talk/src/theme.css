@@ -121,7 +121,9 @@
 
 /* === Текст / списки — ієрархія кольором, не вагою === */
 .reveal p { line-height: 1.4; }
-.reveal ul, .reveal ol { width: 100%; }
+/* Список стискаємо до контенту й центруємо як блок, всередині — ліворуч,
+   інакше на центрованих слайдах маркери відриваються до лівого краю. */
+.reveal ul, .reveal ol { display: inline-block; width: auto; text-align: left; margin: 0 auto; }
 .reveal li { margin: 0.32em 0; line-height: 1.4; }
 .reveal ul li::marker { color: var(--gray-2); }
 .reveal strong { color: var(--ink); } /* Excalifont без жирного — наголос робимо .ds-mark/кольором */
@@ -220,7 +222,20 @@
 .reveal .controls { color: var(--ink); }
 
 /* зображення без рамок/тіней (наші excalidraw-SVG прозорі) */
-.reveal section img { border: none; background: none; box-shadow: none; }
+/* Зображення: без рамок/тіней (наші SVG прозорі) + глобальний кап розміру,
+   щоб великі PNG не розтягувалися на весь слайд. Одиниці — логічні px деку
+   (1280×720), бо vh не масштабується разом із transform reveal. Явні inline
+   width/height (напр. QR) мають пріоритет і не чіпаються. */
+.reveal section img {
+  border: none;
+  background: none;
+  box-shadow: none;
+  max-width: 100%;
+  max-height: 560px;
+  object-fit: contain;
+}
+/* Самотнє зображення в абзаці (markdown ![]()) — центруємо як блок. */
+.reveal section p > img:only-child { display: block; margin: 0 auto; }
 
 @media (prefers-reduced-motion: reduce) {
   .reveal .slides section { transition: none !important; }

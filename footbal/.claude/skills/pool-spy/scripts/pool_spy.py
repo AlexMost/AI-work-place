@@ -314,6 +314,12 @@ def short_name(display):
     return n.split()[0] if n else "?"
 
 
+# Ручні коригування рейтингу пулу: учасник приєднався пізно й отримав стартовий
+# бонус від організаторів. У скрапнутих per-match points цього немає, тож додаємо
+# тут — впливає на гонку в standings.html (таблиця + 3D-позиція бігуна).
+BONUS_ADJUSTMENTS = {"ed536a15-cf36-4169-ad18-2bb832473694": 20}  # Andrew Shtanko +20
+
+
 def build_timeline(participants, matches, preds, phases=None):
     """Cumulative match-points standings after each finished match, chronologically.
 
@@ -322,7 +328,8 @@ def build_timeline(participants, matches, preds, phases=None):
     cumulative points from the phase's start to its end.
     Only players who share predictions are included (matches the rest of the site).
     NOTE: per-match `points` excludes bonus-question points, so totals here are the
-    match-points race, not necessarily the pool's official standing.
+    match-points race, not necessarily the pool's official standing. Totals may also
+    include a manual `BONUS_ADJUSTMENTS` seed (e.g. a late-joiner's start bonus).
     """
     pred_uids = set()
     for users in preds.values():
@@ -334,7 +341,7 @@ def build_timeline(participants, matches, preds, phases=None):
     finished = [(mid, m) for mid, m in matches.items() if is_finished(m)]
     finished.sort(key=lambda kv: kv[1].get("timeStamp", 0))
 
-    cumulative = {p["id"]: 0 for p in players}
+    cumulative = {p["id"]: BONUS_ADJUSTMENTS.get(p["id"], 0) for p in players}
     steps = []
     for mid, m in finished:
         pfm = preds.get(mid, {})
@@ -631,7 +638,8 @@ STANDINGS_TEMPLATE = r"""<!doctype html>
     border-radius:14px; padding:10px 12px; backdrop-filter:blur(8px);
   }
   #board h2{margin:0 0 8px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-dim); font-weight:600;
-            display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; user-select:none}
+            display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; user-select:none;
+            pointer-events:auto}
   #board h2 .chev{font-size:10px; opacity:.8}
   #board.collapsed{padding-bottom:10px; width:auto; max-height:none; overflow:visible}
   #board.collapsed #rows{display:none}
