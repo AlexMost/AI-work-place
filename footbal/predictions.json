@@ -12813,7 +12813,11 @@
             "ev_drop": 1.308
           }
         ]
-      }
+      },
+      "actual": [
+        1,
+        2
+      ]
     },
     {
       "home": "France",
@@ -12822,151 +12826,155 @@
       "stage": "playoff",
       "predicted": [
         2,
-        0
+        1
       ],
       "model": {
         "home": "France",
         "away": "Sweden",
         "odds": {
-          "home": 1.285,
-          "draw": 5.845,
-          "away": 10.95
+          "home": 1.3,
+          "draw": 6.0,
+          "away": 10.0
         },
         "over_under_25_odds": null,
         "books": 24,
-        "bookmaker_margin": 0.0406,
+        "bookmaker_margin": 0.0359,
         "implied_probabilities": {
-          "home": 0.7667,
-          "draw": 0.1541,
-          "away": 0.0792
+          "home": 0.759,
+          "draw": 0.1521,
+          "away": 0.0889
         },
         "expected_goals": {
-          "home": 2.632,
-          "away": 0.764
+          "home": 2.749,
+          "away": 0.882
         },
         "dixon_coles_rho": -0.08,
         "scoring": {
-          "exact": 8,
-          "outcome": 5
+          "exact": 16.0,
+          "outcome": 10.0
         },
         "model_outcome_probabilities": {
-          "home": 0.7667,
-          "draw": 0.1541,
-          "away": 0.0792,
-          "over_2_5": 0.6595
+          "home": 0.759,
+          "draw": 0.1522,
+          "away": 0.0889,
+          "over_2_5": 0.7028
         },
         "model_market_implications": {
-          "btts_yes": 0.5011,
+          "btts_yes": 0.5538,
           "over": {
-            "0.5": 0.9611,
-            "1.5": 0.8581,
-            "2.5": 0.6595,
-            "3.5": 0.4408,
-            "4.5": 0.2551
+            "0.5": 0.9684,
+            "1.5": 0.8825,
+            "2.5": 0.7028,
+            "3.5": 0.4914,
+            "4.5": 0.2996
           }
         },
         "fit_quality": {
-          "max_1x2_deviation": 0.0
+          "max_1x2_deviation": 0.0001
         },
         "confidence": {
           "grade": "B",
           "factors": [
             "консенсус 24 букмекерів",
-            "маржа 4.1%",
+            "маржа 3.6%",
             "без тоталів — ρ з історичного пріору"
           ]
         },
         "top_scorelines": [
           {
             "score": "2-0",
-            "probability": 0.1161,
+            "probability": 0.1001,
             "outcome": "home"
           },
           {
             "score": "3-0",
-            "probability": 0.1018,
+            "probability": 0.0917,
             "outcome": "home"
           },
           {
             "score": "2-1",
-            "probability": 0.0887,
-            "outcome": "home"
-          },
-          {
-            "score": "1-0",
-            "probability": 0.0828,
+            "probability": 0.0883,
             "outcome": "home"
           },
           {
             "score": "3-1",
-            "probability": 0.0778,
+            "probability": 0.0809,
             "outcome": "home"
           },
           {
             "score": "1-1",
-            "probability": 0.0728,
+            "probability": 0.0694,
             "outcome": "draw"
           },
           {
+            "score": "1-0",
+            "probability": 0.0677,
+            "outcome": "home"
+          },
+          {
             "score": "4-0",
-            "probability": 0.067,
+            "probability": 0.063,
             "outcome": "home"
           }
         ],
         "recommendation": {
           "score": "2-0",
-          "probability": 0.1161,
-          "expected_points": 4.182,
+          "probability": 0.1001,
+          "expected_points": 8.19,
           "outcome": "home",
-          "outcome_probability": 0.7667
+          "outcome_probability": 0.759
         },
         "alternatives": [
           {
             "score": "3-0",
-            "probability": 0.1018,
-            "expected_points": 4.139,
+            "probability": 0.0917,
+            "expected_points": 8.14,
             "outcome": "home",
-            "ev_drop": 0.043
+            "ev_drop": 0.05
           },
           {
             "score": "2-1",
-            "probability": 0.0887,
-            "expected_points": 4.1,
+            "probability": 0.0883,
+            "expected_points": 8.119,
             "outcome": "home",
-            "ev_drop": 0.082
+            "ev_drop": 0.071
           },
           {
-            "score": "1-0",
-            "probability": 0.0828,
-            "expected_points": 4.082,
+            "score": "3-1",
+            "probability": 0.0809,
+            "expected_points": 8.075,
             "outcome": "home",
-            "ev_drop": 0.1
+            "ev_drop": 0.115
           }
         ],
         "best_per_outcome": [
           {
             "outcome": "home",
             "score": "2-0",
-            "probability": 0.1161,
-            "expected_points": 4.182,
+            "probability": 0.1001,
+            "expected_points": 8.19,
             "ev_drop": 0.0
           },
           {
             "outcome": "draw",
             "score": "1-1",
-            "probability": 0.0728,
-            "expected_points": 0.989,
-            "ev_drop": 3.193
+            "probability": 0.0694,
+            "expected_points": 1.938,
+            "ev_drop": 6.252
           },
           {
             "outcome": "away",
             "score": "1-2",
-            "probability": 0.0257,
-            "expected_points": 0.473,
-            "ev_drop": 3.709
+            "probability": 0.0283,
+            "expected_points": 1.059,
+            "ev_drop": 7.131
           }
         ]
-      }
+      },
+      "actual": [
+        3,
+        0
+      ]
     },
     {
       "home": "Australia",
@@ -13425,7 +13433,11 @@
             "ev_drop": 1.07
           }
         ]
-      }
+      },
+      "actual": [
+        2,
+        0
+      ]
     },
     {
       "home": "England",
@@ -14344,6 +14356,312 @@
           }
         ]
       }
+    },
+    {
+      "home": "Canada",
+      "away": "Morocco",
+      "kickoff": "2026-07-04T17:00:00Z",
+      "stage": "playoff",
+      "predicted": [
+        0,
+        1
+      ],
+      "model": {
+        "home": "Canada",
+        "away": "Morocco",
+        "odds": {
+          "home": 5.025,
+          "draw": 3.6,
+          "away": 1.76
+        },
+        "over_under_25_odds": null,
+        "books": 24,
+        "bookmaker_margin": 0.045,
+        "implied_probabilities": {
+          "home": 0.1847,
+          "draw": 0.2618,
+          "away": 0.5535
+        },
+        "expected_goals": {
+          "home": 0.862,
+          "away": 1.66
+        },
+        "dixon_coles_rho": -0.08,
+        "scoring": {
+          "exact": 16.0,
+          "outcome": 10.0
+        },
+        "model_outcome_probabilities": {
+          "home": 0.1847,
+          "draw": 0.2619,
+          "away": 0.5534,
+          "over_2_5": 0.4616
+        },
+        "model_market_implications": {
+          "btts_yes": 0.4768,
+          "over": {
+            "0.5": 0.9104,
+            "1.5": 0.7262,
+            "2.5": 0.4616,
+            "3.5": 0.247,
+            "4.5": 0.1117
+          }
+        },
+        "fit_quality": {
+          "max_1x2_deviation": 0.0001
+        },
+        "confidence": {
+          "grade": "B",
+          "factors": [
+            "консенсус 24 букмекерів",
+            "маржа 4.5%",
+            "без тоталів — ρ з історичного пріору"
+          ]
+        },
+        "top_scorelines": [
+          {
+            "score": "0-1",
+            "probability": 0.1242,
+            "outcome": "away"
+          },
+          {
+            "score": "1-1",
+            "probability": 0.1241,
+            "outcome": "draw"
+          },
+          {
+            "score": "0-2",
+            "probability": 0.1107,
+            "outcome": "away"
+          },
+          {
+            "score": "1-2",
+            "probability": 0.0954,
+            "outcome": "away"
+          },
+          {
+            "score": "0-0",
+            "probability": 0.0896,
+            "outcome": "draw"
+          },
+          {
+            "score": "0-3",
+            "probability": 0.0612,
+            "outcome": "away"
+          },
+          {
+            "score": "1-0",
+            "probability": 0.06,
+            "outcome": "home"
+          }
+        ],
+        "recommendation": {
+          "score": "0-1",
+          "probability": 0.1242,
+          "expected_points": 6.279,
+          "outcome": "away",
+          "outcome_probability": 0.5534
+        },
+        "alternatives": [
+          {
+            "score": "0-2",
+            "probability": 0.1107,
+            "expected_points": 6.198,
+            "outcome": "away",
+            "ev_drop": 0.081
+          },
+          {
+            "score": "1-2",
+            "probability": 0.0954,
+            "expected_points": 6.107,
+            "outcome": "away",
+            "ev_drop": 0.173
+          },
+          {
+            "score": "0-3",
+            "probability": 0.0612,
+            "expected_points": 5.902,
+            "outcome": "away",
+            "ev_drop": 0.378
+          }
+        ],
+        "best_per_outcome": [
+          {
+            "outcome": "away",
+            "score": "0-1",
+            "probability": 0.1242,
+            "expected_points": 6.279,
+            "ev_drop": 0.0
+          },
+          {
+            "outcome": "draw",
+            "score": "1-1",
+            "probability": 0.1241,
+            "expected_points": 3.363,
+            "ev_drop": 2.916
+          },
+          {
+            "outcome": "home",
+            "score": "1-0",
+            "probability": 0.06,
+            "expected_points": 2.207,
+            "ev_drop": 4.072
+          }
+        ]
+      }
+    },
+    {
+      "home": "Paraguay",
+      "away": "France",
+      "kickoff": "2026-07-04T21:00:00Z",
+      "stage": "playoff",
+      "predicted": [
+        0,
+        2
+      ],
+      "model": {
+        "home": "Paraguay",
+        "away": "France",
+        "odds": {
+          "home": 16.76,
+          "draw": 7.03,
+          "away": 1.19
+        },
+        "over_under_25_odds": null,
+        "books": 22,
+        "bookmaker_margin": 0.0422,
+        "implied_probabilities": {
+          "home": 0.0481,
+          "draw": 0.1226,
+          "away": 0.8293
+        },
+        "expected_goals": {
+          "home": 0.602,
+          "away": 2.854
+        },
+        "dixon_coles_rho": -0.08,
+        "scoring": {
+          "exact": 8,
+          "outcome": 5
+        },
+        "model_outcome_probabilities": {
+          "home": 0.0481,
+          "draw": 0.1226,
+          "away": 0.8292,
+          "over_2_5": 0.671
+        },
+        "model_market_implications": {
+          "btts_yes": 0.4305,
+          "over": {
+            "0.5": 0.9641,
+            "1.5": 0.8638,
+            "2.5": 0.671,
+            "3.5": 0.4539,
+            "4.5": 0.2663
+          }
+        },
+        "fit_quality": {
+          "max_1x2_deviation": 0.0
+        },
+        "confidence": {
+          "grade": "B",
+          "factors": [
+            "консенсус 22 букмекерів",
+            "маржа 4.2%",
+            "без тоталів — ρ з історичного пріору"
+          ]
+        },
+        "top_scorelines": [
+          {
+            "score": "0-2",
+            "probability": 0.1285,
+            "outcome": "away"
+          },
+          {
+            "score": "0-3",
+            "probability": 0.1223,
+            "outcome": "away"
+          },
+          {
+            "score": "0-4",
+            "probability": 0.0873,
+            "outcome": "away"
+          },
+          {
+            "score": "0-1",
+            "probability": 0.0857,
+            "outcome": "away"
+          },
+          {
+            "score": "1-2",
+            "probability": 0.0773,
+            "outcome": "away"
+          },
+          {
+            "score": "1-3",
+            "probability": 0.0736,
+            "outcome": "away"
+          },
+          {
+            "score": "1-1",
+            "probability": 0.0585,
+            "outcome": "draw"
+          }
+        ],
+        "recommendation": {
+          "score": "0-2",
+          "probability": 0.1285,
+          "expected_points": 4.532,
+          "outcome": "away",
+          "outcome_probability": 0.8292
+        },
+        "alternatives": [
+          {
+            "score": "0-3",
+            "probability": 0.1223,
+            "expected_points": 4.513,
+            "outcome": "away",
+            "ev_drop": 0.019
+          },
+          {
+            "score": "0-4",
+            "probability": 0.0873,
+            "expected_points": 4.408,
+            "outcome": "away",
+            "ev_drop": 0.124
+          },
+          {
+            "score": "0-1",
+            "probability": 0.0857,
+            "expected_points": 4.403,
+            "outcome": "away",
+            "ev_drop": 0.128
+          }
+        ],
+        "best_per_outcome": [
+          {
+            "outcome": "away",
+            "score": "0-2",
+            "probability": 0.1285,
+            "expected_points": 4.532,
+            "ev_drop": 0.0
+          },
+          {
+            "outcome": "draw",
+            "score": "1-1",
+            "probability": 0.0585,
+            "expected_points": 0.789,
+            "ev_drop": 3.743
+          },
+          {
+            "outcome": "home",
+            "score": "2-1",
+            "probability": 0.0163,
+            "expected_points": 0.29,
+            "ev_drop": 4.242
+          }
+        ]
+      }
     }
   ],
   "bonus_questions": [
@@ -14374,8 +14692,8 @@
       },
       "live": {
         "headline": "3 червоних карток",
-        "sub": "введено вручну · зіграно 76/104 матчів",
-        "progress": 0.7308,
+        "sub": "введено вручну · зіграно 79/104 матчів",
+        "progress": 0.7596,
         "status": null
       }
     },
@@ -14391,8 +14709,8 @@
       },
       "live": {
         "headline": "1 пенальті",
-        "sub": "введено вручну · зіграно 76/104 матчів",
-        "progress": 0.7308,
+        "sub": "введено вручну · зіграно 79/104 матчів",
+        "progress": 0.7596,
         "status": null
       }
     },
@@ -14405,8 +14723,8 @@
         "kind": "top_scorer_country"
       },
       "live": {
-        "headline": "Німеччина / Нідерланди — 11",
-        "sub": "наш пік Іспанія: 5 (лідер 11)",
+        "headline": "Франція — 13",
+        "sub": "наш пік Іспанія: 5 (лідер 13)",
         "progress": null,
         "status": null
       }
@@ -14424,8 +14742,8 @@
       },
       "live": {
         "headline": "Парагвай — 5",
-        "sub": "введено вручну · зіграно 76/104 матчів",
-        "progress": 0.7308,
+        "sub": "введено вручну · зіграно 79/104 матчів",
+        "progress": 0.7596,
         "status": null
       }
     }
