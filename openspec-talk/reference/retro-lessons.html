@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вижимка порад по ретро — svadlenka-crm</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<span class="kicker">reference · retro harvest</span>
+<h1>Вижимка порад по ретро</h1>
+<p class="subtitle">Синтез 48 <code>retrospective.md</code> зі <code>svadlenka-crm</code> (27 трав – 19 черв 2026,
+один CRM, agentic workflow на <code>superpowers-bridge</code>). Ранжовано за повторюваністю — повтор = сигнал.</p>
+
+<h2>Частина 1 — поради про сам ретро-процес</h2>
+
+<div class="callout key">
+<span class="callout-title">Головний висновок для доповіді</span>
+<p>Найчастіший failure mode за 2 місяці — <mark>не брак знань, а не-піднімання вже записаних знань у потрібний момент</mark>.
+Anti-pattern з Mantine <code>aria-label</code> і «<code>gen:api</code> потребує <code>build</code> спершу» були
+в пам'яті — і все одно повторились. Ретро ловить урок; цінність з'являється, лише коли його підняли
+під час <em>review/planning</em>, а не на наступному ретро.</p>
+</div>
+
+<ol>
+<li><b>Evidence-first (§0) робить ретро чесним.</b> Кількість комітів, розмір діфа, ratio закритих тасків,
+кількість субагент-диспатчів — цифри не дають прикрасити цикл і змушують явно пояснювати пропущені скіли (§4).</li>
+
+<li><b>§6 з severity + «Promote to» — це те, що робить урок переносним.</b> Формат
+«один рядок уроку → 🔴/🟡/📌 → Promote to memory/CLAUDE.md/schema → Why / How to apply»
+дозволяє механічно перенести висновок у пам'ять. Ретро у <em>вільній прозі</em> (кілька старих)
+недо-структурують уроки — вони губляться в «Notes/Lessons» без severity й адресата.</li>
+
+<li><b>Un-actioned promote candidates рецидивують щоцикл.</b> Пре-існуючий <code>spec/baseline</code>, що валить
+<code>openspec validate --all</code>, згадується як шум майже в КОЖНОМУ ретро 3+ тижні — але його ніхто не почистив.
+Записаний, але не зроблений промоут-кандидат тaxує кожен наступний цикл. <b>Порада:</b> карантинь або закрий відоме
+червоне, інакше воно тренує всіх ігнорувати валідатор.</li>
+
+<li><b>Ретро пишеться поки контекст гарячий — до PR.</b> У bridge-схемі retro йде в тому ж PR, поки свіжа
+пам'ять про фікси й тести. Написане після мержу — окремий коміт, що втрачає контекст.</li>
+</ol>
+
+<h2>Частина 2 — топ-уроки, які ретро наловили</h2>
+
+<h3>1. Субагентам не можна вірити на слово <span class="muted">(найчастіший — ~10 ретро)</span></h3>
+<ul>
+<li>Субагент коммітив у <b>main</b> замість worktree; <b>misreport SHA</b> (звітував хеші, яких нема);
+<b>Edit/Write тихо no-op</b> на NBSP-рядках; <b>реверт</b> незакомічених правок контролера в спільному worktree.</li>
+<li><b>Порада:</b> пінь cwd явним <code>cd &lt;worktree&gt;</code> у кожній Bash-команді; редагуй через Bash, не через Read/Edit
+(вони резолвляться в main-checkout); після делегованого коміту звіряй <code>git log -1</code>/SHA як НОВИЙ HEAD, не звіт агента.</li>
+</ul>
+
+<h3>2. «Зелено локально ≠ правильно»: ламається шар, який не бачить жоден unit-тест <span class="muted">(~6 ретро, тут усі 🔴)</span></h3>
+<ul>
+<li>jsdom не бачить <code>@media print</code> → 360 зелених тестів, а чек друкується <b>порожнім</b>; RTL «ручка рендериться»
+проходив проти <b>мовчки зламаного</b> drag; Node ESM-runtime суворіший за Vite/tsc; Caddy-prefix невидимий жодному harness;
+<code>reuseExistingServer</code> маскує CI-падіння БД.</li>
+<li><b>Порада:</b> живий/рендер/e2e-чек ПЕРЕД «done», не трейлінг-таском. Playwright <code>page.pdf</code>,
+keyboard-sensor drag, <code>CI=true pnpm test:e2e</code>, assert на <code>dist/</code>. Найцінніший тест — той, що покриває шар,
+якого не покриває жоден інший.</li>
+</ul>
+
+<h3>3. Фінальний цілісний рев'ю ловить клас помилок, недоступний per-task рев'ю <span class="muted">(~5 ретро)</span></h3>
+<ul>
+<li>Third-party дія лінтила не те (commitlint по range, не по PR-title); Caddy strip <code>/api</code>; 403→401 spec/code mismatch
+пережив 4 per-task рев'ю; data-loss каскад <code>DROP TABLE</code>.</li>
+<li><b>Порада:</b> не став фінальний холістичний рев'ю штампом, навіть коли всі per-task зелені — він покриває інший клас
+(cross-cutting spec↔code, поведінка залежності). Per-task рев'ю має звіряти <em>задокументовану поведінку залежності зі сценарієм спеки</em>
+— «пінянуто на мажор» недостатньо.</li>
+</ul>
+
+<h3>4. Зміна поля api-contract зчіпляється з УСІМА консюмерами в один atomic commit <span class="muted">(~4 ретро)</span></h3>
+<ul>
+<li>Додавання required / nullable поля в спільний DTO: whole-repo pre-commit typecheck не дасть закомітити регенерований
+контракт, поки кожен консюмер не звузив тип. Circular: контракт має бути nullable щоб web звузив null, але коміт nullable-контракту
+вимагає, щоб web уже обробляв null.</li>
+<li><b>Порада:</b> плануй регенерацію контракту + адаптацію консюмерів як ОДИН atomic commit (або консюмери першими).
+Ширше: <b>зміна риплиться ширше, ніж прогноз плану</b> — <code>grep -rn</code> усі call-sites (включно з e2e, що лише <em>створюють</em> сутність для setup) на етапі плану.</li>
+</ul>
+
+<h3>5. План — чернетка, не істина <span class="muted">(~4 ретро)</span></h3>
+<ul>
+<li>Код у плані ніс реальний баг (ms-truncation); план припускав greenfield, коли кращий клієнт уже був; стале Mantine-API
+(<code>gutter</code>→<code>gap</code>, <code>Collapse</code> монтує дітей); сніпети до строгого TS/ESLint репо; «rebuild X on Y» з несумісними контрактами.</li>
+<li><b>Порада:</b> імплементер <em>тестує</em> код плану, а не транскрибує (boundary-точні asserts); «consistency with neighbors &gt; minimum LOC»;
+звіряй реальні output-shapes/встановлене API/рантайм перед тим як стверджувати reuse — краще спільний <em>примітив</em>, ніж «одне кличе інше».</li>
+</ul>
+
+<h3>6. Рев'ю пропорційний ризику, а не пропускається <span class="muted">(house doctrine, ~8 ретро)</span></h3>
+<ul>
+<li>Майже кожен §4 каже «none skipped», але додає proportionality-ноту: повний two-stage (spec+quality) для high-latitude тасків;
+controller-inline diff для крихітних verbatim-модулів. Явно фіксують, коли компресія була б <em>недоречна</em>.</li>
+<li><b>Порада:</b> «review-proportional-to-latitude, not review-skipping». Але: <mark>CSS-only / config-only таски —
+сліпа зона рев'ю</mark> (єдиний 🔴 blank-print баг сів саме туди). Inline-виконання паруй зі standalone <code>/code-review</code> перед PR.</li>
+</ul>
+
+<h3>7. Гігієна worktree / cwd на старті apply <span class="muted">(~5 ретро)</span></h3>
+<ul>
+<li>Нативний worktree ігнорує <code>baseRef=head</code> і гілкується від <code>origin/main</code> → комічені opsx-артефакти зникають;
+старт apply у спільному main-checkout забруднив дерево й ледь не втратив роботу в stash; <code>origin/main</code> уїхав під час apply
+(dіф треба міряти від merge-base і ребейзити перед PR); персистентний <code>cd</code> у сусідній репо запустив install не там.</li>
+<li><b>Порада:</b> коміть <code>openspec/changes/&lt;name&gt;/</code> ПЕРЕД нарізкою worktree; worktree-before-first-edit як блокуючий pre-flight;
+міряй діф від merge-base; префіксуй state-змінні команди явним <code>cd</code>.</li>
+</ul>
+
+<h3>8. Пастка lefthook «silent green» / <code>--no-verify</code> <span class="muted">(~3 ретро)</span></h3>
+<ul>
+<li>lefthook друкував зелений <code>✔️ prettier</code>, а ESLint насправді відхилив файл; субагент обійшов <code>--no-verify</code> і закомітив реальні lint-помилки.</li>
+<li><b>Порада:</b> якщо <code>git commit</code> повернув success, але <code>git log</code> не показує НОВИЙ HEAD — хук відхилив коміт.
+Перезапусти перевірку, що впала, і полагодь; ніколи не заминай через <code>--no-verify</code>.</li>
+</ul>
+
+<div class="callout">
+<span class="callout-title">Одним рядком для слайда</span>
+<p>«48 ретро за 2 місяці. Найдорожчі уроки — не про технології, а про <b>довіру</b>: не вір субагенту на слово,
+не вір зеленому unit-тесту, не вір, що план — істина, не вір, що записаний урок хтось підніме сам».</p>
+</div>
+
+<p class="muted">Пов'язане: <a href="../lessons/0001-prompt-compiler.html">Урок 1</a> ·
+<a href="openspec-internals-cheatsheet.html">Шпаргалка internals</a></p>
+
+</body>
+</html>

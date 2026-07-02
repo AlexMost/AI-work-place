@@ -1,0 +1,5 @@
+node_modules
+dist
+
+.claude/skills/excalidraw-diagram/
+excalidraw-diagram-skill/

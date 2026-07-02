@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Урок 2 — Лабораторія: що впливає на промпт (сетап з нуля)</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<span class="kicker">OpenSpec internals · Урок 2 · Лабораторія</span>
+<h1>Що впливає на промпт: сетап з нуля</h1>
+<p class="subtitle">Голий OpenSpec, без bridge. Чиста тека, 6 експериментів, і в кожному ти
+<strong>спочатку прогнозуєш</strong>, потім запускаєш, потім звіряєш. Всі «очікувані виводи»
+перевірені на живому CLI (v1.5.0) сьогодні.</p>
+
+<div class="callout">
+<span class="callout-title">Формат лабораторії</span>
+<p>У кожному експерименті: 🔮 <strong>Прогноз</strong> (сформулюй відповідь уголос, <em>потім</em>
+розгорни підказку) → ⌨️ <strong>Команди</strong> → ✅ <strong>Перевірка</strong>. Прогноз перед дією —
+це retrieval practice: саме він, а не читання, будує довгу пам'ять.</p>
+</div>
+
+<h2>Експеримент 0 — Сетап: що насправді створює init?</h2>
+
+<details class="recall">
+<summary>🔮 Прогноз: скільки файлів і яких створить <code>openspec init</code> у порожньому репо?</summary>
+<p>Рівно 9: вісім слеш-команд у <code>.claude/commands/opsx/</code> і один <code>openspec/config.yaml</code>.
+Ні схем, ні шаблонів — вони живуть у npm-пакеті.</p>
+</details>
+
+<pre><code>alias ops="npx -y @fission-ai/openspec@latest"   <span class="c"># щоб не тягати повне ім'я пакета</span>
+mkdir opsx-lab && cd opsx-lab && git init
+ops init --tools claude .
+find . -type f -not -path "./.git/*" | sort</code></pre>
+
+<p>✅ Побачиш 8 команд (<code>apply, archive, explore, ff, new, propose, sync, verify</code>) +
+<code>openspec/config.yaml</code>. Відкрий конфіг: він уже містить <mark>закоментовані приклади
+<code>context:</code> і <code>rules:</code></mark> — розробники підказують два головні важелі впливу на промпт.</p>
+
+<h2>Експеримент 1 — Зміна: де вона тримає свою схему?</h2>
+
+<pre><code>ops new change try-prompt
+find openspec/changes -type f
+cat openspec/changes/try-prompt/.openspec.yaml</code></pre>
+
+<p>✅ У теці зміни рівно один файл, і в ньому два рядки:</p>
+<pre><code>schema: spec-driven
+created: 2026-07-01</code></pre>
+
+<p>Це <strong>пін схеми per-change</strong> (<a href="0001-prompt-compiler.html#two-yamls">урок 1, §2</a>):
+зміна назавжди знає свою схему сама, а <code>schema:</code> у config.yaml — лише default для <em>нових</em> змін.</p>
+
+<h2>Експеримент 2 — Базовий промпт: скільки секцій без жодного конфігу?</h2>
+
+<details class="recall">
+<summary>🔮 Прогноз: які секції будуть у промпті <code>proposal</code>, поки config.yaml порожній, а залежностей немає?</summary>
+<p>Шість: <code>&lt;artifact&gt;</code>-обгортка, <code>&lt;task&gt;</code>, <code>&lt;output&gt;</code>,
+<code>&lt;instruction&gt;</code>, <code>&lt;template&gt;</code>, <code>&lt;success_criteria&gt;</code>,
+<code>&lt;unlocks&gt;</code>. Без <code>&lt;project_context&gt;</code>, <code>&lt;rules&gt;</code>,
+<code>&lt;dependencies&gt;</code> (у proposal <code>requires: []</code>).</p>
+</details>
+
+<pre><code>ops instructions proposal --change try-prompt > baseline.txt
+grep -nE "^&lt;/?[a-z_]+|^&lt;artifact" baseline.txt    <span class="c"># трюк: показати лише скелет секцій</span></code></pre>
+
+<p>✅ ~68 рядків, секції: <code>artifact → task → output → instruction → template → success_criteria → unlocks</code>.
+Запам'ятай цей скелет — далі дивимось, що і куди «вклинюється».</p>
+
+<h2>Експеримент 3 — config.yaml: хірургічна інжекція</h2>
+
+<details class="recall">
+<summary>🔮 Прогноз: додаємо <code>context</code> + <code>rules.proposal</code> + свідомо битий ключ <code>rules.bogus-artifact</code>. Скільки нових секцій, де саме, і що станеться з битим ключем?</summary>
+<p>Дві нові секції — <code>&lt;project_context&gt;</code> і <code>&lt;rules&gt;</code> — рівно між
+<code>&lt;task&gt;</code> і <code>&lt;output&gt;</code>. Битий ключ не ламає нічого: warning у stderr
+з переліком валідних ID (resilient-парсинг конфігу, урок 1 §2).</p>
+</details>
+
+<p>Заміни <code>openspec/config.yaml</code> на:</p>
+<pre><code>schema: spec-driven
+
+context: |
+  Tech stack: TypeScript + Fastify + SQLite.
+  Money is stored as integer cents, never floats.
+
+rules:
+  proposal:
+    - Keep the proposal under 300 words
+    - Always include a "Non-goals" section
+  bogus-artifact:
+    - This key does not exist in the schema</code></pre>
+
+<pre><code>ops instructions proposal --change try-prompt > enriched.txt
+diff baseline.txt enriched.txt</code></pre>
+
+<p>✅ Перевір три речі:</p>
+<ul>
+<li>diff показує <strong>+12 рядків одним блоком</strong> після <code>&lt;task&gt;</code> — обидві секції з коментарем
+«Do NOT include this in your output»;</li>
+<li>у stderr: <code>Unknown artifact ID in rules: "bogus-artifact". Valid IDs for schema "spec-driven": design, proposal, specs, tasks</code>;</li>
+<li>решта промпта — байт-у-байт та сама. Інжекція хірургічна, не «переписування».</li>
+</ul>
+
+<h2>Експеримент 4 — Заблокований артефакт: warning, а не заборона</h2>
+
+<pre><code>ops instructions tasks --change try-prompt</code></pre>
+
+<p>✅ <code>tasks</code> вимагає <code>specs</code> і <code>design</code>, яких нема, — але CLI
+<strong>все одно компілює промпт</strong>, лише додає зверху:</p>
+<pre><code>&lt;warning&gt;
+This artifact has unmet dependencies. Complete them first or proceed with caution.
+Missing: specs, design
+&lt;/warning&gt;
+…
+&lt;dependency id="specs" <span class="k">status="missing"</span>&gt;
+  &lt;path&gt;…/openspec/changes/try-prompt/specs/**/*.md&lt;/path&gt;</code></pre>
+
+<p>І зверни увагу: <code>&lt;project_context&gt;</code> з конфігу з'явився і тут — <code>context</code>
+глобальний, він іде в промпт <em>кожного</em> артефакта. DAG у OpenSpec — порадник, а не поліцейський:
+рішення завжди лишається за агентом/людиною.</p>
+
+<h2>Експеримент 5 — Форк схеми: переписуємо instruction і перепинаємо зміну</h2>
+
+<pre><code>ops schema fork spec-driven lab-schema
+find openspec/schemas -type f
+ops schema which lab-schema      <span class="c"># Source: project</span>
+ops schema which spec-driven     <span class="c"># Source: package (шлях у npm-кеш)</span></code></pre>
+
+<p>Тепер відкрий <code>openspec/schemas/lab-schema/schema.yaml</code> і додай перший рядок у
+<code>instruction:</code> артефакта <code>proposal</code> — маркер, який неможливо не помітити:</p>
+
+<pre><code>  - id: proposal
+    ...
+    instruction: &gt;
+      &gt;&gt;&gt; LAB MARKER: this line comes from the FORKED schema &lt;&lt;&lt;
+</code></pre>
+
+<div class="callout warn">
+<span class="callout-title">Пастка block scalars (перевірено на собі)</span>
+<p>В артефактах spec-driven інструкції — folded scalar (<code>instruction: &gt;</code>), а в
+<code>apply:</code> — literal (<code>instruction: |</code>). Перший непорожній рядок блоку фіксує
+базовий відступ: вставиш рядок із 6 пробілами там, де контент має 4 — отримаєш
+<code>All mapping items must start at the same column</code>. Після будь-якої правки схеми одразу:
+<code>ops schema validate lab-schema</code>.</p>
+</div>
+
+<p>Зміна <code>try-prompt</code> досі запінена на <code>spec-driven</code>. Перемкни її, відредагувавши
+<strong>метадату зміни</strong> (не config!):</p>
+
+<pre><code>sed -i '' 's/^schema: spec-driven/schema: lab-schema/' openspec/changes/try-prompt/.openspec.yaml
+ops instructions proposal --change try-prompt | head -1
+ops instructions proposal --change try-prompt | grep "LAB MARKER"</code></pre>
+
+<p>✅ Перший рядок: <code>&lt;artifact id="proposal" change="try-prompt" <mark>schema="lab-schema"</mark>&gt;</code>,
+і твій маркер сидить усередині <code>&lt;instruction&gt;</code>. Ти щойно зробив те саме, що робить
+superpowers-bridge — <strong>підмінив схему, не чіпаючи ні CLI, ні слеш-команди</strong>.</p>
+
+<h2>Експеримент 6 — Apply: інший світ</h2>
+
+<details class="recall">
+<summary>🔮 Прогноз: у apply-промпті буде твій <code>context</code> («Money is stored as integer cents…») і <code>rules</code>?</summary>
+<p>Ні. <code>generateApplyInstructions</code> читає лише <code>schema.apply</code> і взагалі не викликає
+<code>readProjectConfig()</code> — жодна секція з config.yaml в apply не потрапляє
+(<span class="src">instructions.ts:331-433</span>, урок 1 §6).</p>
+</details>
+
+<pre><code>ops instructions apply --change try-prompt     <span class="c"># поки tasks.md нема</span></code></pre>
+<p>✅ <code>### ⚠️ Blocked — Missing artifacts: tasks</code> (в <code>apply.requires</code> spec-driven
+стоїть лише <code>tasks</code>). Створи трекінг-файл руками і повтори:</p>
+
+<pre><code>cat &gt; openspec/changes/try-prompt/tasks.md &lt;&lt;'EOF'
+## 1. Setup
+
+- [ ] 1.1 Create fastify server
+- [x] 1.2 Init sqlite schema
+EOF
+ops instructions apply --change try-prompt</code></pre>
+
+<p>✅ Звір із цим (реальний вивід):</p>
+<pre><code>## Apply: try-prompt
+Schema: lab-schema
+
+### Context Files
+- tasks: …/openspec/changes/try-prompt/tasks.md
+
+### Progress
+1/2 complete
+
+### Tasks
+- [ ] 1.1 Create fastify server
+- [x] 1.2 Init sqlite schema
+
+### Instruction
+Read context files, work through pending tasks, mark complete as you go.
+Pause if you hit blockers or need clarification.</code></pre>
+
+<p>Три спостереження:</p>
+<ul>
+<li><strong>Формат інший</strong>: markdown-заголовки, а не XML-теги — apply збирає окремий принтер, не <code>printInstructionsText</code>;</li>
+<li><code>Progress: 1/2</code> — це regex <code>/^[-*]\s*\[([ xX])\]/</code> по tasks.md, більше нічого;</li>
+<li>твого <code>context</code>/<code>rules</code> тут <strong>немає</strong>. Хочеш вплинути на apply — редагуй
+<code>apply.instruction</code> у своїй схемі (спробуй: додай туди маркер і повтори команду) або клади
+знання в самі артефакти (tasks.md, design.md), які apply перелічує як Context Files.</li>
+</ul>
+
+<h2>Синтез: повна карта впливу на промпт</h2>
+
+<table>
+<tr><th>Джерело</th><th>Промпт артефакта</th><th>Промпт apply</th></tr>
+<tr><td>config.yaml → <code>context</code></td><td>✅ <code>&lt;project_context&gt;</code>, у всіх артефактах</td><td>❌</td></tr>
+<tr><td>config.yaml → <code>rules.&lt;id&gt;</code></td><td>✅ <code>&lt;rules&gt;</code>, лише в артефакті <code>&lt;id&gt;</code></td><td>❌</td></tr>
+<tr><td>schema.yaml → <code>description / instruction / generates</code></td><td>✅ <code>&lt;task&gt;</code> / <code>&lt;instruction&gt;</code> / <code>&lt;output&gt;</code></td><td>❌</td></tr>
+<tr><td>schema templates/*.md</td><td>✅ <code>&lt;template&gt;</code></td><td>❌</td></tr>
+<tr><td>schema.yaml → <code>apply.instruction</code></td><td>❌</td><td>✅ <code>### Instruction</code></td></tr>
+<tr><td>граф + файли на диску</td><td>✅ <code>&lt;warning&gt;/&lt;dependencies&gt;/&lt;unlocks&gt;</code></td><td>✅ Blocked / Context Files / Progress</td></tr>
+<tr><td>.openspec.yaml зміни</td><td colspan="2">вибирає, <em>яка схема</em> взагалі використовується (пін per-change)</td></tr>
+</table>
+
+<h2>Перевір себе</h2>
+
+<div class="quiz">
+<p class="quiz-q">1. Треба перемкнути вже існуючу зміну на іншу схему. Що редагуєш?</p>
+<button class="quiz-opt" data-explain="config.yaml задає схему лише для НОВИХ змін — існуючу він не зачепить.">ключ schema в openspec/config.yaml</button>
+<button class="quiz-opt" data-correct data-explain="Саме це ти зробив у експерименті 5: пін живе в метадаті зміни.">.openspec.yaml у теці самої зміни</button>
+<button class="quiz-opt" data-explain="У instructions немає прапорця перемикання схеми для існуючої зміни — вона читає пін з метадати.">прапорець --schema у команді instructions</button>
+<p class="quiz-feedback"></p>
+</div>
+
+<div class="quiz">
+<p class="quiz-q">2. Звідки береться рядок «Progress: 1/2 complete» в apply-промпті?</p>
+<button class="quiz-opt" data-correct data-explain="Так, regex по чекбоксах ^- [ ]/[x] у файлі з apply.tracks — тому формат чекбоксів строгий.">парсинг чекбоксів tasks.md регекспом</button>
+<button class="quiz-opt" data-explain="Статус зміни ніде не зберігається — стан завжди перечитується з файлів.">зі збереженого статусу в .openspec.yaml</button>
+<button class="quiz-opt" data-explain="status сам викликає ту саму логіку — джерело істини не команда, а файл tasks.md.">з кешу останнього запуску openspec status</button>
+<p class="quiz-feedback"></p>
+</div>
+
+<div class="quiz">
+<p class="quiz-q">3. Додаєш у config.yaml <code>rules: { specs: [«кожна вимога — testable»] }</code>. Де це правило з'явиться?</p>
+<button class="quiz-opt" data-correct data-explain="rules[artifactId] інжектиться тільки в «свій» артефакт — і ніколи в apply.">лише у промпті артефакта specs</button>
+<button class="quiz-opt" data-explain="У всі артефакти йде тільки context; rules — точкові, по ключу.">у промптах усіх артефактів зміни</button>
+<button class="quiz-opt" data-explain="До apply конфіг не доходить взагалі — це ти щойно довів у експерименті 6.">у промпті specs і у фазі apply</button>
+<p class="quiz-feedback"></p>
+</div>
+
+<h2>Первинне джерело</h2>
+
+<p>Після лабораторії прочитай сам built-in
+<a href="https://github.com/Fission-AI/OpenSpec/blob/main/schemas/spec-driven/schema.yaml"><strong><code>schemas/spec-driven/schema.yaml</code></strong></a>
+(≈250 рядків, 5 хвилин): тепер ти знаєш, куди «їде» кожне його поле. Він у тебе вже і локально —
+<code>openspec/schemas/lab-schema/schema.yaml</code> — це його копія.</p>
+
+<div class="ask-teacher">
+💬 Застряг на якомусь експерименті або отримав інший вивід? Скажи вчителю, що саме побачив —
+розберемо розбіжність до рядка сирців.
+</div>
+
+<div class="lesson-nav">
+<span><a href="0001-prompt-compiler.html">← Урок 1: Prompt compiler</a> · <a href="../reference/openspec-internals-cheatsheet.html">📋 Шпаргалка</a></span>
+<span class="muted">Далі → Урок 3: apply.instruction як точка входу TDD (і як bridge цим користується)</span>
+</div>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

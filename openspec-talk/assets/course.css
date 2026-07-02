@@ -1,0 +1,252 @@
+/* ===========================================================================
+   OpenSpec internals course — shared lesson stylesheet
+   Візуальна родина з деком доповіді (src/theme.css): папір, чорнило,
+   Excalidraw stroke palette. Але типографіка — читабельна (довгі тексти,
+   друк), без рукописного шрифту в body.
+   =========================================================================== */
+
+:root {
+  --ink: #1e1e1e;
+  --ink-soft: #343a40;
+  --gray-1: #495057;
+  --gray-2: #868e96;
+  --gray-3: #ced4da;
+  --gray-4: #e9ecef;
+  --paper: #ffffff;
+  --paper-warm: #fbfaf7;
+  --desk: #f4f3ef;
+
+  --red: #e03131;
+  --blue: #1971c2;
+  --green: #2f9e44;
+  --orange: #f08c00;
+  --violet: #9c36b5;
+
+  --fill-red: #ffc9c9;
+  --fill-blue: #a5d8ff;
+  --fill-green: #b2f2bb;
+  --fill-yellow: #ffec99;
+  --fill-violet: #eebefa;
+
+  --font-body: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html { background: var(--desk); }
+
+body {
+  margin: 2.5rem auto;
+  padding: 3rem 3.5rem 4rem;
+  max-width: 46rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  line-height: 1.65;
+  box-shadow: 0 1px 3px rgba(30, 30, 30, 0.12), 0 8px 32px rgba(30, 30, 30, 0.08);
+  border-radius: 4px;
+}
+
+/* ---- Typography ---- */
+h1, h2, h3 {
+  font-family: var(--font-ui);
+  font-weight: 650;
+  line-height: 1.25;
+  color: var(--ink);
+}
+h1 { font-size: 1.9rem; margin: 0 0 0.35rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.35rem; margin: 2.4rem 0 0.7rem; }
+h3 { font-size: 1.08rem; margin: 1.8rem 0 0.5rem; }
+
+h2 { border-bottom: 2px solid var(--gray-4); padding-bottom: 0.35rem; }
+
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--blue);
+  display: block;
+  margin-bottom: 0.6rem;
+}
+
+.subtitle {
+  color: var(--gray-1);
+  font-size: 1.05rem;
+  margin-top: 0;
+}
+
+a { color: var(--blue); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { color: var(--violet); }
+
+strong { color: var(--ink); }
+.muted { color: var(--gray-2); }
+
+/* ---- Code ---- */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--gray-4);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+pre {
+  background: #14181d;
+  color: #e8eaed;
+  padding: 1rem 1.2rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+pre .c { color: #8b949e; }        /* comment */
+pre .k { color: #ffa657; }        /* keyword/flag */
+pre .s { color: #a5d6ff; }        /* string/path */
+pre .hl { background: rgba(255, 236, 153, 0.18); display: inline-block; width: 100%; }
+
+/* ---- Citations to source files ---- */
+.src {
+  font-family: var(--font-mono);
+  font-size: 0.78em;
+  color: var(--gray-2);
+  white-space: nowrap;
+}
+
+/* ---- Callouts ---- */
+.callout {
+  border-left: 4px solid var(--blue);
+  background: var(--paper-warm);
+  padding: 0.8rem 1.1rem;
+  margin: 1.2rem 0;
+  border-radius: 0 6px 6px 0;
+}
+.callout.warn { border-color: var(--orange); }
+.callout.key { border-color: var(--violet); background: #fdf9ff; }
+.callout p:first-child { margin-top: 0; }
+.callout p:last-child { margin-bottom: 0; }
+.callout-title {
+  font-family: var(--font-ui);
+  font-weight: 650;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+.callout .callout-title { color: var(--blue); }
+.callout.warn .callout-title { color: var(--orange); }
+.callout.key .callout-title { color: var(--violet); }
+
+mark {
+  background: var(--fill-yellow);
+  padding: 0.05em 0.25em;
+  border-radius: 2px;
+}
+
+/* ---- Tables ---- */
+table { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: 0.95rem; }
+th, td { text-align: left; padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--gray-4); vertical-align: top; }
+th { font-family: var(--font-ui); font-size: 0.82rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--gray-1); }
+
+/* ---- Retrieval practice: think-then-reveal (native <details>) ---- */
+details.recall {
+  border: 1.5px dashed var(--gray-3);
+  border-radius: 6px;
+  padding: 0.7rem 1rem;
+  margin: 1rem 0;
+  background: var(--paper-warm);
+}
+details.recall summary {
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+details.recall summary::marker { color: var(--violet); }
+details.recall[open] { border-style: solid; border-color: var(--fill-violet); }
+details.recall > *:not(summary) { margin-top: 0.6rem; }
+
+/* ---- Quiz (behavior in quiz.js) ---- */
+.quiz {
+  border: 1.5px solid var(--gray-3);
+  border-radius: 8px;
+  padding: 1.1rem 1.3rem;
+  margin: 1.4rem 0;
+  background: var(--paper-warm);
+}
+.quiz-q { font-family: var(--font-ui); font-weight: 650; margin: 0 0 0.8rem; }
+.quiz-opt {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  padding: 0.55rem 0.9rem;
+  margin: 0.4rem 0;
+  background: var(--paper);
+  border: 1.5px solid var(--gray-3);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.quiz-opt:hover:not(:disabled) { border-color: var(--blue); }
+.quiz-opt.correct { border-color: var(--green); background: var(--fill-green); }
+.quiz-opt.wrong { border-color: var(--red); background: var(--fill-red); }
+.quiz-opt:disabled { cursor: default; }
+.quiz-feedback {
+  margin: 0.7rem 0 0;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+  display: none;
+}
+.quiz-feedback.show { display: block; }
+.quiz-feedback::before {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  margin-right: 0.4em;
+}
+.quiz-feedback.ok::before { content: '✓ Так.'; color: var(--green); }
+.quiz-feedback.no::before { content: '✗ Ні.'; color: var(--red); }
+
+/* ---- Diagram figures ---- */
+figure { margin: 1.5rem 0; text-align: center; }
+figure img, figure svg { max-width: 100%; }
+figcaption { font-size: 0.85rem; color: var(--gray-2); margin-top: 0.5rem; font-family: var(--font-ui); }
+
+/* ---- Lesson footer nav ---- */
+.lesson-nav {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--gray-4);
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ask-teacher {
+  background: var(--fill-blue);
+  border-radius: 6px;
+  padding: 0.7rem 1rem;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  margin-top: 2rem;
+}
+
+/* ---- Print ---- */
+@media print {
+  html { background: #fff; }
+  body { box-shadow: none; margin: 0; max-width: none; padding: 0.5in; }
+  .quiz, .ask-teacher, .lesson-nav { display: none; }
+  details.recall { border: none; padding: 0; }
+  details.recall summary { display: none; }
+  pre { background: #f6f8fa; color: var(--ink); border: 1px solid var(--gray-3); }
+  pre .c { color: var(--gray-2); }
+  pre .k { color: var(--orange); }
+  pre .s { color: var(--blue); }
+}

@@ -1,0 +1,7 @@
+# Учень самостійно вивів різницю «артефакт vs apply»
+
+Під час live-експериментів учень сам помітив: `proposal` — це артефакт, а `apply` такого артефакта в схемі немає. Тобто дійшов до головної структурної асиметрії OpenSpec без підказки: `artifacts:` — це список вузлів DAG (кожен = файл, який треба створити, з `generates`/`template`), а `apply:` — окремий top-level блок-сусід, що описує дію над готовими файлами (має `requires`/`tracks`/`instruction`, але не `generates`). Підтверджено сирцями: коментар у `src/cli/index.ts:515` «apply is not an artifact, but a command», окремий диспатч на `applyInstructionsCommand` vs `instructionsCommand`.
+
+**Evidence**: пряме питання учня «proposal це артефакт, але є ж ще apply і такого артефакту немає» — сформульоване як власне спостереження, не запит визначення.
+
+**Implications**: учень готовий до уроку 3 — `apply.instruction` як єдина точка входу схеми у фазу написання коду, і тому єдине правильне місце для інжекції TDD у голому OpenSpec (config-rules туди не доходять — доведено емпірично в експ. 6 уроку 2). Далі: відредагувати `apply.instruction` форку руками (додати TDD-крок), перевірити через `instructions apply`, і лише потім показати, як те саме робить superpowers-bridge. Також засвоєно (питання цієї сесії): дефолтна схема резолвиться `.openspec.yaml → config.yaml → 'spec-driven'`; built-in schema.yaml зашитий у npm-пакеті, форк = `cp -r` у `openspec/schemas/`.
