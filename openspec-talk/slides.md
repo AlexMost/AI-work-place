@@ -203,6 +203,10 @@ Note:
 
 ---
 
+## /opsx:propose -> /opsx:apply -> /opsx:verify -> /opsx:archive
+
+---
+
 # /opsx:propose
 
 ![openspec-propose.png](img/openspec-propose.png)
