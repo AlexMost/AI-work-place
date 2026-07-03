@@ -646,7 +646,7 @@ STANDINGS_TEMPLATE = r"""<!doctype html>
   #board.collapsed h2{margin-bottom:0}
   .row{display:flex; align-items:center; gap:8px; padding:4px 2px; font-size:14px}
   .row .pos{width:18px; text-align:right; color:var(--text-dim); font-variant-numeric:tabular-nums}
-  .row .dot{width:10px; height:10px; border-radius:50%; flex:0 0 auto; box-shadow:0 0 8px currentColor}
+  .row .dot{width:10px; height:10px; border-radius:50%; flex:0 0 auto; background:currentColor; box-shadow:0 0 8px currentColor}
   .row .nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .row .pts{font-variant-numeric:tabular-nums; font-weight:700}
   .row .arr{width:14px; text-align:center; font-size:11px}
@@ -866,25 +866,39 @@ requestAnimationFrame(frame);
 
 (async function init3D(){
   if (!NSTEP) return;
-  let THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass;
+  let THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, OutputPass, BGU;
   try {
     THREE = await import('three');
     ({ OrbitControls } = await import('three/addons/controls/OrbitControls.js'));
     ({ EffectComposer } = await import('three/addons/postprocessing/EffectComposer.js'));
     ({ RenderPass } = await import('three/addons/postprocessing/RenderPass.js'));
     ({ UnrealBloomPass } = await import('three/addons/postprocessing/UnrealBloomPass.js'));
+    ({ OutputPass } = await import('three/addons/postprocessing/OutputPass.js'));
+    BGU = await import('three/addons/utils/BufferGeometryUtils.js');
   } catch (e){
     // No WebGL / offline: the 2D leaderboard + scrubber already work. Hint at canvas.
     document.getElementById('scene').style.background =
       'radial-gradient(80% 60% at 50% 30%, rgba(52,225,255,.10), transparent 70%)';
     return;
   }
+  const isMobile = matchMedia('(pointer:coarse)').matches;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let dprCap = isMobile ? 1.5 : 2;
+
   const canvas = document.getElementById('scene');
-  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio, dprCap));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+  let shadowsOn = !isMobile;
+  if (shadowsOn){ renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; }
+
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 500);
-  // side view from -Z: start on the left, finish on the right, runners run rightwards.
+  scene.background = new THREE.Color(0x070b18);
+  scene.fog = new THREE.FogExp2(0x070b18, 0.0055);
+
+  const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 700);
+  // side view from +Z: start on the left, finish on the right, runners run rightwards.
   // (fixed side, no auto-spin, so floor phase labels never read mirrored)
   const portrait = innerHeight > innerWidth;
   const CAM = portrait ? {dx:-6, y:30, z:40} : {dx:-12, y:18, z:50};
@@ -901,66 +915,243 @@ requestAnimationFrame(frame);
   controls.addEventListener('start', () => { userInteracting = true; });
   controls.addEventListener('end',   () => { userInteracting = false; });
 
-  scene.add(new THREE.AmbientLight(0x9fb6d8, 1.6)); // floodlit-evening fill so the grass reads green
-  const key = new THREE.PointLight(0x66ccff, 0.6, 0, 2); key.position.set(20,40,30); scene.add(key);
+  // ---- lighting rig: floodlit night match -----------------------------------
+  scene.add(new THREE.AmbientLight(0x243252, 0.7));
+  scene.add(new THREE.HemisphereLight(0x2a3a66, 0x0d3d20, 0.8));
+  let sun = null;
+  if (shadowsOn){
+    sun = new THREE.DirectionalLight(0xbcd6ff, 1.7);
+    sun.position.set(TRACK_LEN*0.5 + 14, 38, 26);
+    sun.target.position.set(TRACK_LEN*0.5, 0, 0);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    const sc = sun.shadow.camera;
+    sc.near = 5; sc.far = 130; sc.left = -46; sc.right = 46; sc.top = 34; sc.bottom = -30;
+    sun.shadow.bias = -0.0006;
+    scene.add(sun, sun.target);
+  }
 
-  // stadium pitch (XZ plane: X = points/track, Z = lanes) — green turf instead of an abstract grid
   const FIELD_HALF = PLAYERS.length*LANE_GAP/2 + 3; // half-depth of the playing surface in Z
   const FIELD_X0 = -6, FIELD_X1 = TRACK_LEN + 6;
+  const GOAL_HALF = 4.0, GOAL_H = 3.4, POST_R = 0.13, GOAL_OFF = 6.0;
+
+  // ---- turf with baked mowing stripes (one texture, one draw call) ----------
+  function turfTexture(){
+    const W = 1024, H = 256;
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d');
+    x.fillStyle = '#0c6a30'; x.fillRect(0, 0, W, H);
+    const STR = 16, sw = W/STR;
+    for (let i = 0; i < STR; i++){
+      x.fillStyle = i%2 ? 'rgba(46,178,92,.30)' : 'rgba(6,66,28,.34)';
+      x.fillRect(i*sw, 0, sw, H);
+    }
+    // soft dark vignette toward the touchlines so the pitch reads lit from above
+    const gr = x.createLinearGradient(0, 0, 0, H);
+    gr.addColorStop(0, 'rgba(4,10,8,.42)'); gr.addColorStop(.28, 'rgba(4,10,8,0)');
+    gr.addColorStop(.72, 'rgba(4,10,8,0)'); gr.addColorStop(1, 'rgba(4,10,8,.42)');
+    x.fillStyle = gr; x.fillRect(0, 0, W, H);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+    return tex;
+  }
   const turf = new THREE.Mesh(
     new THREE.PlaneGeometry(FIELD_X1 - FIELD_X0, FIELD_HALF*2),
-    new THREE.MeshBasicMaterial({color:0x0f7a37}));
-  turf.rotation.x = -Math.PI/2; turf.position.set((FIELD_X0+FIELD_X1)/2, -0.01, 0); scene.add(turf);
-  // mowing stripes along X — alternating shades read as a manicured pitch (no white line markings)
-  function pitchStripe(x0, x1, shade){
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(x1-x0, FIELD_HALF*2),
-      new THREE.MeshBasicMaterial({color:shade, transparent:true, opacity:0.18, depthWrite:false}));
-    m.rotation.x = -Math.PI/2; m.position.set((x0+x1)/2, 0.0, 0); scene.add(m);
-  }
-  const STRIPES = 16, sw0 = (FIELD_X1-FIELD_X0)/STRIPES;
-  for (let i=0;i<STRIPES;i++){ pitchStripe(FIELD_X0+i*sw0, FIELD_X0+(i+1)*sw0, i%2 ? 0x1c9a4a : 0x0a5f2a); }
+    new THREE.MeshStandardMaterial({map: turfTexture(), roughness: .82, metalness: 0}));
+  turf.rotation.x = -Math.PI/2; turf.position.set((FIELD_X0+FIELD_X1)/2, -0.01, 0);
+  turf.receiveShadow = shadowsOn; scene.add(turf);
+  // apron: dark ground plane far beyond the pitch so the bowl never floats on the void
+  const apron = new THREE.Mesh(new THREE.PlaneGeometry(560, 560),
+    new THREE.MeshLambertMaterial({color: 0x0a1022}));
+  apron.rotation.x = -Math.PI/2; apron.position.set(TRACK_LEN/2, -0.06, 0); scene.add(apron);
 
-  // raked seating tiers — boxes stepping up and outward. The camera is fixed on the +Z
-  // touchline, so the far side (-Z) gets the tall main grandstand and the near side only
-  // low boards, otherwise the near stand would wall off the runners.
-  function stand(side, tiers, hScale){ // side = +1 / -1 along Z
-    const baseZ = FIELD_HALF + 2.5;
-    for (let i=0;i<tiers;i++){
-      const h = (2 + i*1.6)*hScale;
-      const t = new THREE.Mesh(
-        new THREE.BoxGeometry(TRACK_LEN*1.15, h, 3),
-        new THREE.MeshBasicMaterial({color: i%2 ? 0x1a2748 : 0x223255}));
-      t.position.set(TRACK_LEN/2, h/2 + i*1.2*hScale, side*(baseZ + i*2.6));
-      scene.add(t);
+  // ---- stadium bowl: merged tiers + seat positions for the crowd ------------
+  const tierGeosA = [], tierGeosB = [], seatPts = [];
+  const seatStep = isMobile ? 1.7 : 0.85;
+  const _m = new THREE.Matrix4();
+  function tierBox(w, h, d, x, y, z, rotY, alt){
+    const g = new THREE.BoxGeometry(w, h, d);
+    _m.makeRotationY(rotY); g.applyMatrix4(_m);
+    _m.makeTranslation(x, y, z); g.applyMatrix4(_m);
+    (alt ? tierGeosB : tierGeosA).push(g);
+  }
+  function seatsOnTier(w, x, yTop, z, rotY){
+    for (let row = 0; row < 2; row++){
+      const lz = -0.75 + row*1.05;
+      for (let lx = -w/2 + 1; lx <= w/2 - 1; lx += seatStep){
+        const cos = Math.cos(rotY), sin = Math.sin(rotY);
+        seatPts.push(x + lx*cos + lz*sin, yTop, z - lx*sin + lz*cos);
+      }
     }
   }
-  stand(-1, 4, 1.0);  // main grandstand across the pitch (far side only — the near side is
-                      // left open so the camera's view of the runners is never walled off)
+  function bowlSide(rotY, cx, cz, tiers, hScale, len){
+    for (let i = 0; i < tiers; i++){
+      const h = (2 + i*1.6)*hScale, off = i*2.6;
+      const wx = cx + off*Math.sin(rotY), wz = cz + off*Math.cos(rotY);
+      const y = h/2 + i*1.2*hScale;
+      tierBox(len, h, 3, wx, y, wz, rotY, i%2 === 1);
+      seatsOnTier(len, wx, y + h/2 + 0.30, wz, rotY);
+    }
+  }
+  const BOWL_Z = FIELD_HALF + 2.5;
+  bowlSide(Math.PI,    TRACK_LEN/2, -BOWL_Z, 5, 1.05, TRACK_LEN*1.30); // main grandstand (far)
+  bowlSide(0,          TRACK_LEN/2,  BOWL_Z, 2, 0.55, TRACK_LEN*1.15); // low near stand
+  bowlSide(Math.PI/2,  TRACK_LEN + GOAL_OFF + 17, 0, 3, 0.8, FIELD_HALF*2 + 14); // finish end
+  bowlSide(-Math.PI/2, -(GOAL_OFF + 17),          0, 3, 0.8, FIELD_HALF*2 + 14); // start end
+  const merge = BGU.mergeGeometries || BGU.mergeBufferGeometries;
+  const bowlA = new THREE.Mesh(merge(tierGeosA), new THREE.MeshLambertMaterial({color: 0x223255}));
+  const bowlB = new THREE.Mesh(merge(tierGeosB), new THREE.MeshLambertMaterial({color: 0x1a2748}));
+  scene.add(bowlA, bowlB);
+  // roof slab + glowing edge strip over the main grandstand — night-match signature
+  const roofY = 15.6, roofZ = -(BOWL_Z + 4*2.6*0.5 + 3.5);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(TRACK_LEN*1.32, 0.4, 12),
+    new THREE.MeshLambertMaterial({color: 0x141d38}));
+  roof.position.set(TRACK_LEN/2, roofY, roofZ); scene.add(roof);
+  const roofStrip = new THREE.Mesh(new THREE.BoxGeometry(TRACK_LEN*1.32, 0.22, 0.22),
+    new THREE.MeshStandardMaterial({color: 0x101a33, emissive: 0x9fc4ff, emissiveIntensity: 2.2}));
+  roofStrip.position.set(TRACK_LEN/2, roofY - 0.28, roofZ + 6.05); scene.add(roofStrip);
 
-  // floodlight pylons at the four corners — glowing heads + point lights for a night-match feel
+  // ---- instanced crowd: shader-animated, zero per-frame CPU -----------------
+  const crowdN = Math.floor(seatPts.length/3);
+  const crowdUni = { uTime: {value: 0}, uJump: {value: 0} };
+  let crowd = null;
+  if (crowdN > 0){
+    const cg = new THREE.IcosahedronGeometry(0.42, 0);
+    cg.scale(1, 1.55, 1); cg.translate(0, 0.55, 0);
+    const phases = new Float32Array(crowdN);
+    for (let i = 0; i < crowdN; i++) phases[i] = Math.random();
+    cg.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phases, 1));
+    const cm = new THREE.MeshLambertMaterial({flatShading: true});
+    cm.onBeforeCompile = (sh)=>{
+      sh.uniforms.uTime = crowdUni.uTime;
+      sh.uniforms.uJump = crowdUni.uJump;
+      sh.vertexShader = sh.vertexShader
+        .replace('#include <common>',
+          '#include <common>\nattribute float aPhase;\nuniform float uTime;\nuniform float uJump;')
+        .replace('#include <begin_vertex>',
+          ['#include <begin_vertex>',
+           'float _sway = 0.05*sin(uTime*2.2 + aPhase*17.0);',
+           'float _jump = uJump*(0.55*abs(sin(uTime*6.0 + aPhase*6.2831))',
+           '  + 0.12*sin(uTime*2.0 - instanceMatrix[3][0]*0.14));',
+           'transformed.y += _sway + _jump;'].join('\n'));
+    };
+    cm.customProgramCacheKey = ()=>'crowd-v2';
+    crowd = new THREE.InstancedMesh(cg, cm, crowdN);
+    const dark = [0x2b3a63, 0x35466f, 0x22304f, 0x3d2f55, 0x2f4358];
+    const neon = PLAYERS.map(p=>p.color);
+    const c = new THREE.Color(); const m4 = new THREE.Matrix4();
+    for (let i = 0; i < crowdN; i++){
+      m4.makeTranslation(seatPts[i*3], seatPts[i*3+1], seatPts[i*3+2]);
+      crowd.setMatrixAt(i, m4);
+      if (Math.random() < 0.10) c.set(neon[(Math.random()*neon.length)|0]).multiplyScalar(0.6);
+      else c.setHex(dark[(Math.random()*dark.length)|0]);
+      crowd.setColorAt(i, c);
+    }
+    crowd.instanceMatrix.needsUpdate = true;
+    if (crowd.instanceColor) crowd.instanceColor.needsUpdate = true;
+    scene.add(crowd);
+  }
+
+  // ---- floodlight pylons: emissive heads + spot cones ------------------------
+  const PZ = FIELD_HALF + 11;
   function pylon(x, z){
     const mast = new THREE.Mesh(new THREE.BoxGeometry(0.5, 26, 0.5),
-      new THREE.MeshBasicMaterial({color:0x2a3a6a}));
+      new THREE.MeshLambertMaterial({color: 0x2a3a6a}));
     mast.position.set(x, 13, z); scene.add(mast);
     const head = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.0, 0.5),
-      new THREE.MeshBasicMaterial({color:0xcfe8ff})); // bright -> caught by bloom
-    head.position.set(x, 26.2, z); scene.add(head);
-    const lamp = new THREE.PointLight(0xfff2d8, 0.45, 140, 2); lamp.position.set(x, 24, z*0.7); scene.add(lamp);
+      new THREE.MeshStandardMaterial({color: 0x0c1224, emissive: 0xe8f3ff, emissiveIntensity: 2.6}));
+    head.position.set(x, 26.2, z); head.lookAt(TRACK_LEN/2, 0, 0); scene.add(head);
+    const aim = new THREE.Vector3(x*0.55 + TRACK_LEN*0.22, 0, 0);
+    const s = new THREE.SpotLight(0xfff2d8, 2600, 0, 0.52, 0.65, 2);
+    s.position.set(x, 25, z); s.target.position.copy(aim);
+    scene.add(s, s.target);
+    // faint additive cone from head to pitch — fake volumetric shaft
+    const src = new THREE.Vector3(x, 25, z);
+    const len = src.distanceTo(aim);
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(8, len, 20, 1, true),
+      new THREE.MeshBasicMaterial({color: 0x9fc0ee, transparent: true, opacity: 0.028,
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false}));
+    cone.position.copy(src.clone().add(aim).multiplyScalar(0.5));
+    cone.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), src.clone().sub(aim).normalize());
+    scene.add(cone);
   }
-  const PZ = FIELD_HALF + 9;
-  pylon(2, PZ); pylon(2, -PZ); pylon(TRACK_LEN-2, PZ); pylon(TRACK_LEN-2, -PZ);
+  pylon(-2, PZ); pylon(-2, -PZ); pylon(TRACK_LEN+2, PZ); pylon(TRACK_LEN+2, -PZ);
 
-  // small football goals at the start and finish lines — just the white frame (posts + crossbar),
-  // centred on the track. The leader curls the ball into the finish frame at the end of the race.
-  const GOAL_HALF = 4.0, GOAL_H = 3.4, POST_R = 0.13, GOAL_OFF = 6.0; // sit beyond the group zones, with room for the shot to read
-  function goal(gx){
-    const white = new THREE.MeshBasicMaterial({color:0xffffff}); // bright -> bloom glow
-    function post(z){ const m = new THREE.Mesh(new THREE.CylinderGeometry(POST_R, POST_R, GOAL_H, 10), white); m.position.set(gx, GOAL_H/2, z); scene.add(m); }
-    post(GOAL_HALF); post(-GOAL_HALF);
-    const cross = new THREE.Mesh(new THREE.CylinderGeometry(POST_R, POST_R, GOAL_HALF*2, 10), white);
-    cross.rotation.x = Math.PI/2; cross.position.set(gx, GOAL_H, 0); scene.add(cross);
+  // ---- night sky: stars + horizon glows --------------------------------------
+  {
+    const N = 1200, pos = new Float32Array(N*3);
+    for (let i = 0; i < N; i++){
+      const a = Math.random()*Math.PI*2, e = Math.random()*Math.PI*0.42 + 0.06, R = 420;
+      pos[i*3]   = TRACK_LEN/2 + R*Math.cos(e)*Math.cos(a);
+      pos[i*3+1] = R*Math.sin(e);
+      pos[i*3+2] = R*Math.cos(e)*Math.sin(a);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const stars = new THREE.Points(g, new THREE.PointsMaterial({color: 0xcfe0ff, size: 1.7,
+      sizeAttenuation: true, transparent: true, opacity: 0.8, fog: false}));
+    stars.frustumCulled = false; scene.add(stars);
+    function glowSprite(hex, x, y, z, s){
+      const c = document.createElement('canvas'); c.width = c.height = 128;
+      const ctx = c.getContext('2d');
+      const gr = ctx.createRadialGradient(64,64,0, 64,64,64);
+      gr.addColorStop(0, hex); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gr; ctx.fillRect(0,0,128,128);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({map: new THREE.CanvasTexture(c),
+        transparent: true, opacity: 0.20, blending: THREE.AdditiveBlending, depthWrite: false, fog: false}));
+      sp.position.set(x, y, z); sp.scale.setScalar(s); scene.add(sp);
+    }
+    glowSprite('rgba(52,225,255,.85)',  -80, 18, -60, 190);
+    glowSprite('rgba(255,78,213,.75)', TRACK_LEN + 90, 14, -70, 170);
   }
-  goal(-GOAL_OFF); goal(TRACK_LEN + GOAL_OFF);
+
+  // ---- goals: glowing frames + nets that ripple ------------------------------
+  const postMat = new THREE.MeshStandardMaterial({color: 0x151a28, emissive: 0xffffff, emissiveIntensity: 1.35});
+  const nets = []; // {seg, base, pos, dir, ripT}
+  function goal(gx, dir){
+    function post(z){
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(POST_R, POST_R, GOAL_H, 10), postMat);
+      m.position.set(gx, GOAL_H/2, z); scene.add(m);
+    }
+    post(GOAL_HALF); post(-GOAL_HALF);
+    const cross = new THREE.Mesh(new THREE.CylinderGeometry(POST_R, POST_R, GOAL_HALF*2, 10), postMat);
+    cross.rotation.x = Math.PI/2; cross.position.set(gx, GOAL_H, 0); scene.add(cross);
+    // net: sloped back panel as a line grid; sags from the crossbar down and back
+    const NZ = 13, NY = 9, verts = [];
+    const nodeAt = (iz, iy) => {
+      const z = -GOAL_HALF + (iz/(NZ-1))*GOAL_HALF*2;
+      const y = (iy/(NY-1))*GOAL_H;
+      const x = gx + dir*(0.35 + (1 - y/GOAL_H)*1.6);
+      return [x, y, z];
+    };
+    for (let iz = 0; iz < NZ; iz++) for (let iy = 0; iy < NY-1; iy++)
+      verts.push(...nodeAt(iz, iy), ...nodeAt(iz, iy+1));
+    for (let iy = 0; iy < NY; iy++) for (let iz = 0; iz < NZ-1; iz++)
+      verts.push(...nodeAt(iz, iy), ...nodeAt(iz+1, iy));
+    const pos = new Float32Array(verts);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const seg = new THREE.LineSegments(g,
+      new THREE.LineBasicMaterial({color: 0xdfe8ff, transparent: true, opacity: 0.34}));
+    seg.frustumCulled = false; scene.add(seg);
+    nets.push({seg, base: pos.slice(), pos, dir, gx, ripT: Infinity});
+  }
+  goal(-GOAL_OFF, -1); goal(TRACK_LEN + GOAL_OFF, +1);
+  const goalFlash = new THREE.PointLight(0xffffff, 0, 40, 2);
+  goalFlash.position.set(TRACK_LEN + GOAL_OFF, 2.2, 0); scene.add(goalFlash);
+  function updateNets(dt){
+    for (const n of nets){
+      if (n.ripT > 1.6) continue;
+      n.ripT += dt/1000;
+      const T = Math.min(n.ripT, 1.6), decay = Math.exp(-2.6*T);
+      for (let i = 0; i < n.pos.length; i += 3){
+        const dy = n.base[i+1] - 1.7, dz = n.base[i+2];
+        const d = Math.hypot(dy, dz);
+        n.pos[i] = n.base[i] + n.dir * decay * 0.55 * Math.sin(d*3.2 - T*16) / (1 + d*d*0.35);
+      }
+      n.seg.geometry.attributes.position.needsUpdate = true;
+    }
+  }
 
   function labelSprite(text, color){
     const c = document.createElement('canvas'); c.width=256; c.height=64;
@@ -969,7 +1160,7 @@ requestAnimationFrame(frame);
     x.lineWidth=5; x.strokeStyle='rgba(5,8,18,0.92)'; x.strokeText(text,128,34);
     x.fillStyle=color; x.fillText(text,128,34);
     const tex = new THREE.CanvasTexture(c); tex.anisotropy=4;
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true, depthWrite:false}));
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true, depthWrite:false, toneMapped:false}));
     sp.scale.set(5.5,1.375,1); return sp; // keep 4:1 aspect; smaller so names don't cover the ball
   }
 
@@ -986,7 +1177,7 @@ requestAnimationFrame(frame);
     const tex=new THREE.CanvasTexture(c); tex.anisotropy=4;
     let Wm=tw/22; if(maxW) Wm=Math.min(Wm, maxW);
     const m=new THREE.Mesh(new THREE.PlaneGeometry(Wm, Wm*64/tw),
-      new THREE.MeshBasicMaterial({map:tex, transparent:true, opacity:0.5, depthWrite:false}));
+      new THREE.MeshBasicMaterial({map:tex, transparent:true, opacity:0.5, depthWrite:false, toneMapped:false}));
     m.rotation.x=-Math.PI/2; // lay flat on the ground (XZ plane)
     return m;
   }
@@ -996,48 +1187,106 @@ requestAnimationFrame(frame);
   (DATA.bands||[]).forEach(b=>{
     const x0=xOf(b.from), x1=xOf(b.to), w=Math.max(x1-x0, 0.2), col=new THREE.Color(b.color);
     const zone=new THREE.Mesh(new THREE.PlaneGeometry(w, LANE_SPAN),
-      new THREE.MeshBasicMaterial({color:col, transparent:true, opacity:0.14, depthWrite:false}));
+      new THREE.MeshBasicMaterial({color:col, transparent:true, opacity:0.10, depthWrite:false, toneMapped:false}));
     zone.rotation.x=-Math.PI/2; zone.position.set((x0+x1)/2, 0.02, 0); scene.add(zone);
     const line=new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.05, LANE_SPAN),
-      new THREE.MeshBasicMaterial({color:col, transparent:true, opacity:0.55}));
+      new THREE.MeshBasicMaterial({color:col, transparent:true, opacity:0.45, toneMapped:false}));
     line.position.set(x1, 0.06, 0); scene.add(line);
     const lbl=floorText(b.label, b.color, w*0.92);
     lbl.position.set((x0+x1)/2, 0.08, LANE_SPAN/2 - 1.6); scene.add(lbl);
   });
 
-  // a neon stick-runner built from primitives — faces +X (down the track);
-  // limbs hang from hip/shoulder pivots and swing around Z for the run cycle.
+  // ---- runners v2: jointed neon figures (knees, elbows, jersey + shorts) -----
   function makeRunner(color){
-    const mat = new THREE.MeshBasicMaterial({color:new THREE.Color(color)});
+    const col = new THREE.Color(color);
+    const dark = col.clone().multiplyScalar(0.20);
+    const jersey = new THREE.MeshStandardMaterial({color: dark, emissive: col, emissiveIntensity: 1.12, roughness: .45});
+    const limbM  = new THREE.MeshStandardMaterial({color: dark, emissive: col, emissiveIntensity: 0.78, roughness: .5});
+    const shorts = new THREE.MeshStandardMaterial({color: 0x0e1428, emissive: 0x1b2748, emissiveIntensity: .5, roughness: .7});
     const g = new THREE.Group();
-    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.26, 0.7, 4, 8), mat);
-    torso.position.y = 1.25; g.add(torso);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.30, 16, 16), mat);
-    head.position.y = 1.95; g.add(head);
-    function limb(py, len, r, z){
-      const pivot = new THREE.Group(); pivot.position.set(0, py, z);
-      const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 4, 6), mat);
-      m.position.y = -(len/2 + r); pivot.add(m); g.add(pivot); return pivot;
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.26, 0.55, 4, 10), jersey);
+    torso.position.y = 1.36; g.add(torso);
+    const hips = new THREE.Mesh(new THREE.CapsuleGeometry(0.235, 0.16, 4, 8), shorts);
+    hips.position.y = 0.98; g.add(hips);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 14, 12), jersey);
+    head.position.y = 1.98; g.add(head);
+    function limb2(py, pz, upLen, loLen, r){
+      const hip = new THREE.Group(); hip.position.set(0, py, pz); g.add(hip);
+      const upper = new THREE.Mesh(new THREE.CapsuleGeometry(r, upLen, 3, 6), limbM);
+      upper.position.y = -(upLen/2 + r); hip.add(upper);
+      const knee = new THREE.Group(); knee.position.y = -(upLen + r*1.4); hip.add(knee);
+      const lower = new THREE.Mesh(new THREE.CapsuleGeometry(r*0.85, loLen, 3, 6), limbM);
+      lower.position.y = -(loLen/2 + r*0.85); knee.add(lower);
+      return {hip, knee};
     }
-    const legL = limb(0.95, 0.7, 0.12,  0.15), legR = limb(0.95, 0.7, 0.12, -0.15);
-    const armL = limb(1.6,  0.55, 0.09,  0.30), armR = limb(1.6,  0.55, 0.09, -0.30);
-    g.rotation.z = -0.08; // slight forward lean into the run
+    const legL = limb2(0.92,  0.15, 0.30, 0.34, 0.115);
+    const legR = limb2(0.92, -0.15, 0.30, 0.34, 0.115);
+    const armL = limb2(1.66,  0.33, 0.27, 0.28, 0.085);
+    const armR = limb2(1.66, -0.33, 0.27, 0.28, 0.085);
     g.scale.setScalar(1.3);
+    if (shadowsOn) g.traverse(o => { if (o.isMesh) o.castShadow = true; });
     return {g, legL, legR, armL, armR};
   }
 
-  const TRAIL = 90;
-  const runners = PLAYERS.map((p,i)=>{
-    const col = new THREE.Color(p.color);
+  // blob shadows for mobile (real shadow maps are desktop-only)
+  let blobTex = null;
+  function blobShadow(sz){
+    if (!blobTex){
+      const c = document.createElement('canvas'); c.width = c.height = 64;
+      const ctx = c.getContext('2d');
+      const gr = ctx.createRadialGradient(32,32,2, 32,32,30);
+      gr.addColorStop(0, 'rgba(0,0,0,.42)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gr; ctx.fillRect(0,0,64,64);
+      blobTex = new THREE.CanvasTexture(c);
+    }
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(sz, sz),
+      new THREE.MeshBasicMaterial({map: blobTex, transparent: true, depthWrite: false, toneMapped: false}));
+    m.rotation.x = -Math.PI/2; m.position.y = 0.03; m.renderOrder = 1;
+    scene.add(m); return m;
+  }
+
+  // ---- ribbon trails: additive, alpha fades to nothing at the tail -----------
+  const TRAIL = 110, TRAIL_HW = 0.27;
+  function makeTrail(color){
+    const positions = new Float32Array(TRAIL*2*3);
+    const alphas = new Float32Array(TRAIL*2);
+    for (let i = 0; i < TRAIL; i++){
+      const a = Math.pow(i/(TRAIL-1), 1.7)*0.7;
+      alphas[i*2] = a; alphas[i*2+1] = a;
+    }
+    const idx = new Uint16Array((TRAIL-1)*6);
+    for (let i = 0; i < TRAIL-1; i++){
+      const o = i*6, v = i*2;
+      idx[o]=v; idx[o+1]=v+1; idx[o+2]=v+2; idx[o+3]=v+1; idx[o+4]=v+3; idx[o+5]=v+2;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1));
+    geo.setIndex(new THREE.BufferAttribute(idx, 1));
+    geo.setDrawRange(0, 0);
+    const col = new THREE.Color(color);
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {uColor: {value: new THREE.Vector3(col.r*2.1, col.g*2.1, col.b*2.1)}},
+      vertexShader: 'attribute float aAlpha; varying float vA;\n' +
+        'void main(){ vA = aAlpha; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+      fragmentShader: 'uniform vec3 uColor; varying float vA;\n' +
+        'void main(){ gl_FragColor = vec4(uColor*vA, vA); }',
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide});
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.frustumCulled = false; scene.add(mesh);
+    return {mesh, positions};
+  }
+
+  const runners = PLAYERS.map((p, i)=>{
     const rn = makeRunner(p.color);
-    const label = labelSprite(p.name, p.color); label.position.set(0,2.9,0); rn.g.add(label);
-    scene.add(rn.g);
-    const positions = new Float32Array(TRAIL*3);
-    const tgeo = new THREE.BufferGeometry();
-    tgeo.setAttribute('position', new THREE.BufferAttribute(positions,3));
-    const trail = new THREE.Line(tgeo, new THREE.LineBasicMaterial({color:col, transparent:true, opacity:0.5}));
-    trail.frustumCulled = false; scene.add(trail);
-    return {p, rn, trail, positions, filled:0, phase:i*0.7};
+    // the label lives in the scene, not on the runner — riding the rig would inherit
+    // the run-cycle bob and body roll and read as text jitter
+    const label = labelSprite(p.name, p.color);
+    label.scale.multiplyScalar(1.3); label.position.set(0, 3.77, 0);
+    scene.add(rn.g, label);
+    const trail = makeTrail(p.color);
+    const blob = shadowsOn ? null : blobShadow(2.0);
+    return {p, rn, label, labelY: 3.77, trail, blob, filled: 0, phase: i*0.7, lastX: null, lean: 0.10};
   });
 
   // football dribbled in front of whoever currently leads the race — a white sphere with
@@ -1045,8 +1294,10 @@ requestAnimationFrame(frame);
   const BALL_R = 0.45, BALL_AHEAD = 1.4;
   function makeBall(){
     const g = new THREE.Group();
-    g.add(new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 24, 24),
-      new THREE.MeshBasicMaterial({color:0xffffff})));
+    const core = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 24, 24),
+      new THREE.MeshStandardMaterial({color: 0xffffff, roughness: .32, metalness: 0}));
+    if (shadowsOn) core.castShadow = true;
+    g.add(core);
     const PHI = 1.618033988749895;
     const verts = [[0,1,PHI],[0,1,-PHI],[0,-1,PHI],[0,-1,-PHI],
       [1,PHI,0],[1,-PHI,0],[-1,PHI,0],[-1,-PHI,0],
@@ -1062,25 +1313,128 @@ requestAnimationFrame(frame);
     return g;
   }
   const ball = makeBall(); ball.visible = false; scene.add(ball);
+  const ballBlob = shadowsOn ? null : blobShadow(1.2);
+  if (ballBlob) ballBlob.visible = false;
   let ballX = null, ballZ = 0;      // ball's own glided position (lags the leader -> reads as a pass)
   let lastBX = 0, lastBZ = 0;       // previous frame position, for roll
   let shotProg = 0, shotFromX = 0, shotFromZ = 0; // finish-line shot into the net (0..1)
   let celebrate = 0;                // 0..1 ramp: crowd goes wild once the ball is through the goal
 
+  // ---- confetti pool: ballistic particles fully integrated in the shader -----
+  const CONF_N = 620, CONF_LIFE = 3.2;
+  const confetti = (()=>{
+    const pos0 = new Float32Array(CONF_N*3), vel = new Float32Array(CONF_N*3),
+          birth = new Float32Array(CONF_N).fill(-99), colA = new Float32Array(CONF_N*3);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('aPos0', new THREE.BufferAttribute(pos0, 3));
+    g.setAttribute('aVel', new THREE.BufferAttribute(vel, 3));
+    g.setAttribute('aBirth', new THREE.BufferAttribute(birth, 1));
+    g.setAttribute('aCol', new THREE.BufferAttribute(colA, 3));
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(CONF_N*3), 3)); // required by three
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {uTime: {value: 0}, uPx: {value: renderer.getPixelRatio()}},
+      vertexShader: [
+        'attribute vec3 aPos0; attribute vec3 aVel; attribute float aBirth; attribute vec3 aCol;',
+        'uniform float uTime; uniform float uPx; varying vec3 vCol; varying float vK;',
+        'void main(){',
+        '  float age = uTime - aBirth;',
+        '  float k = age/' + CONF_LIFE.toFixed(2) + ';',
+        '  vK = k; vCol = aCol;',
+        '  if (k < 0.0 || k > 1.0){ gl_Position = vec4(0.0,0.0,-3.0,1.0); gl_PointSize = 0.0; return; }',
+        '  vec3 p = aPos0 + aVel*age;',
+        '  p.y -= 4.2*age*age;',
+        '  p.x += 0.4*sin(age*9.0 + aBirth*13.0);',
+        '  p.z += 0.4*cos(age*7.0 + aBirth*17.0);',
+        '  vec4 mv = modelViewMatrix * vec4(p, 1.0);',
+        '  gl_PointSize = mix(8.0, 2.5, k) * uPx * (26.0 / max(1.0, -mv.z));',
+        '  gl_Position = projectionMatrix * mv;',
+        '}'].join('\n'),
+      fragmentShader: [
+        'varying vec3 vCol; varying float vK;',
+        'void main(){',
+        '  if (vK < 0.0 || vK > 1.0) discard;',
+        '  gl_FragColor = vec4(vCol, 1.0 - vK*vK);',
+        '}'].join('\n'),
+      transparent: true, depthWrite: false});
+    const pts = new THREE.Points(g, mat);
+    pts.frustumCulled = false; scene.add(pts);
+    return {g, mat, cursor: 0, pos0, vel, birth, colA};
+  })();
+  let sceneT = 0;
+  const confPalette = PLAYERS.map(p => new THREE.Color(p.color)).concat(
+    [new THREE.Color(0x34e1ff), new THREE.Color(0xff4ed5), new THREE.Color(0xffffff)]);
+  function burstConfetti(cx, cy, cz, n, power){
+    for (let i = 0; i < n; i++){
+      const j = confetti.cursor; confetti.cursor = (confetti.cursor + 1) % CONF_N;
+      const a = Math.random()*Math.PI*2, r = Math.random();
+      confetti.pos0[j*3] = cx; confetti.pos0[j*3+1] = cy; confetti.pos0[j*3+2] = cz;
+      confetti.vel[j*3]   = Math.cos(a)*r*power;
+      confetti.vel[j*3+1] = (2.4 + Math.random()*2.6)*(power*0.5);
+      confetti.vel[j*3+2] = Math.sin(a)*r*power;
+      confetti.birth[j] = sceneT + Math.random()*0.12;
+      const c = confPalette[(Math.random()*confPalette.length)|0];
+      confetti.colA[j*3] = c.r*1.5; confetti.colA[j*3+1] = c.g*1.5; confetti.colA[j*3+2] = c.b*1.5;
+    }
+    confetti.g.attributes.aPos0.needsUpdate = true;
+    confetti.g.attributes.aVel.needsUpdate = true;
+    confetti.g.attributes.aBirth.needsUpdate = true;
+    confetti.g.attributes.aCol.needsUpdate = true;
+  }
+  const pendingBursts = [];
+
+  // ---- composer: render -> bloom (linear HDR) -> output (ACES + sRGB) --------
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.55, 0.45, 0.2);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.7, 0.5, 0.85);
   composer.addPass(bloom);
+  composer.addPass(new OutputPass());
+  let bloomScale = isMobile ? 0.5 : 1;
 
-  let runPhase = 0;
+  // ---- cinematic camera state -------------------------------------------------
+  let introT = reduceMotion ? 1 : 0;
+  const introFrom = new THREE.Vector3(-30, 24, portrait ? 20 : 26);
+  const introLookFrom = new THREE.Vector3(12, 1.2, 0);
+  const introTo = camera.position.clone();
+  const introLookTo = controls.target.clone();
+  if (introT < 1){ camera.position.copy(introFrom); controls.target.copy(introLookFrom); controls.enabled = false; }
+  const killIntro = ()=>{ if (introT < 1){ introT = 1; } };
+  canvas.addEventListener('pointerdown', killIntro, {passive: true});
+  canvas.addEventListener('wheel', killIntro, {passive: true});
+  const easeInOut = k => k < 0.5 ? 4*k*k*k : 1 - Math.pow(-2*k + 2, 3)/2;
+  let driftPrevY = 0, driftPrevZ = 0;
+  let finaleWas = false, savedDist = 0;   // undo the finale dolly-in when scrubbing back
+
+  // ---- perf: one-way degrade ratchet ------------------------------------------
+  let perfAcc = 0, perfN = 0, degradeLvl = 0;
+  function applyResolution(){
+    renderer.setPixelRatio(Math.min(devicePixelRatio, dprCap));
+    composer.setPixelRatio(renderer.getPixelRatio());
+    resize();
+    confetti.mat.uniforms.uPx.value = renderer.getPixelRatio();
+  }
+  function degrade(){
+    degradeLvl++;
+    if (degradeLvl === 1){ bloomScale *= 0.5; resize(); }
+    else if (degradeLvl === 2 && crowd){ crowd.count = Math.floor(crowd.count*0.5); }
+    else if (degradeLvl === 3){
+      if (sun){ sun.castShadow = false; renderer.shadowMap.enabled = false; }
+      dprCap = 1.25; applyResolution();
+    }
+  }
+
+  let runPhase = 0, prevLead = null, prevScored = 0, excite = 0, nextFinaleBurst = 0;
+  const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3();
   tick = function(dt){
     runPhase += (dt||16) * (playing ? 0.02*SPEEDS[speedIdx] : 0.007);
+    sceneT += (dt||16)/1000;
     const t = interpTotals();
     let sumX = 0;
     for (const r of runners){
       const id = r.p.id;
       const x = xOf(t[id]||0); sumX += x;
       const z = laneZ(laneIndex[id]); // fixed lane — overtakes show as forward distance only
+      if (r.lastX === null) r.lastX = x;
+      const spd = x - r.lastX; r.lastX = x;
       const ph = runPhase + r.phase;
       const sw = Math.sin(ph);
       // run cycle blends into a springy two-footed jump with arms thrown overhead as `celebrate` ramps up
@@ -1088,22 +1442,57 @@ requestAnimationFrame(frame);
       const jump = Math.abs(Math.sin(runPhase*0.9 + r.phase)) * 0.9;
       const bob = Math.abs(sw)*0.10*run + jump*celebrate;
       r.rn.g.position.set(x, bob, z);
-      r.rn.legL.rotation.z =  sw*0.7*run; r.rn.legR.rotation.z = -sw*0.7*run;
-      r.rn.armL.rotation.z = (-sw*0.5)*run + ( 2.7)*celebrate;
-      r.rn.armR.rotation.z = ( sw*0.5)*run + (-2.7)*celebrate;
-      // push torso point into trail ring buffer
-      const arr = r.positions, yy = 1.05 + bob;
-      if (r.filled < TRAIL) { const k=r.filled*3; arr[k]=x; arr[k+1]=yy; arr[k+2]=z; r.filled++; }
-      else { arr.copyWithin(0, 3); const k=(TRAIL-1)*3; arr[k]=x; arr[k+1]=yy; arr[k+2]=z; }
-      r.trail.geometry.setDrawRange(0, r.filled);
-      r.trail.geometry.attributes.position.needsUpdate = true;
+      // forward lean grows with speed — big point jumps read as a sprint
+      const targetLean = 0.10 + Math.min(0.30, Math.max(0, spd*2.2));
+      r.lean += (targetLean - r.lean)*0.08;
+      r.rn.g.rotation.z = -r.lean*run;
+      r.rn.g.rotation.x = sw*0.04*run;
+      // legs: hips swing, knee flexes as the leg recovers forward
+      r.rn.legL.hip.rotation.z =  sw*0.85*run;
+      r.rn.legR.hip.rotation.z = -sw*0.85*run;
+      r.rn.legL.knee.rotation.z = -Math.max(0,  Math.sin(ph + Math.PI*0.5))*1.15*run - 0.08;
+      r.rn.legR.knee.rotation.z = -Math.max(0, -Math.sin(ph + Math.PI*0.5))*1.15*run - 0.08;
+      // arms counter-swing with a fixed elbow bend; thrown overhead in celebration
+      r.rn.armL.hip.rotation.z = (-sw*0.6)*run + ( 2.7)*celebrate;
+      r.rn.armR.hip.rotation.z = ( sw*0.6)*run + (-2.7)*celebrate;
+      r.rn.armL.knee.rotation.z = 0.95*run + 0.15;
+      r.rn.armR.knee.rotation.z = 0.95*run + 0.15;
+      if (r.blob){ r.blob.position.x = x; r.blob.position.z = z; }
+      // label floats above the runner: heavy low-pass kills run-cycle jitter but
+      // still lets it rise gently with the celebration jump
+      r.labelY += ((3.77 + bob*0.8) - r.labelY) * 0.05;
+      r.label.position.set(x, r.labelY, z);
+      // push torso point into the trail ribbon ring buffer (two verts per sample) —
+      // only while actually moving, so a paused race keeps its trails as a motion history
+      const arr = r.trail.positions, yy = 1.05 + bob;
+      if (r.lastPushX === undefined || Math.abs(x - r.lastPushX) > 0.02){
+        r.lastPushX = x;
+        if (r.filled < TRAIL){
+          const k = r.filled*6;
+          arr[k]=x; arr[k+1]=yy; arr[k+2]=z-TRAIL_HW; arr[k+3]=x; arr[k+4]=yy; arr[k+5]=z+TRAIL_HW;
+          r.filled++;
+        } else {
+          arr.copyWithin(0, 6);
+          const k = (TRAIL-1)*6;
+          arr[k]=x; arr[k+1]=yy; arr[k+2]=z-TRAIL_HW; arr[k+3]=x; arr[k+4]=yy; arr[k+5]=z+TRAIL_HW;
+        }
+        r.trail.mesh.geometry.setDrawRange(0, Math.max(0, r.filled-1)*6);
+        r.trail.mesh.geometry.attributes.position.needsUpdate = true;
+      }
     }
     // football glides to a spot just ahead of the current leader; on a lead change the target
     // jumps to the new lane and the ball rolls across to it — reads as a pass between players.
     // Once the race settles on its final step, the leader buries the ball in the finish net.
+    let leadId = null;
     if (runners.length){
-      let leadId = null, leadX = -Infinity;
+      let leadX = -Infinity;
       for (const r of runners){ const x = xOf(t[r.p.id]||0); if (x > leadX){ leadX = x; leadId = r.p.id; } }
+      // confetti pops over a lead change (but not during the finale shot)
+      if (prevLead !== null && leadId !== prevLead && shotProg <= 0 && leadX > 0.5){
+        burstConfetti(leadX, 3.2, laneZ(laneIndex[leadId]), 80, 2.6);
+        excite = Math.max(excite, 0.55);
+      }
+      prevLead = leadId;
       const tx = leadX + BALL_AHEAD, tz = laneZ(laneIndex[leadId]);
       if (ballX === null){ ballX = tx; ballZ = tz; lastBX = tx; lastBZ = tz; } // first frame
       const atEnd = (cur >= NSTEP-1) && (prog >= 1);
@@ -1127,37 +1516,103 @@ requestAnimationFrame(frame);
           by = BALL_R + Math.sin(Math.PI*0.5*k) * 1.3;    // ~1.75 high at the line, well under the crossbar
         } else {
           const k = (shotProg - eg) / (1 - eg);
-          bx = goalX + (endX - goalX) * k;
+          bx = goalX + 1.55 * Math.min(1, k*2.2);         // bury it in the sagging net, not through it
           bz = 0;
-          by = (BALL_R + 1.3) + k * 4.0;                  // rise and sail off past the net
+          by = (BALL_R + 1.3) - k * 1.0;                  // drop into the rippling net
         }
         ballX = bx; ballZ = bz;
       }
       // crowd erupts the instant the ball crosses the goal line; smooth ramp so the jump kicks in cleanly
       const scored = shotProg > 0 && bx >= (TRACK_LEN + GOAL_OFF - 0.3) ? 1 : 0;
+      if (scored === 1 && prevScored === 0){
+        nets[1].ripT = 0;                        // net ripple
+        goalFlash.intensity = 900;               // white pop at the goal mouth
+        burstConfetti(TRACK_LEN + GOAL_OFF - 1, 2.6, 0, 160, 3.4);
+        nextFinaleBurst = sceneT + 0.5;
+      }
+      prevScored = scored;
+      // the party keeps going for as long as the race sits on its final step
+      if (celebrate > 0.5 && sceneT >= nextFinaleBurst){
+        nextFinaleBurst = sceneT + 0.75 + Math.random()*0.5;
+        const gx = TRACK_LEN + GOAL_OFF;
+        burstConfetti(gx - 3 - Math.random()*9, 2.5 + Math.random()*2, (Math.random()-0.5)*12, 90, 2.9);
+      }
       celebrate += (scored - celebrate) * 0.06;
       ball.visible = true;
       ball.position.set(bx, by, bz);
+      if (ballBlob){ ballBlob.visible = true; ballBlob.position.x = bx; ballBlob.position.z = bz; }
       const dx = bx - lastBX, dz = bz - lastBZ, dist = Math.hypot(dx, dz);
-      if (dist > 1e-4) ball.rotateOnWorldAxis(new THREE.Vector3(dz,0,-dx).normalize(), dist/BALL_R); // roll
+      if (dist > 1e-4){ _v1.set(dz, 0, -dx).normalize(); ball.rotateOnWorldAxis(_v1, dist/BALL_R); } // roll
       lastBX = bx; lastBZ = bz;
     }
+    // scheduled finale bursts
+    while (pendingBursts.length && pendingBursts[0].t <= sceneT){
+      const b = pendingBursts.shift();
+      burstConfetti(b.x, b.y, b.z, 90, 2.8);
+    }
+    confetti.mat.uniforms.uTime.value = sceneT;
+    goalFlash.intensity *= Math.pow(0.93, (dt||16)/16);
+    updateNets(dt||16);
+    // crowd: idle sway always; jumps on celebration or a lead-change flash of excitement
+    excite = Math.max(0, excite - (dt||16)/2600);
+    crowdUni.uTime.value = sceneT;
+    crowdUni.uJump.value = Math.max(celebrate, excite);
     // keep the camera framing the moving pack
     const meanX = runners.length ? sumX/runners.length : TRACK_LEN/2;
-    // follow the pack by PANNING — shift target and camera by the same delta — so the user's own
-    // rotation/zoom is preserved; skip entirely while they're dragging so the gesture isn't fought.
-    if (!userInteracting){
-      const dxPan = (meanX - controls.target.x) * 0.05;
-      controls.target.x += dxPan;
-      camera.position.x += dxPan;
+    if (sun){ sun.position.x = meanX + 14; sun.target.position.x = meanX; }
+    if (introT < 1){
+      // intro fly-in: high behind the start goal, easing into the side view
+      introT = Math.min(1, introT + (dt||16)/2500);
+      const e = easeInOut(introT);
+      camera.position.lerpVectors(introFrom, introTo, e);
+      controls.target.lerpVectors(introLookFrom, introLookTo, e);
+      if (introT >= 1) controls.enabled = true;
+    } else if (!userInteracting){
+      if (celebrate > 0.2 && leadId){
+        // finale: glide in front of the winner so the lit stadium fills the background
+        if (!finaleWas){ finaleWas = true; savedDist = camera.position.distanceTo(controls.target); }
+        const wz = laneZ(laneIndex[leadId]);
+        const wx = xOf(t[leadId]||0);
+        _v1.set(wx, 1.8, wz);
+        controls.target.lerp(_v1, 0.03);
+        _v2.set(wx + 12 + Math.sin(sceneT*0.28)*3, 6.8 + Math.sin(sceneT*0.2)*1.1, wz + 13 + Math.cos(sceneT*0.28)*3);
+        camera.position.lerp(_v2, 0.028);
+      } else {
+        // scrubbed back out of the finale: ease the camera back to its pre-finale distance
+        if (finaleWas){
+          _v2.copy(camera.position).sub(controls.target);
+          const len = _v2.length(), want = len + (savedDist - len)*0.04;
+          camera.position.copy(controls.target).add(_v2.multiplyScalar(want/len));
+          if (Math.abs(savedDist - len) < 0.8) finaleWas = false;
+        }
+        // follow the pack by PANNING — shift target and camera by the same delta — so the user's own
+        // rotation/zoom is preserved; skip entirely while they're dragging so the gesture isn't fought.
+        const dxPan = (meanX - controls.target.x) * 0.05;
+        controls.target.x += dxPan;
+        camera.position.x += dxPan;
+        if (!reduceMotion){
+          // idle drift: a slow breathing of the camera so the frame never feels frozen
+          const dy = Math.sin(sceneT*0.30)*0.8, dz = Math.cos(sceneT*0.21)*1.1;
+          camera.position.y += dy - driftPrevY; camera.position.z += dz - driftPrevZ;
+          driftPrevY = dy; driftPrevZ = dz;
+        }
+      }
     }
     controls.update();
+    // one-way perf ratchet: if a rolling window averages worse than ~38 fps, shed cost
+    perfAcc += (dt||16); perfN++;
+    if (perfN >= 120){
+      const avg = perfAcc/perfN; perfAcc = 0; perfN = 0;
+      if (avg > 26 && degradeLvl < 3) degrade();
+    }
     composer.render();
   };
 
   function resize(){
     camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
+    renderer.setSize(innerWidth, innerHeight);
+    composer.setSize(innerWidth, innerHeight);
+    bloom.setSize(innerWidth*bloomScale, innerHeight*bloomScale);
   }
   addEventListener('resize', resize); resize();
 })();
