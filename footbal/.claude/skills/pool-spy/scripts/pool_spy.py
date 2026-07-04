@@ -74,6 +74,14 @@ def load_dotenv():
         return
 
 
+# The Azure API intermittently refuses a connection (or returns 429/5xx) during a full
+# collect's burst of ~dozens of sequential calls; a single blip used to abort the whole
+# run. Retry transient failures with exponential backoff before giving up. 401/403 (stale
+# token) and other 4xx are permanent — fail fast, no retry.
+API_RETRIES = 4          # total attempts per call
+API_BACKOFF = 0.6        # seconds; grows 0.6 → 1.2 → 2.4 between attempts
+
+
 def api_get(path, params, token):
     url = f"{API_BASE}{path}?{urllib.parse.urlencode(params)}"
     req = urllib.request.Request(url, headers={
@@ -83,23 +91,34 @@ def api_get(path, params, token):
         "Referer": ORIGIN + "/",
         "content-type": "application/json",
     })
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            return json.loads(resp.read().decode())
-    except urllib.error.HTTPError as e:
-        if e.code in (401, 403):
-            sys.exit(
-                f"error: API rejected the token (HTTP {e.code}). The Bearer token is "
-                "short-lived (~10h) — grab a fresh one from the browser:\n"
-                "  DevTools -> Network -> any request to footballpool-api-prd -> "
-                "copy the Authorization header value (after 'Bearer ').\n"
-                "Then re-run with --token <token> (or set POOL_API_TOKEN in .env)."
-            )
-        if e.code == 429:
-            sys.exit("error: rate limited (HTTP 429). Wait a moment and retry.")
-        sys.exit(f"error: HTTP {e.code} for {url}: {e.read().decode()[:300]}")
-    except urllib.error.URLError as e:
-        sys.exit(f"error: cannot reach the API ({e.reason}). Check your connection.")
+    for attempt in range(API_RETRIES):
+        last = attempt == API_RETRIES - 1
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                return json.loads(resp.read().decode())
+        except urllib.error.HTTPError as e:
+            if e.code in (401, 403):
+                sys.exit(
+                    f"error: API rejected the token (HTTP {e.code}). The Bearer token is "
+                    "short-lived (~10h) — grab a fresh one from the browser:\n"
+                    "  DevTools -> Network -> any request to footballpool-api-prd -> "
+                    "copy the Authorization header value (after 'Bearer ').\n"
+                    "Then re-run with --token <token> (or set POOL_API_TOKEN in .env)."
+                )
+            transient = e.code == 429 or 500 <= e.code < 600
+            if transient and not last:
+                time.sleep(API_BACKOFF * (2 ** attempt))
+                continue
+            if e.code == 429:
+                sys.exit("error: rate limited (HTTP 429) after retries. Wait a moment and retry.")
+            sys.exit(f"error: HTTP {e.code} for {url}: {e.read().decode()[:300]}")
+        except urllib.error.URLError as e:
+            # connection refused / reset / timeout — transient, retry
+            if not last:
+                time.sleep(API_BACKOFF * (2 ** attempt))
+                continue
+            sys.exit(f"error: cannot reach the API ({e.reason}) after {API_RETRIES} "
+                     "attempts. Check your connection.")
 
 
 def fetch_participants(token, pool_id):
